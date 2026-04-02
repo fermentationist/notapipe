@@ -1,0 +1,30 @@
+Third-Party Notices
+===================
+
+This software includes components from the following open-source projects.
+
+
+zxing-wasm
+----------
+Used for QR code scanning in browsers that do not support the BarcodeDetector API.
+
+Copyright 2023 Sec-ant
+https://github.com/Sec-ant/zxing-wasm
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+ZXing ("Zebra Crossing") — the underlying barcode library compiled to WebAssembly:
+
+Copyright 2008 ZXing authors
+https://github.com/zxing/zxing
+
+Licensed under the Apache License, Version 2.0.
+
+
+All other dependencies (svelte, yjs, y-protocols, qrcode, ws) are licensed
+under the MIT License. Their full license texts are available in
+node_modules/<package>/LICENSE once dependencies are installed.
