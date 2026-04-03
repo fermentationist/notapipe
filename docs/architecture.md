@@ -338,6 +338,7 @@ The Vite dev server needs `historyApiFallback: true`. Production (Netlify/Vercel
 #### Key Exports (`src/id/generate.ts`)
 
 - `generateId(): string` — generates a fresh random 3-word ID
+- `generatePassphrase(): string` — generates a random 2-word passphrase for geo mode
 - `geoId(coords: GeolocationCoordinates): Promise<string>` — derives a 3-word ID from coordinates
 - `parseId(pathname: string): string | null` — extracts ID from URL path
 - `isValidId(id: string): boolean` — validates against wordlist
@@ -361,6 +362,7 @@ Server → Client:
   { type: "peer-left",   roomId: string, peerId: string }
   { type: "signal",      roomId: string, from: string, payload: SdpPayload | IcePayload }
   { type: "room-full",   roomId: string }
+  { type: "rate-limited" }
   { type: "pong" }
 ```
 
@@ -374,6 +376,14 @@ Where:
 - Rooms stored in `Map<string, { peers: Map<string, WebSocket> }>`.
 - On disconnect: broadcast `peer-left` to remaining peers, clean up empty rooms.
 - No persistence — rooms live only in memory.
+
+#### Rate Limiting
+
+The server tracks `join` attempts per IP address using a sliding window. Exceeding the limit closes the connection with a `rate-limited` message. This defends against online brute-force of geo mode passphrase-derived room IDs.
+
+- Limit: 10 `join` attempts per IP per minute
+- State: `Map<string, number[]>` of IP → timestamps, pruned on each check
+- No external dependency (no Redis, no middleware) — pure in-memory sliding window
 
 #### Security Note
 
@@ -802,21 +812,23 @@ This reuses the existing wordlist and is ~40 lines of TypeScript using `crypto.s
 
 The UI displays the current accuracy reading and active cell size so both parties can confirm they are on the same tier. Two devices that resolve to different precision tiers will not produce matching IDs — the display makes this immediately visible.
 
-Because anyone within the same cell derives the same 3-word phrase, a PIN is required to prevent nearby snooping. The PIN is never transmitted — it is incorporated into the signalling room ID itself:
+Because anyone within the same cell derives the same 3-word phrase, a passphrase is required to prevent nearby snooping. The passphrase is never transmitted — it is incorporated into the signalling room ID itself:
 
 ```
-geo words:          "apple-river-moon"   ← shown in URL and UI
-user enters PIN:    "7742"
+geo words:            "apple-river-moon"    ← shown in URL and UI
+user passphrase:      "forest-table"        ← randomly generated, 2 words
 
-signalling room ID: SHA-256("apple-river-moon" + "7742")
-                    → "a3f8c2d1e4b..."   ← sent to server, never shown to user
+signalling room ID:   SHA-256("apple-river-moon" + "forest-table")
+                      → "a3f8c2d1e4b..."    ← sent to server, never shown to user
 ```
 
-This means geo users and random users can never collide on the signalling server: a random user who generates `/apple-river-moon` joins the `apple-river-moon` room; the geo users are in the SHA-256-derived room. A wrong PIN lands in a different room entirely — no post-connection verification step needed.
+The passphrase is **randomly generated** from 2 words drawn from the existing 2048-word list (2048² ≈ 4.2 million combinations — stronger than a 6-digit PIN). A refresh button generates a new one. Users can also type a custom passphrase. Both peers enter the same passphrase independently on their own devices; a mismatch lands them in a different room with no error, preserving privacy.
 
-The raw SHA-256 hex string is used as the signalling room ID directly. Converting it back to a 3-word phrase would compress 256 bits to ~33 bits and reintroduce hash collisions, so it is left as-is. The server never exposes room IDs to clients, so the format is invisible to users.
+This means geo users and random users can never collide on the signalling server: a random user who generates `/apple-river-moon` joins the `apple-river-moon` room; the geo users are in the SHA-256-derived room. A wrong passphrase lands in a different room entirely — no post-connection verification step needed.
 
-**Collision notes (geo words only)**: With a hash-based mapping across 2048³ ≈ 8.6 billion possible word triples, geo word collisions are negligible locally — at 11m precision the probability that any cell within 1km hashes to your same word triple is roughly 1-in-330,000. The PIN-derived signalling room ID has effectively zero collision probability.
+The raw SHA-256 hex string is used as the signalling room ID directly. Converting it back to words would compress 256 bits to ~33 bits and reintroduce collisions, so it is left as-is. The server never exposes room IDs to clients, so the format is invisible to users.
+
+**Collision notes (geo words only)**: With a hash-based mapping across 2048³ ≈ 8.6 billion possible word triples, geo word collisions are negligible locally — at 11m precision the probability that any cell within 1km hashes to your same word triple is roughly 1-in-330,000. The passphrase-derived signalling room ID has effectively zero collision probability.
 
 ### 8.7 Encrypted Solo Mode
 
