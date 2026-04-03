@@ -72,23 +72,28 @@ notapipe/
 │   │       ├── rtc/
 │   │       │   ├── peer.ts       ← thin WebRTC wrapper + SignalTransport interface
 │   │       │   ├── signalling.ts ← WebSocket signalling client
-│   │       │   └── qr-mode/
-│   │       │       ├── sdp-codec.ts    ← SDP compress/decompress
-│   │       │       ├── qr-display.ts   ← renders QR to canvas
-│   │       │       └── qr-scanner.ts   ← camera/scan UI
+│   │       │   └── qr_mode/
+│   │       │       ├── sdp_codec.ts    ← SDP compress/decompress
+│   │       │       ├── qr_display.ts   ← renders QR to canvas
+│   │       │       └── qr_scanner.ts   ← camera/scan UI
 │   │       ├── yjs/
 │   │       │   ├── provider.ts   ← custom Yjs WebRTC provider
 │   │       │   └── awareness.ts  ← (v2) remote cursor/presence
 │   │       ├── ui/
-│   │       │   ├── Editor.svelte         ← textarea bound to Y.Text
+│   │       │   ├── Editor.svelte           ← textarea bound to Y.Text
 │   │       │   ├── ConnectionStatus.svelte
-│   │       │   ├── QrFlow.svelte         ← QR mode UI flow
-│   │       │   └── Settings.svelte       ← theme picker + focus mode toggle
+│   │       │   ├── QrFlow.svelte           ← QR mode UI flow
+│   │       │   └── Settings.svelte         ← theme picker + focus mode toggle
+│   │       ├── lib/
+│   │       │   └── constants/
+│   │       │       ├── webrtc_config.ts    ← ICE servers, timeouts, channel name
+│   │       │       ├── qr_codec.ts         ← magic bytes, version, packet offsets
+│   │       │       └── geo_config.ts       ← precision tiers, accuracy thresholds
 │   │       ├── themes/
-│   │       │   ├── light.json            ← built-in light theme
-│   │       │   └── dark.json             ← built-in dark theme
+│   │       │   ├── light.json              ← built-in light theme
+│   │       │   └── dark.json               ← built-in dark theme
 │   │       ├── stores/
-│   │       │   └── ui.ts                 ← focusMode, activeTheme Svelte stores
+│   │       │   └── ui.ts                   ← focusMode, activeTheme Svelte stores
 │   │       └── style.css
 │   │
 │   └── signalling/               ← Node.js WebSocket server
