@@ -571,32 +571,50 @@ CSS-only colored dot:
 
 #### Focus Mode
 
-A distraction-free mode that hides everything except the textarea. Activated by double-clicking the textarea or pressing `F` (when the textarea is not focused). Exited with `Escape` or by moving the mouse to the top edge of the viewport (reveals a minimal exit button).
+A distraction-free mode inspired by [scratchpad](https://post-content.github.io/scratchpad/). Truly zero chrome — the entire header, connection buttons, status indicator, and settings all disappear. Only the textarea remains, filling the full viewport.
 
-In focus mode: header, connection buttons, status indicator, and settings are all hidden. The textarea fills the full viewport. Implemented as a `focusMode` Svelte store; a CSS class on the root element handles the visual transition.
+Activated by double-clicking the textarea or pressing `F` (when the textarea is not focused). Exited with `Escape`. Implemented as a `focusMode` Svelte store; a CSS class on the root element handles the transition.
+
+#### Typography and Texture
+
+- **Editor font**: IBM Plex Mono (Google Fonts), weight 300–400. Used for both the textarea and UI labels.
+- **Ruled lines**: Pure CSS — `repeating-linear-gradient` synced pixel-perfectly to the textarea's `line-height`. No JS, no images:
+  ```css
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent, transparent calc(var(--line-height) - 1px),
+    var(--color-rule) calc(var(--line-height) - 1px),
+    var(--color-rule) var(--line-height)
+  );
+  background-attachment: local;
+  ```
+- **Grain texture**: Subtle SVG noise filter at ~3.5% opacity layered over the background. Adds tactile depth without visual weight.
 
 #### Theming
 
 All colors are defined as CSS custom properties on `:root`. Two built-in themes (light and dark) ship as JSON configs. Users can supply their own theme as a JSON object with the same property set, pasted or imported via the settings panel. The active theme config is stored in `localStorage` (theme data only — not document content).
 
-Minimal theme shape:
+The default **light theme** uses a warm paper palette:
+
 ```json
 {
-  "name": "forest",
-  "--color-bg": "#1a2e1a",
-  "--color-surface": "#243824",
-  "--color-text": "#c8e6c8",
-  "--color-text-muted": "#7aab7a",
-  "--color-accent": "#4caf50",
-  "--color-border": "#2d4a2d",
-  "--color-status-waiting": "#7aab7a",
-  "--color-status-connecting": "#f0c040",
+  "name": "light",
+  "--color-bg": "#f5f0e8",
+  "--color-surface": "#ede8df",
+  "--color-text": "#1a1a18",
+  "--color-text-muted": "#b8b2a6",
+  "--color-accent": "#c0392b",
+  "--color-rule": "#d4cfc4",
+  "--color-border": "#d4cfc4",
+  "--color-status-waiting": "#b8b2a6",
+  "--color-status-connecting": "#e0a030",
   "--color-status-connected": "#4caf50",
-  "--color-status-error": "#e05555"
+  "--color-status-error": "#c0392b",
+  "--line-height": "28px"
 }
 ```
 
-Theme application is a single `Object.entries(theme).forEach(([k, v]) => root.style.setProperty(k, v))`. Light/dark auto-detection uses `prefers-color-scheme` as the initial default, overridden by any explicit user selection stored in `localStorage`.
+Theme application is a single `Object.entries(theme).forEach(([k, v]) => root.style.setProperty(k, v))`. `prefers-color-scheme` sets the initial default, overridden by any explicit user selection stored in `localStorage`.
 
 #### QR Mode UI Flow
 
