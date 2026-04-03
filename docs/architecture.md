@@ -519,24 +519,26 @@ Built with Svelte 5 components. Minimal CSS. Mobile-first responsive layout.
 No upfront modal. The textarea and room ID are immediately visible on load with no prompts. Connection actions are contextual — shown below the textarea until a peer connects, then hidden. A settings icon in the header opens the theme/focus controls.
 
 ```
-┌─────────────────────────────────────────┐
-│  notapipe          [●] waiting   [⚙]    │
-│  apple-river-moon  [📋]                  │
-├─────────────────────────────────────────┤
-│                                          │
-│  ┌───────────────────────────────────┐  │
-│  │                                   │  │
-│  │   (textarea — full height)        │  │
-│  │                                   │  │
-│  └───────────────────────────────────┘  │
-│                                          │
-│  [Share link]  [Connect nearby]  [Air-gapped ↗] │
-└─────────────────────────────────────────┘
+┌──────────────────────────────────────────────────┐
+│  notapipe              [●] waiting   [↓] [↑] [⚙] │
+│  apple-river-moon  [📋]                            │
+├──────────────────────────────────────────────────┤
+│                                                    │
+│  ┌─────────────────────────────────────────────┐  │
+│  │                                             │  │
+│  │   (textarea — full height)                  │  │
+│  │                                             │  │
+│  └─────────────────────────────────────────────┘  │
+│                                                    │
+│  [Share link]  [Connect nearby]  [Air-gapped ↗]   │
+└──────────────────────────────────────────────────┘
 ```
 
 - **Share link / Connect**: connects to the signalling server. Label adapts to context: "Share link" on a freshly generated room (also copies the URL to clipboard); "Connect" when arriving via a shared link. No permissions needed, but requires an explicit tap.
 - **Connect nearby**: requests geolocation permission (the only point in the app where this happens), derives a geo room ID, navigates to its URL, prompts for PIN, then connects via signalling server.
 - **Air-gapped**: opens the QR flow overlay for offline/serverless connection.
+- **[↓] Export**: downloads the document as a `.txt` file (Note mode) or with the appropriate extension in Code mode. Uses `Blob` + `URL.createObjectURL` + a hidden `<a download>` — no dependencies.
+- **[↑] Share**: opens the OS native share sheet via the Web Share API (`navigator.share({ files: [file] })`). Allows sending content via email, Messages, AirDrop, or any app registered to handle text files. Hidden when `navigator.canShare()` returns false (primarily affects some desktop browsers); export covers that gap.
 
 **No server calls are made without explicit user action.** The app makes zero network requests on page load, whether the user generated the room or arrived via a shared link. The room ID is always available in the URL; a copy icon sits next to it in the header.
 
@@ -680,6 +682,8 @@ Step 2 activates the camera. Once a valid QR is scanned, connection proceeds aut
 5. Clipboard copy button for room URL
 6. "Waiting for peer..." state
 7. Graceful disconnect handling
+8. Export to file (Blob + `<a download>`)
+9. Web Share API integration with `navigator.canShare()` feature detection
 
 ### Phase 7: Deployment
 
