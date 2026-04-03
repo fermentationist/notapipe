@@ -24,8 +24,9 @@
    - [8.6 Geo-Based Room IDs (what3words)](#86-geo-based-room-ids-what3words)
    - [8.7 Encrypted Solo Mode](#87-encrypted-solo-mode)
    - [8.8 Collaborative Code Editor](#88-collaborative-code-editor)
-   - [8.9 Symmetric QR Exchange (QWBP-style)](#89-symmetric-qr-exchange-qwbp-style)
-   - [8.10 PWA / Installable](#810-pwa--installable)
+   - [8.9 Markdown Preview Mode](#89-markdown-preview-mode)
+   - [8.10 Symmetric QR Exchange (QWBP-style)](#810-symmetric-qr-exchange-qwbp-style)
+   - [8.11 PWA / Installable](#811-pwa--installable)
 9. [Summary of Dependencies](#9-summary-of-dependencies)
 
 ---
@@ -804,9 +805,11 @@ Note: passkey decryption is tied to the device's platform authenticator by defau
 
 ### 8.8 Collaborative Code Editor
 
-A code editing mode built on **CodeMirror 6** + **`y-codemirror.next`**, lazy-loaded entirely on demand so the main bundle is unaffected.
+The app has three editor modes toggled via a header control: **Note** (plain textarea, v1), **Code** (CodeMirror 6, v2), and **Preview** (rendered markdown, v2). "Note mode" is the term for the current plain-text experience — distinct from "code editor" and consistent with the app name.
 
-The user toggles between text mode and code mode via a button in the header. The mode switch is synced between peers via a `Y.Map("meta")` entry so both sides switch together. The underlying `Y.Text("content")` is reused — no document state is lost when switching modes.
+The Code editor mode is built on **CodeMirror 6** + **`y-codemirror.next`**, lazy-loaded entirely on demand so the main bundle is unaffected.
+
+The switch between Note and Code modes is synced between peers via a `Y.Map("meta")` entry so both sides switch together (both peers need the same editor active to collaborate). The underlying `Y.Text("content")` is reused — no document state is lost when switching modes.
 
 **Bundle strategy:**
 
@@ -828,11 +831,26 @@ The user toggles between text mode and code mode via a button in the header. The
 - Multi-file / tabs
 - Diff view
 
-### 8.9 Symmetric QR Exchange (QWBP-style)
+### 8.9 Markdown Preview Mode
+
+A read-only rendered view of the `Y.Text("content")` document, activated by switching to **Preview** mode. Lazy-loads a ~31 KB chunk on first use; the main bundle is unaffected.
+
+| Chunk | Size (gzipped) | When loaded |
+|---|---|---|
+| `marked` | ~25 KB | On first switch to Preview mode |
+| `DOMPurify` | ~6 KB | Bundled with `marked` — required for safe `innerHTML` rendering |
+
+Preview re-renders on each Yjs document update. The source is always `Y.Text("content")` — no separate document or additional sync logic.
+
+**Preview mode is local, not synced between peers.** Each peer independently chooses their rendering view. Unlike Code mode (where both peers must have the same editor active), Preview is purely a read-only display concern and requires no coordination.
+
+On desktop, Preview renders as a split pane (write on the left, rendered output on the right). On mobile, the `[ Note ] [ Code ] [ Preview ]` toggle switches the full viewport between modes.
+
+### 8.10 Symmetric QR Exchange (QWBP-style)
 
 Both devices display and scan simultaneously, halving the time. More complex UI (camera + display active at once) and role determination by fingerprint comparison. See the QWBP article for the full protocol.
 
-### 8.10 PWA / Installable
+### 8.11 PWA / Installable
 
 Add `manifest.json` and a service worker that caches the app shell. Enables "Add to Home Screen" on mobile.
 
@@ -852,6 +870,8 @@ Add `manifest.json` and a service worker that caches the app shell. Enables "Add
 | `@codemirror/view` + `@codemirror/state` | Code editor core (v2) | ~40 KB — **lazy, only loaded when code mode activated** |
 | `y-codemirror.next` | Yjs binding for CodeMirror 6 (v2) | ~5 KB — **lazy, bundled with code editor chunk** |
 | `@codemirror/lang-*` | Language packs (v2) | ~5–20 KB each — **lazy, loaded per language selection** |
+| `marked` | Markdown parser (v2) | ~25 KB — **lazy, only loaded when Preview mode activated** |
+| `DOMPurify` | HTML sanitization for markdown output (v2) | ~6 KB — **lazy, bundled with `marked`** |
 
 No `simple-peer`. No `y-webrtc`.
 
