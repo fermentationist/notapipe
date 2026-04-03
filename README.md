@@ -37,6 +37,8 @@ The QR air-gapped WebRTC technique — semantically compressing an SDP offer int
 
 > [Air-gapped WebRTC: Breaking the QR Limit](https://magarcia.io/air-gapped-webrtc-breaking-the-qr-limit/)
 
+The focus mode aesthetic — warm paper palette, ruled lines, grain texture, IBM Plex Mono — is inspired by **Brandon Alvendia**'s [scratchpad](https://post-content.github.io/scratchpad/).
+
 The 3-word room ID wordlist is derived from the [EFF Long Wordlist](https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases), released into the public domain.
 
 ## License

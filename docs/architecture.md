@@ -23,10 +23,11 @@
    - [8.5 Persistent Sessions](#85-persistent-sessions)
    - [8.6 Geo-Based Room IDs (what3words)](#86-geo-based-room-ids-what3words)
    - [8.7 Encrypted Solo Mode](#87-encrypted-solo-mode)
-   - [8.8 Collaborative Code Editor](#88-collaborative-code-editor)
-   - [8.9 Markdown Preview Mode](#89-markdown-preview-mode)
-   - [8.10 Symmetric QR Exchange (QWBP-style)](#810-symmetric-qr-exchange-qwbp-style)
-   - [8.11 PWA / Installable](#811-pwa--installable)
+   - [8.8 Remote Presence (Cursors and Handles)](#88-remote-presence-cursors-and-handles)
+   - [8.9 Collaborative Code Editor](#89-collaborative-code-editor)
+   - [8.10 Markdown Preview Mode](#810-markdown-preview-mode)
+   - [8.11 Symmetric QR Exchange (QWBP-style)](#811-symmetric-qr-exchange-qwbp-style)
+   - [8.12 PWA / Installable](#812-pwa--installable)
 9. [Summary of Dependencies](#9-summary-of-dependencies)
 
 ---
@@ -78,7 +79,7 @@ notapipe/
 │   │       │       └── qr_scanner.ts   ← camera/scan UI
 │   │       ├── yjs/
 │   │       │   ├── provider.ts   ← custom Yjs WebRTC provider
-│   │       │   └── awareness.ts  ← (v2) remote cursor/presence
+│   │       │   └── awareness.ts  ← (v2) peer presence via y-protocols/awareness
 │   │       ├── ui/
 │   │       │   ├── Editor.svelte           ← textarea bound to Y.Text
 │   │       │   ├── ConnectionStatus.svelte
@@ -854,7 +855,35 @@ A single-device, encrypted notepad mode backed by IndexedDB. Content never leave
 
 Note: passkey decryption is tied to the device's platform authenticator by default. Cross-device access requires a cross-device passkey (iCloud Keychain, etc.) or passphrase-based encryption instead.
 
-### 8.8 Collaborative Code Editor
+### 8.8 Remote Presence (Cursors and Handles)
+
+Real-time peer presence using the **Yjs awareness protocol** (`y-protocols/awareness`), which is already a transitive dependency — zero additional bundle cost for the protocol itself.
+
+Each peer broadcasts ephemeral awareness state over the existing `RTCDataChannel`:
+
+```typescript
+{
+  user: {
+    handle: "wandering-fox",   // auto-generated from wordlist, editable by user
+    color: "#c0392b",          // assigned deterministically from peerId
+  },
+  cursor: {
+    anchor: number,            // character offset (selection start)
+    head: number,              // character offset (selection end / cursor position)
+  }
+}
+```
+
+Handles are auto-generated as a 1–2 word phrase from the existing wordlist on first visit and stored in `localStorage`. The user can edit their handle in the settings panel. Handle and assigned color are shown on a small label attached to the remote cursor.
+
+**Cursor rendering differs by mode:**
+
+- **Code mode**: full visual cursor and selection highlight rendering is built into `y-codemirror.next` — this works out of the box.
+- **Note mode**: a `<textarea>` does not expose its internal text layout, making cursor overlay unreliable across browsers. Instead, a subtle presence bar below the textarea shows each peer's handle and current line number: `wandering-fox — line 4`. This avoids fragile DOM measurement while still communicating presence.
+
+Awareness state is ephemeral — it lives only in memory and is not part of the Yjs document. A peer disappearing from the network automatically removes their presence indicator.
+
+### 8.9 Collaborative Code Editor
 
 The app has three editor modes toggled via a header control: **Note** (plain textarea, v1), **Code** (CodeMirror 6, v2), and **Preview** (rendered markdown, v2). "Note mode" is the term for the current plain-text experience — distinct from "code editor" and consistent with the app name.
 
@@ -882,7 +911,7 @@ The switch between Note and Code modes is synced between peers via a `Y.Map("met
 - Multi-file / tabs
 - Diff view
 
-### 8.9 Markdown Preview Mode
+### 8.10 Markdown Preview Mode
 
 A read-only rendered view of the `Y.Text("content")` document, activated by switching to **Preview** mode. Lazy-loads a ~31 KB chunk on first use; the main bundle is unaffected.
 
@@ -897,11 +926,11 @@ Preview re-renders on each Yjs document update. The source is always `Y.Text("co
 
 On desktop, Preview renders as a split pane (write on the left, rendered output on the right). On mobile, the `[ Note ] [ Code ] [ Preview ]` toggle switches the full viewport between modes.
 
-### 8.10 Symmetric QR Exchange (QWBP-style)
+### 8.11 Symmetric QR Exchange (QWBP-style)
 
 Both devices display and scan simultaneously, halving the time. More complex UI (camera + display active at once) and role determination by fingerprint comparison. See the QWBP article for the full protocol.
 
-### 8.11 PWA / Installable
+### 8.12 PWA / Installable
 
 Add `manifest.json` and a service worker that caches the app shell. Enables "Add to Home Screen" on mobile.
 
