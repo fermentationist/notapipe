@@ -576,9 +576,8 @@ A distraction-free mode inspired by [scratchpad](https://post-content.github.io/
 
 Activated by double-clicking the textarea or pressing `F` (when the textarea is not focused). Exited with `Escape`. Implemented as a `focusMode` Svelte store; a CSS class on the root element handles the transition.
 
-#### Typography and Texture
+Focus mode adds two visual layers on top of whatever theme is active — these are **focus mode specific**, not part of the base app:
 
-- **Editor font**: IBM Plex Mono (Google Fonts), weight 300–400. Used for both the textarea and UI labels.
 - **Ruled lines**: Pure CSS — `repeating-linear-gradient` synced pixel-perfectly to the textarea's `line-height`. No JS, no images:
   ```css
   background-image: repeating-linear-gradient(
@@ -589,7 +588,13 @@ Activated by double-clicking the textarea or pressing `F` (when the textarea is 
   );
   background-attachment: local;
   ```
-- **Grain texture**: Subtle SVG noise filter at ~3.5% opacity layered over the background. Adds tactile depth without visual weight.
+- **Grain texture**: Subtle SVG noise filter at ~3.5% opacity. Adds tactile depth without visual weight. Applied via a pseudo-element so it doesn't interfere with text selection.
+
+Both activate via the `focus-mode` CSS class on the root element. Any theme works in focus mode; ruled line color comes from `--color-rule` in the active theme.
+
+#### Typography
+
+- **Editor font**: IBM Plex Mono (Google Fonts), weight 300–400. Global — used for both the textarea and UI labels in all modes.
 
 #### Theming
 
