@@ -802,9 +802,21 @@ This reuses the existing wordlist and is ~40 lines of TypeScript using `crypto.s
 
 The UI displays the current accuracy reading and active cell size so both parties can confirm they are on the same tier. Two devices that resolve to different precision tiers will not produce matching IDs — the display makes this immediately visible.
 
-Because anyone within the same cell gets the same room ID, a PIN is required to prevent nearby snooping. The PIN is entered independently on each device and must match — it is never transmitted.
+Because anyone within the same cell derives the same 3-word phrase, a PIN is required to prevent nearby snooping. The PIN is never transmitted — it is incorporated into the signalling room ID itself:
 
-**Collision notes**: With a hash-based (not bijective) mapping across 2048³ ≈ 8.6 billion possible IDs, global uniqueness is not guaranteed. Locally, collisions are negligible — at 11m precision the probability that any cell within 1km of you hashes to your same ID is roughly 1-in-330,000. Combined with a PIN this is not a meaningful attack surface.
+```
+geo words:          "apple-river-moon"   ← shown in URL and UI
+user enters PIN:    "7742"
+
+signalling room ID: SHA-256("apple-river-moon" + "7742")
+                    → "a3f8c2d1e4b..."   ← sent to server, never shown to user
+```
+
+This means geo users and random users can never collide on the signalling server: a random user who generates `/apple-river-moon` joins the `apple-river-moon` room; the geo users are in the SHA-256-derived room. A wrong PIN lands in a different room entirely — no post-connection verification step needed.
+
+The raw SHA-256 hex string is used as the signalling room ID directly. Converting it back to a 3-word phrase would compress 256 bits to ~33 bits and reintroduce hash collisions, so it is left as-is. The server never exposes room IDs to clients, so the format is invisible to users.
+
+**Collision notes (geo words only)**: With a hash-based mapping across 2048³ ≈ 8.6 billion possible word triples, geo word collisions are negligible locally — at 11m precision the probability that any cell within 1km hashes to your same word triple is roughly 1-in-330,000. The PIN-derived signalling room ID has effectively zero collision probability.
 
 ### 8.7 Encrypted Solo Mode
 
