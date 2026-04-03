@@ -23,8 +23,9 @@
    - [8.5 Persistent Sessions](#85-persistent-sessions)
    - [8.6 Geo-Based Room IDs (what3words)](#86-geo-based-room-ids-what3words)
    - [8.7 Encrypted Solo Mode](#87-encrypted-solo-mode)
-   - [8.8 Symmetric QR Exchange (QWBP-style)](#88-symmetric-qr-exchange-qwbp-style)
-   - [8.9 PWA / Installable](#89-pwa--installable)
+   - [8.8 Collaborative Code Editor](#88-collaborative-code-editor)
+   - [8.9 Symmetric QR Exchange (QWBP-style)](#89-symmetric-qr-exchange-qwbp-style)
+   - [8.10 PWA / Installable](#810-pwa--installable)
 9. [Summary of Dependencies](#9-summary-of-dependencies)
 
 ---
@@ -801,11 +802,37 @@ A single-device, encrypted notepad mode backed by IndexedDB. Content never leave
 
 Note: passkey decryption is tied to the device's platform authenticator by default. Cross-device access requires a cross-device passkey (iCloud Keychain, etc.) or passphrase-based encryption instead.
 
-### 8.8 Symmetric QR Exchange (QWBP-style)
+### 8.8 Collaborative Code Editor
+
+A code editing mode built on **CodeMirror 6** + **`y-codemirror.next`**, lazy-loaded entirely on demand so the main bundle is unaffected.
+
+The user toggles between text mode and code mode via a button in the header. The mode switch is synced between peers via a `Y.Map("meta")` entry so both sides switch together. The underlying `Y.Text("content")` is reused — no document state is lost when switching modes.
+
+**Bundle strategy:**
+
+| Chunk | Size (gzipped) | When loaded |
+|---|---|---|
+| Main bundle | ~90–110 KB | Always |
+| CodeMirror core (`@codemirror/view` + `@codemirror/state` + `y-codemirror.next`) | ~45 KB | On first switch to code mode |
+| Language pack (e.g. `@codemirror/lang-javascript`) | ~5–20 KB each | On language selection |
+
+**Features included:**
+- Syntax highlighting
+- Line numbers (toggleable)
+- Bracket matching and auto-close
+- Smart indentation / Tab key behaviour
+- Language selector (dropdown of common languages)
+
+**Explicitly excluded** to preserve leanness:
+- LSP / autocomplete / intellisense
+- Multi-file / tabs
+- Diff view
+
+### 8.9 Symmetric QR Exchange (QWBP-style)
 
 Both devices display and scan simultaneously, halving the time. More complex UI (camera + display active at once) and role determination by fingerprint comparison. See the QWBP article for the full protocol.
 
-### 8.9 PWA / Installable
+### 8.10 PWA / Installable
 
 Add `manifest.json` and a service worker that caches the app shell. Enables "Add to Home Screen" on mobile.
 
@@ -822,6 +849,9 @@ Add `manifest.json` and a service worker that caches the app shell. Enables "Add
 | `y-protocols` | Yjs sync protocol messages | Transitive dep of yjs |
 | `qrcode` | QR code generation | ~40 KB (main chunk) |
 | `zxing-wasm` | QR scanning fallback | ~500 KB WASM — **lazy, only loaded when `BarcodeDetector` unavailable** |
+| `@codemirror/view` + `@codemirror/state` | Code editor core (v2) | ~40 KB — **lazy, only loaded when code mode activated** |
+| `y-codemirror.next` | Yjs binding for CodeMirror 6 (v2) | ~5 KB — **lazy, bundled with code editor chunk** |
+| `@codemirror/lang-*` | Language packs (v2) | ~5–20 KB each — **lazy, loaded per language selection** |
 
 No `simple-peer`. No `y-webrtc`.
 
