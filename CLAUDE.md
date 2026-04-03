@@ -101,7 +101,7 @@ Message protocol is defined in `src/types.ts` — client→server: `join`, `sign
 - Strict equality only (`===` / `!==`); never `==` or `!=`
 - Prefer array methods (`map`, `filter`, `reduce`, `forEach`) over `for` loops
 - Long, descriptive names over short cryptic ones — `candidate_ip_address` not `ip`, `pending_ice_candidates` not `q`
-- **Filenames**: `snake_case` for all source files (e.g. `sdp_codec.ts`, `qr_scanner.ts`). Exception: Svelte component files use `PascalCase` per Svelte convention (e.g. `Editor.svelte`, `ConnectionStatus.svelte`)
+- **Filenames**: `snake_case` for all non-component source files (e.g. `sdp_codec.ts`, `qr_scanner.ts`). Svelte component files use `PascalCase` (e.g. `Editor.svelte`, `ConnectionStatus.svelte`)
 - **Constants**: magic numbers, config values, and repeated strings go in `src/lib/constants/<category>.ts` (e.g. `src/lib/constants/webrtc_config.ts`). Named with `SCREAMING_SNAKE_CASE`
 
 ## Dependencies (client)
