@@ -80,7 +80,13 @@ notapipe/
 │   │       ├── ui/
 │   │       │   ├── Editor.svelte         ← textarea bound to Y.Text
 │   │       │   ├── ConnectionStatus.svelte
-│   │       │   └── QrFlow.svelte         ← QR mode UI flow
+│   │       │   ├── QrFlow.svelte         ← QR mode UI flow
+│   │       │   └── Settings.svelte       ← theme picker + focus mode toggle
+│   │       ├── themes/
+│   │       │   ├── light.json            ← built-in light theme
+│   │       │   └── dark.json             ← built-in dark theme
+│   │       ├── stores/
+│   │       │   └── ui.ts                 ← focusMode, activeTheme Svelte stores
 │   │       └── style.css
 │   │
 │   └── signalling/               ← Node.js WebSocket server
@@ -504,16 +510,16 @@ Handled automatically by Yjs's sync protocol. When the DataChannel opens, both p
 
 ### 5.6 Text Editor UI
 
-Built with Svelte 5 components. Minimal CSS. Mobile-first.
+Built with Svelte 5 components. Minimal CSS. Mobile-first responsive layout.
 
 #### Layout
 
-No upfront modal. The textarea and room ID are immediately visible on load with no prompts. Connection actions are contextual — shown below the textarea until a peer connects, then hidden.
+No upfront modal. The textarea and room ID are immediately visible on load with no prompts. Connection actions are contextual — shown below the textarea until a peer connects, then hidden. A settings icon in the header opens the theme/focus controls.
 
 ```
 ┌─────────────────────────────────────────┐
-│  notapipe                  [●] waiting   │
-│  apple-river-moon       [copy link]      │
+│  notapipe          [●] waiting   [⚙]    │
+│  apple-river-moon  [📋]                  │
 ├─────────────────────────────────────────┤
 │                                          │
 │  ┌───────────────────────────────────┐  │
@@ -522,15 +528,19 @@ No upfront modal. The textarea and room ID are immediately visible on load with 
 │  │                                   │  │
 │  └───────────────────────────────────┘  │
 │                                          │
-│  [Copy link]  [Connect nearby]  [Air-gapped ↗] │
+│  [Share link]  [Connect nearby]  [Air-gapped ↗] │
 └─────────────────────────────────────────┘
 ```
 
-- **Connect** (via signalling server): connects to the signalling server and waits for a peer. This is the default path — no permissions needed, but requires an explicit tap. Label adapts to context: shows "Share link" on a freshly generated room (also copies the URL to clipboard), shows "Connect" when arriving via a shared link.
+- **Share link / Connect**: connects to the signalling server. Label adapts to context: "Share link" on a freshly generated room (also copies the URL to clipboard); "Connect" when arriving via a shared link. No permissions needed, but requires an explicit tap.
 - **Connect nearby**: requests geolocation permission (the only point in the app where this happens), derives a geo room ID, navigates to its URL, prompts for PIN, then connects via signalling server.
 - **Air-gapped**: opens the QR flow overlay for offline/serverless connection.
 
-**No server calls are made without explicit user action.** The app makes zero network requests on page load, whether the user generated the room or arrived via a shared link. The room ID is always available in the URL for copying via a separate copy icon next to the room ID in the header.
+**No server calls are made without explicit user action.** The app makes zero network requests on page load, whether the user generated the room or arrived via a shared link. The room ID is always available in the URL; a copy icon sits next to it in the header.
+
+#### Responsive Layout
+
+Mobile-first. The textarea fills the viewport height minus the header. On desktop, a max-width constraint (e.g. 800px) centers the layout. Touch targets are at least 44×44px. No horizontal scrolling at any viewport width.
 
 #### Connection Status Indicator
 
@@ -539,6 +549,35 @@ CSS-only colored dot:
 - Yellow (pulsing): connecting / ICE checking
 - Green: connected
 - Red: error / connection failed
+
+#### Focus Mode
+
+A distraction-free mode that hides everything except the textarea. Activated by double-clicking the textarea or pressing `F` (when the textarea is not focused). Exited with `Escape` or by moving the mouse to the top edge of the viewport (reveals a minimal exit button).
+
+In focus mode: header, connection buttons, status indicator, and settings are all hidden. The textarea fills the full viewport. Implemented as a `focusMode` Svelte store; a CSS class on the root element handles the visual transition.
+
+#### Theming
+
+All colors are defined as CSS custom properties on `:root`. Two built-in themes (light and dark) ship as JSON configs. Users can supply their own theme as a JSON object with the same property set, pasted or imported via the settings panel. The active theme config is stored in `localStorage` (theme data only — not document content).
+
+Minimal theme shape:
+```json
+{
+  "name": "forest",
+  "--color-bg": "#1a2e1a",
+  "--color-surface": "#243824",
+  "--color-text": "#c8e6c8",
+  "--color-text-muted": "#7aab7a",
+  "--color-accent": "#4caf50",
+  "--color-border": "#2d4a2d",
+  "--color-status-waiting": "#7aab7a",
+  "--color-status-connecting": "#f0c040",
+  "--color-status-connected": "#4caf50",
+  "--color-status-error": "#e05555"
+}
+```
+
+Theme application is a single `Object.entries(theme).forEach(([k, v]) => root.style.setProperty(k, v))`. Light/dark auto-detection uses `prefers-color-scheme` as the initial default, overridden by any explicit user selection stored in `localStorage`.
 
 #### QR Mode UI Flow
 

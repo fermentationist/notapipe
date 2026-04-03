@@ -76,6 +76,8 @@ Offerer/answerer role is determined locally by lexicographic UUID comparison (la
 
 **Yjs integration** (`src/yjs/`): Single `Y.Text` named `"content"`. Custom WebRTC provider takes a `Y.Doc` and `RTCDataChannel`, sends `y-protocols/sync` messages directly. Textarea → Yjs binding uses a prefix/suffix diff algorithm (zero deps). Signalling mode uses trickle ICE; QR mode waits for `iceGatheringState === "complete"` (15s timeout) before encoding.
 
+**UI layer** (`src/ui/`, `src/stores/`, `src/themes/`): Svelte stores drive focus mode (`focusMode` boolean) and the active theme. All colors are CSS custom properties on `:root`; themes are plain JSON objects applied via `style.setProperty`. Two built-in themes (light/dark); users can paste custom JSON themes in the settings panel. Active theme persists in `localStorage` (theme config only — no document content). `prefers-color-scheme` sets the initial default.
+
 ### `packages/signalling` — Node.js WebSocket server (`ws`)
 
 Stateless in-memory rooms. Max 2 peers per room — third peer receives `room-full` and is closed. Rooms are `Map<string, { peers: Map<string, WebSocket> }>`. On disconnect: broadcast `peer-left`, clean empty rooms. HTTP GET `/` returns `{ status: "ok" }` for health checks. Configured via `VITE_SIGNAL_URL` env var on the client.
