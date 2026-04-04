@@ -1,7 +1,7 @@
 <script lang="ts">
   import * as Y from "yjs";
-  import { applyTextareaDiff } from "../../yjs/provider.ts";
-  import { focus_mode_store } from "../../stores/focus_mode.ts";
+  import { applyTextareaDiff } from "../yjs/provider.ts";
+  import { focus_mode_store } from "../stores/focus_mode.ts";
 
   interface Props {
     doc: Y.Doc;

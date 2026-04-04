@@ -11,10 +11,10 @@
   import { RTCDataChannelProvider } from "./yjs/provider.ts";
   import { connection_store } from "./stores/connection.ts";
   import { focus_mode_store } from "./stores/focus_mode.ts";
-  import Editor from "./lib/components/Editor.svelte";
-  import ConnectionStatus from "./lib/components/ConnectionStatus.svelte";
-  import QrOverlay from "./lib/components/QrOverlay.svelte";
-  import SettingsPanel from "./lib/components/SettingsPanel.svelte";
+  import Editor from "./components/Editor.svelte";
+  import ConnectionStatus from "./components/ConnectionStatus.svelte";
+  import QrOverlay from "./components/QrOverlay.svelte";
+  import SettingsPanel from "./components/SettingsPanel.svelte";
 
   // ---------------------------------------------------------------------------
   // Yjs document (single shared text type)

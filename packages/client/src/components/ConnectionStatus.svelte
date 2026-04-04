@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { connection_store } from "../../stores/connection.ts";
+  import { connection_store } from "../stores/connection.ts";
 
   const status_label: Record<string, string> = {
     idle: "waiting",

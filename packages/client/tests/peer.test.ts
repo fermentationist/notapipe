@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isOfferer } from "./peer.ts";
+import { isOfferer } from "../src/rtc/peer.ts";
 
 describe("isOfferer", () => {
   it("returns true when local UUID is lexicographically larger", () => {

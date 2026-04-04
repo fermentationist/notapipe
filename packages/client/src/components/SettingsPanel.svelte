@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { theme_store } from "../../stores/theme.ts";
+  import { theme_store } from "../stores/theme.ts";
 
   interface Props {
     onclose: () => void;

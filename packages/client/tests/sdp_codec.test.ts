@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { encodeSdp, decodeSdp } from "./sdp_codec.ts";
+import { encodeSdp, decodeSdp } from "../src/rtc/qr_mode/sdp_codec.ts";
 
 // ---------------------------------------------------------------------------
 // Realistic SDP samples (captured from Chrome with data channel only)

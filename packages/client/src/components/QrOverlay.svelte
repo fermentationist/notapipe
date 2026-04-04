@@ -1,6 +1,6 @@
 <script lang="ts">
   import QRCode from "qrcode";
-  import { scanQr, startCamera, stopCamera } from "../../rtc/qr_mode/scanner.ts";
+  import { scanQr, startCamera, stopCamera } from "../rtc/qr_mode/scanner.ts";
 
   interface Props {
     packet: Uint8Array | null;

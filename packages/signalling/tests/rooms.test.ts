@@ -7,8 +7,8 @@ import {
   findPeerRoom,
   getRoomCount,
   resetAllRooms,
-} from "./rooms.ts";
-import type { ServerMessage } from "./types.ts";
+} from "../src/rooms.ts";
+import type { ServerMessage } from "../src/types.ts";
 
 // ---------------------------------------------------------------------------
 // Minimal WebSocket mock

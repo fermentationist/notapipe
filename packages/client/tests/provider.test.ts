@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import * as Y from "yjs";
-import { applyTextareaDiff } from "./provider.ts";
+import { applyTextareaDiff } from "../src/yjs/provider.ts";
 
 function makeDocAndText(): { doc: Y.Doc; ytext: Y.Text } {
   const doc = new Y.Doc();

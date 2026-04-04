@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { generateId, generatePassphrase, parseId, isValidId } from "./generate.ts";
-import { WORDLIST } from "./wordlist.ts";
+import { generateId, generatePassphrase, parseId, isValidId } from "../src/id/generate.ts";
+import { WORDLIST } from "../src/id/wordlist.ts";
 import { ROOM_WORD_COUNT, PASSPHRASE_WORD_COUNT } from "$lib/constants/id.ts";
 
 // ---------------------------------------------------------------------------

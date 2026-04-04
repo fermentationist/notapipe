@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
-import { checkRateLimit, resetAllRateLimitState } from "./rate_limiter.ts";
+import { checkRateLimit, resetAllRateLimitState } from "../src/rate_limiter.ts";
 
 const TEST_IP = "192.168.1.1";
 const OTHER_IP = "10.0.0.1";
