@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "start": "tsx src/index.ts"
+    "dev": "node --experimental-strip-types --watch src/index.ts",
+    "start": "node --experimental-strip-types src/index.ts"
   },
   "dependencies": {
     "ws": "^8.18.0"
@@ -13,7 +13,6 @@
   "devDependencies": {
     "@types/node": "^24.12.0",
     "@types/ws": "^8.5.14",
-    "tsx": "^4.20.3",
     "typescript": "~5.9.3",
     "vitest": "^4.1.2"
   }

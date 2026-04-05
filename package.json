@@ -3,14 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "vp dev",
+    "dev": "pnpm -r --parallel run dev",
     "build": "vp build",
     "test": "vp test",
     "check": "vp check"
   },
-  "devDependencies": {},
   "packageManager": "pnpm@10.33.0",
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild"]
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
   }
 }
