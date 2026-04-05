@@ -16,7 +16,8 @@
     "verbatimModuleSyntax": true,
     "paths": {
       "$lib/*": ["./src/lib/*"]
-    }
+    },
+    "allowImportingTsExtensions": true,
   },
   "include": ["src/**/*.ts", "src/**/*.js", "src/**/*.svelte"]
 }
