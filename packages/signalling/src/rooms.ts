@@ -100,6 +100,7 @@ export function leaveRoom(room_id: string, peer_id: string): void {
 
 /**
  * Forward a signal message to the target peer in the room.
+ * If to_peer_id is "__broadcast__", forwards to all peers except the sender.
  * Silently drops if the target peer is not found.
  */
 export function forwardSignal(
@@ -110,6 +111,15 @@ export function forwardSignal(
 ): void {
   const room = rooms.get(room_id);
   if (room === undefined) {
+    return;
+  }
+
+  if (to_peer_id === "__broadcast__") {
+    room.peers.forEach((peer) => {
+      if (peer.peer_id !== from_peer_id) {
+        send(peer.socket, payload);
+      }
+    });
     return;
   }
 

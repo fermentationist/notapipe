@@ -7,20 +7,31 @@ export default defineConfig({
   retries: 0,
   reporter: "list",
   use: {
-    baseURL: "http://localhost:5173",
+    baseURL: "https://localhost:5173",
+    ignoreHTTPSErrors: true,
     trace: "on-first-retry",
   },
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: { ...devices["Desktop Chrome"], ignoreHTTPSErrors: true },
     },
   ],
-  webServer: {
-    command: "pnpm run dev",
-    url: "http://localhost:5173",
-    reuseExistingServer: true,
-    stdout: "ignore",
-    stderr: "pipe",
-  },
+  webServer: [
+    {
+      command: "pnpm run dev",
+      url: "https://localhost:5173",
+      reuseExistingServer: true,
+      ignoreHTTPSErrors: true,
+      stdout: "ignore",
+      stderr: "pipe",
+    },
+    {
+      command: "pnpm --filter @notapipe/signalling run start",
+      url: "http://localhost:3001",
+      reuseExistingServer: true,
+      stdout: "ignore",
+      stderr: "pipe",
+    },
+  ],
 });

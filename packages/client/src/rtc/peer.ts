@@ -49,10 +49,10 @@ export class RTCPeerManager {
 
   /**
    * Start the connection as offerer. Creates the data channel, then the offer.
-   * Use trickle ICE (default): ICE candidates are sent as discovered.
+   * Uses trickle ICE: candidates are sent as they are discovered.
    */
   async startAsOfferer(): Promise<void> {
-    const pc = this.createPeerConnection();
+    const { pc, flush_pending } = this.createPeerConnection();
 
     const data_channel = pc.createDataChannel(DATA_CHANNEL_LABEL, { ordered: true });
     this.callbacks.onDataChannel(data_channel);
@@ -67,6 +67,7 @@ export class RTCPeerManager {
         return;
       }
       await pc.setRemoteDescription(new RTCSessionDescription(answer_sdp));
+      await flush_pending();
     });
   }
 
@@ -74,7 +75,7 @@ export class RTCPeerManager {
    * Start the connection as answerer. Waits for an offer via the transport.
    */
   startAsAnswerer(): void {
-    const pc = this.createPeerConnection();
+    const { pc, flush_pending } = this.createPeerConnection();
 
     pc.ondatachannel = (event) => {
       this.callbacks.onDataChannel(event.channel);
@@ -85,6 +86,7 @@ export class RTCPeerManager {
         return;
       }
       await pc.setRemoteDescription(new RTCSessionDescription(offer_sdp));
+      await flush_pending();
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
       this.transport.sendAnswer({ type: answer.type, sdp: answer.sdp ?? "" });
@@ -98,7 +100,10 @@ export class RTCPeerManager {
     this.callbacks.onStateChange("closed");
   }
 
-  private createPeerConnection(): RTCPeerConnection {
+  private createPeerConnection(): {
+    pc: RTCPeerConnection;
+    flush_pending: () => Promise<void>;
+  } {
     const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
     this.peer_connection = pc;
 
@@ -108,12 +113,25 @@ export class RTCPeerManager {
       }
     };
 
+    // Buffer remote candidates that arrive before setRemoteDescription.
+    // With trickle ICE this race is common: the remote peer starts sending
+    // candidates immediately after its offer/answer is sent, which can
+    // arrive before setRemoteDescription completes on this side.
+    const pending_candidates: RTCIceCandidateInit[] = [];
+
     this.transport.onIceCandidate(async (candidate) => {
       if (pc.remoteDescription === null) {
+        pending_candidates.push(candidate.toJSON());
         return;
       }
       await pc.addIceCandidate(new RTCIceCandidate(candidate));
     });
+
+    const flush_pending = async (): Promise<void> => {
+      for (const candidate of pending_candidates.splice(0)) {
+        await pc.addIceCandidate(new RTCIceCandidate(candidate));
+      }
+    };
 
     pc.onconnectionstatechange = () => {
       const state_map: Record<RTCPeerConnectionState, PeerManagerState> = {
@@ -133,7 +151,7 @@ export class RTCPeerManager {
     };
 
     this.callbacks.onStateChange("connecting");
-    return pc;
+    return { pc, flush_pending };
   }
 }
 

@@ -50,5 +50,11 @@ export default defineConfig({
     strictPort: true,
     open: true,
     host: true,
+    proxy: {
+      "/ws": {
+        target: "ws://localhost:3001",
+        ws: true,
+      },
+    },
   },
 });

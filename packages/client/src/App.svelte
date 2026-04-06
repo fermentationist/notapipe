@@ -36,6 +36,7 @@
 
   let show_qr_overlay = $state(false);
   let show_settings = $state(false);
+  let show_connect_menu = $state(false);
   let qr_packet = $state<Uint8Array | null>(null);
 
   // ---------------------------------------------------------------------------
@@ -89,12 +90,11 @@
   }
 
   function connectViaSignalling(): void {
-    if ($connection_store.mode !== "none") {
-      return;
-    }
+    teardown(); // clean up any prior attempt before starting a new one
 
+    const ws_protocol = window.location.protocol === "https:" ? "wss" : "ws";
     const signal_url = import.meta.env["VITE_SIGNAL_URL"] as string | undefined
-      ?? "ws://localhost:3001";
+      ?? `${ws_protocol}://${window.location.host}/ws`;
 
     const callbacks: WebSocketTransportCallbacks = {
       onStateChange(state) {
@@ -128,9 +128,7 @@
   }
 
   function connectViaQr(): void {
-    if ($connection_store.mode !== "none") {
-      return;
-    }
+    teardown(); // clean up any prior attempt before starting a new one
 
     // Create a bare RTCPeerConnection for the QrTransport to monitor ICE gathering
     const pc = new RTCPeerConnection({
@@ -180,7 +178,6 @@
     show_qr_overlay = false;
     if ($connection_store.peer_state !== "connected") {
       teardown();
-      connection_store.reset();
     }
   }
 
@@ -216,6 +213,9 @@
     ws_transport = null;
     qr_transport = null;
     qr_packet = null;
+    connection_store.setMode("none");
+    connection_store.setPeerState("idle");
+    connection_store.setRemotePeer(null);
   }
 
   // ---------------------------------------------------------------------------
@@ -243,9 +243,23 @@
     }
   }
 
+  function handleDisconnect(): void {
+    teardown();
+  }
+
+  function selectSignalling(): void {
+    show_connect_menu = false;
+    connectViaSignalling();
+  }
+
+  function selectQr(): void {
+    show_connect_menu = false;
+    connectViaQr();
+  }
+
   const can_share = $derived(typeof navigator !== "undefined" && "share" in navigator);
   const is_connected = $derived($connection_store.peer_state === "connected");
-  const show_actions = $derived(!is_connected && !$focus_mode_store);
+  const show_actions = $derived(!$focus_mode_store);
 </script>
 
 <div class="app" class:focus-mode={$focus_mode_store}>
@@ -279,15 +293,40 @@
     <Editor {doc} {ytext} readonly={false} />
   </main>
 
-  <!-- Connection actions (hidden once connected or in focus mode) -->
+  <!-- Connection actions (hidden in focus mode) -->
   {#if show_actions}
     <div class="actions">
-      <button class="action-btn primary" onclick={connectViaSignalling}>
-        Share link
-      </button>
-      <button class="action-btn" onclick={connectViaQr}>
-        Air-gapped ↗
-      </button>
+      {#if is_connected}
+        <button class="action-btn" onclick={handleDisconnect}>
+          Disconnect
+        </button>
+      {:else}
+        <div class="connect-wrapper">
+          <button
+            class="action-btn primary"
+            onclick={() => { show_connect_menu = !show_connect_menu; }}
+            aria-haspopup="menu"
+            aria-expanded={show_connect_menu}
+          >
+            Connect to peer ▾
+          </button>
+          {#if show_connect_menu}
+            <div
+              class="menu-backdrop"
+              onclick={() => { show_connect_menu = false; }}
+              aria-hidden="true"
+            ></div>
+            <div class="connect-menu" role="menu">
+              <button class="menu-item" role="menuitem" onclick={selectSignalling}>
+                Use signalling server
+              </button>
+              <button class="menu-item" role="menuitem" onclick={selectQr}>
+                Use QR code (air-gapped)
+              </button>
+            </div>
+          {/if}
+        </div>
+      {/if}
     </div>
   {/if}
 
@@ -403,7 +442,6 @@
     padding: 0.75rem 1rem;
     border-top: 1px solid var(--color-border);
     flex-shrink: 0;
-    flex-wrap: wrap;
   }
 
   .action-btn {
@@ -427,6 +465,47 @@
 
   .action-btn:hover:not(:disabled) {
     opacity: 0.85;
+  }
+
+  .connect-wrapper {
+    position: relative;
+  }
+
+  .menu-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+  }
+
+  .connect-menu {
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 0;
+    z-index: 11;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    min-width: 100%;
+    overflow: hidden;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .menu-item {
+    background: none;
+    border: none;
+    color: var(--color-text);
+    font-family: inherit;
+    font-size: 0.85rem;
+    padding: 0.6rem 1rem;
+    text-align: left;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .menu-item:hover {
+    background: var(--color-surface);
   }
 
   /* Grain texture in focus mode — SVG noise pseudo-element */

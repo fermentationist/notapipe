@@ -35,6 +35,10 @@ export class RTCDataChannelProvider {
       this.sendUpdate(update);
     };
 
+    // Ensure binary messages arrive as ArrayBuffer, not Blob (the default).
+    // new Uint8Array(blob) produces a zero-length array, causing lib0 decode errors.
+    channel.binaryType = "arraybuffer";
+
     if (channel.readyState === "open") {
       this.initialize();
     } else {
@@ -94,13 +98,16 @@ export class RTCDataChannelProvider {
     if (message_type === MESSAGE_SYNC) {
       const reply_encoder = encoding.createEncoder();
       encoding.writeVarUint(reply_encoder, MESSAGE_SYNC);
-      const has_reply = sync_protocol.readSyncMessage(
+      sync_protocol.readSyncMessage(
         decoder,
         reply_encoder,
         this.doc,
         this, // origin — prevents re-broadcasting our own applied updates
       );
-      if (has_reply) {
+      // Only syncStep1 writes a syncStep2 reply into reply_encoder (length > 1).
+      // syncStep2 and syncUpdate produce no reply — sending a bare MESSAGE_SYNC byte
+      // causes the peer to throw "Unexpected end of array" when decoding.
+      if (encoding.length(reply_encoder) > 1) {
         this.sendEncoded(reply_encoder);
       }
     }
