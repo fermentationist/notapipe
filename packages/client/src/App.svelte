@@ -106,6 +106,8 @@
   const QR_PEER_ID = "qr-peer";
 
   let ws_transport: WebSocketTransport | null = null;
+  // Set while signalling is active; cleared in teardown() to prevent auto-reconnect.
+  let signalling_url: string | null = null;
   let qr_transport: QrTransport | null = null;
   let qr_packet = $state<Uint8Array | null>(null);
 
@@ -249,13 +251,12 @@
     }
   }
 
-  function connectViaSignalling(): void {
-    teardown(); // clean up any prior attempt before starting a new one
-
-    const ws_protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    const signal_url = import.meta.env["VITE_SIGNAL_URL"] as string | undefined
-      ?? `${ws_protocol}://${window.location.host}/ws`;
-
+  /**
+   * Open a new WebSocket to the signalling server and join the room.
+   * Does NOT call teardown() — call that separately before connecting fresh.
+   * Used both for initial connect and for transparent auto-reconnect.
+   */
+  function openSignallingSocket(url: string): void {
     const callbacks: WebSocketTransportCallbacks = {
       onStateChange(state) {
         connection_store.setMode("signalling");
@@ -264,7 +265,19 @@
         } else if (state === "rate-limited") {
           connection_store.setError("Too many connection attempts — try again later");
         } else if (state === "disconnected") {
-          teardown();
+          // If ws_transport is still set, this was an unexpected drop (not our teardown).
+          // teardown() clears ws_transport synchronously before the async close event fires.
+          if (ws_transport !== null) {
+            ws_transport = null; // dead socket — clear reference
+            if (signalling_url !== null) {
+              // Reconnect transparently after a brief delay
+              setTimeout(() => {
+                if (signalling_url !== null) {
+                  openSignallingSocket(signalling_url);
+                }
+              }, 2000);
+            }
+          }
         }
       },
       onPeerJoined(remote_id) {
@@ -272,14 +285,30 @@
       },
       onPeerLeft(remote_id) {
         disconnectPeer(remote_id);
+        // If ws_transport is still alive we're still in the room — stay in "connecting"
+        // state so the user sees we're listening, not idle. No action needed on their part.
+        if (ws_transport !== null && peer_states.size === 0) {
+          connection_store.setPeerState("connecting");
+        }
       },
       onError(error) {
         connection_store.setError(error.message);
       },
     };
 
-    ws_transport = new WebSocketTransport(signal_url, room_id, local_peer_id, callbacks);
+    ws_transport = new WebSocketTransport(url, room_id, local_peer_id, callbacks);
     ws_transport.connect();
+  }
+
+  function connectViaSignalling(): void {
+    teardown(); // clean up any prior attempt before starting a new one
+
+    const ws_protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    const url = import.meta.env["VITE_SIGNAL_URL"] as string | undefined
+      ?? `${ws_protocol}://${window.location.host}/ws`;
+
+    signalling_url = url;
+    openSignallingSocket(url);
     connection_store.setMode("signalling");
     connection_store.setPeerState("connecting");
   }
@@ -362,6 +391,7 @@
   }
 
   function teardown(): void {
+    signalling_url = null; // prevent auto-reconnect if WS close event fires after this
     Array.from(peer_managers.keys()).forEach((id) => disconnectPeer(id));
     ws_transport?.close();
     ws_transport = null;

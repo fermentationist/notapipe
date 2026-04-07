@@ -15,6 +15,8 @@
 
   $: display_label = $connection_store.peer_state === "connected"
     ? connectedLabel($connection_store.remote_peer_ids.length)
+    : $connection_store.peer_state === "connecting" && $connection_store.mode === "signalling"
+    ? "waiting for peer…"
     : (status_label[$connection_store.peer_state] ?? "unknown");
 </script>
 
