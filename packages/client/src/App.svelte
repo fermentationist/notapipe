@@ -46,6 +46,7 @@
   let show_connect_menu = $state(false);
   let show_find_room_menu = $state(false);
   let show_cleanup_menu = $state(false);
+  let show_share_menu = $state(false);
   let cleanup_menu_anchor = $state<{ top: number; right: number } | null>(null);
   let confirm_dialog = $state<{ message: string; onconfirm: () => void } | null>(null);
 
@@ -417,12 +418,23 @@
   }
 
   async function shareDocument(): Promise<void> {
+    show_share_menu = false;
     const content = ytext.toString();
     const file = new File([content], `${room_id}.txt`, { type: "text/plain" });
     if (navigator.canShare?.({ files: [file] })) {
       await navigator.share({ files: [file] });
     } else {
       exportDocument(); // fall back to download
+    }
+  }
+
+  async function shareRoomLink(): Promise<void> {
+    show_share_menu = false;
+    const url = window.location.href;
+    if (navigator.share !== undefined) {
+      await navigator.share({ url, title: "notapipe", text: `Join me on notapipe: ${url}` });
+    } else {
+      await navigator.clipboard.writeText(url);
     }
   }
 
@@ -554,6 +566,9 @@
     if (show_cleanup_menu && !target.closest(".cleanup-wrapper")) {
       show_cleanup_menu = false;
     }
+    if (show_share_menu && !target.closest(".share-wrapper")) {
+      show_share_menu = false;
+    }
   }
 
   const can_share = $derived(typeof navigator !== "undefined" && "share" in navigator);
@@ -580,15 +595,34 @@
         {/if}
         <button class="icon-btn" onclick={importDocument} title="Load text file" aria-label="Load text file">↑</button>
         <button class="icon-btn" onclick={exportDocument} title="Save as text file" aria-label="Save as text file">↓</button>
-        {#if can_share}
-          <button class="icon-btn" onclick={shareDocument} title="Share document" aria-label="Share document">
+        <div class="share-wrapper" style="position:relative">
+          <button
+            class="icon-btn"
+            onclick={() => { show_share_menu = !show_share_menu; }}
+            title="Share"
+            aria-label="Share"
+            aria-haspopup="menu"
+            aria-expanded={show_share_menu}
+          >
             <svg width="14" height="15" viewBox="0 0 14 15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <line x1="7" y1="1" x2="7" y2="10"/>
               <polyline points="4,4 7,1 10,4"/>
               <path d="M2 7v7h10V7"/>
             </svg>
           </button>
-        {/if}
+          {#if show_share_menu}
+            <div class="connect-menu" role="menu" style="right:0;left:auto;top:calc(100% + 4px)">
+              <button class="menu-item" role="menuitem" onclick={shareRoomLink}>
+                Share room link
+              </button>
+              {#if can_share}
+                <button class="menu-item" role="menuitem" onclick={shareDocument}>
+                  Share document as file
+                </button>
+              {/if}
+            </div>
+          {/if}
+        </div>
         <div class="cleanup-wrapper">
           <button
             class="icon-btn"
