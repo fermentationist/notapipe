@@ -1,7 +1,7 @@
 <script lang="ts">
   import QRCode from "qrcode";
   import { tick } from "svelte";
-  import { scanQr, startCamera, stopCamera } from "../rtc/qr_mode/scanner.ts";
+  import { scanQr, detectFrame, startCamera, stopCamera } from "../rtc/qr_mode/scanner.ts";
 
   interface Props {
     packet: Uint8Array | null;
@@ -23,15 +23,18 @@
   let camera_stream: MediaStream | null = null;
   let scan_abort_controller: AbortController | null = null;
   let camera_error = $state<string | null>(null);
+  let capture_feedback = $state<"not-found" | null>(null);
+  let capturing = $state(false);
 
   // Render QR code whenever the canvas element is bound and packet is ready.
   $effect(() => {
     if (packet !== null && qr_canvas) {
-      const binary_string = Array.from(packet, (byte) => String.fromCharCode(byte)).join("");
-      QRCode.toCanvas(qr_canvas, binary_string, {
+      // Base64-encode so the QR code contains only ASCII characters (0–127).
+      // Passing binary bytes directly causes UTF-8 expansion for bytes ≥ 128,
+      // which corrupts the round-trip when BarcodeDetector reads rawValue.
+      const base64_string = btoa(Array.from(packet, (byte) => String.fromCharCode(byte)).join(""));
+      QRCode.toCanvas(qr_canvas, base64_string, {
         errorCorrectionLevel: "L",
-        // @ts-expect-error — qrcode types don't include "byte" mode but it works
-        mode: "byte",
         margin: 2,
         width: 240,
       });
@@ -86,6 +89,27 @@
       }
       camera_error = error instanceof Error ? error.message : "Camera error";
     }
+  }
+
+  async function captureFrame(): Promise<void> {
+    if (capturing) { return; }
+    capturing = true;
+    capture_feedback = null;
+    const packet = await detectFrame(video_element);
+    if (packet !== null) {
+      // Abort the continuous scan so it doesn't double-fire
+      scan_abort_controller?.abort();
+      stopCamera(video_element, camera_stream!);
+      camera_stream = null;
+      onscanned(packet);
+      if (role === "offerer") {
+        onclose();
+      }
+    } else {
+      capture_feedback = "not-found";
+      setTimeout(() => { capture_feedback = null; }, 2000);
+    }
+    capturing = false;
   }
 
   function handleClose(): void {
@@ -167,6 +191,14 @@
 
         <!-- svelte-ignore a11y_media_has_caption -->
         <video bind:this={video_element} class="camera-preview" playsinline></video>
+
+        <button class="action-btn" onclick={captureFrame} disabled={capturing}>
+          {capturing ? "Scanning…" : "📷 Capture"}
+        </button>
+
+        {#if capture_feedback === "not-found"}
+          <p class="hint">No QR code found — try again.</p>
+        {/if}
 
         <button class="action-btn secondary" onclick={() => {
           scan_abort_controller?.abort();

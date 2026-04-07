@@ -36,11 +36,7 @@ export async function scanWithBarcodeDetector(
         const barcodes = await detector.detect(video_element);
         if (barcodes.length > 0) {
           const raw_value = barcodes[0]!.rawValue;
-          // Convert the binary string to a Uint8Array
-          const bytes = new Uint8Array(raw_value.length);
-          for (let byte_index = 0; byte_index < raw_value.length; byte_index++) {
-            bytes[byte_index] = raw_value.charCodeAt(byte_index);
-          }
+          const bytes = Uint8Array.from(atob(raw_value), (char) => char.charCodeAt(0));
           resolve(bytes);
           return;
         }
@@ -71,7 +67,7 @@ export async function scanWithZxingWasm(
   abort_signal: AbortSignal,
 ): Promise<Uint8Array> {
   // Dynamic import — NEVER move this to a static import at the top of the file
-  const { readBarcodeFromImageData } = await import("zxing-wasm/reader");
+  const { readBarcodesFromImageData } = await import("zxing-wasm/reader");
 
   return new Promise<Uint8Array>((resolve, reject) => {
     let animation_frame_id: number;
@@ -95,13 +91,13 @@ export async function scanWithZxingWasm(
       const image_data = context.getImageData(0, 0, canvas.width, canvas.height);
 
       try {
-        const result = await readBarcodeFromImageData(image_data, {
+        const results = await readBarcodesFromImageData(image_data, {
           formats: ["QRCode"],
           tryHarder: false,
         });
-        if (result.isValid) {
-          const raw_bytes = result.bytes;
-          resolve(new Uint8Array(raw_bytes));
+        if (results.length > 0 && results[0]!.isValid) {
+          const bytes = Uint8Array.from(atob(results[0]!.text), (char) => char.charCodeAt(0));
+          resolve(bytes);
           return;
         }
       } catch {
@@ -161,4 +157,48 @@ export async function scanQr(
     return scanWithBarcodeDetector(video_element, abort_signal);
   }
   return scanWithZxingWasm(video_element, abort_signal);
+}
+
+/**
+ * Attempt a single-frame QR decode from the current video frame.
+ * Returns the decoded bytes, or null if no QR code was found.
+ * Used by the manual "Capture" button as a fallback when continuous scanning misses.
+ */
+export async function detectFrame(
+  video_element: HTMLVideoElement,
+): Promise<Uint8Array | null> {
+  if (hasBarcodeDetector()) {
+    try {
+      const detector = new BarcodeDetector({ formats: ["qr_code"] });
+      const barcodes = await detector.detect(video_element);
+      if (barcodes.length > 0) {
+        return Uint8Array.from(atob(barcodes[0]!.rawValue), (char) => char.charCodeAt(0));
+      }
+    } catch {
+      // Frame not ready or detection error
+    }
+    return null;
+  }
+
+  // zxing-wasm fallback
+  const { readBarcodesFromImageData } = await import("zxing-wasm/reader");
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+  if (context === null) { return null; }
+  canvas.width = video_element.videoWidth;
+  canvas.height = video_element.videoHeight;
+  context.drawImage(video_element, 0, 0);
+  const image_data = context.getImageData(0, 0, canvas.width, canvas.height);
+  try {
+    const results = await readBarcodesFromImageData(image_data, {
+      formats: ["QRCode"],
+      tryHarder: true,
+    });
+    if (results.length > 0 && results[0]!.isValid) {
+      return Uint8Array.from(atob(results[0]!.text), (char) => char.charCodeAt(0));
+    }
+  } catch {
+    // Frame not decodable
+  }
+  return null;
 }
