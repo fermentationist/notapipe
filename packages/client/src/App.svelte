@@ -37,16 +37,21 @@
   let show_qr_overlay = $state(false);
   let show_settings = $state(false);
   let show_connect_menu = $state(false);
-  let qr_packet = $state<Uint8Array | null>(null);
 
   // ---------------------------------------------------------------------------
   // Runtime references (not reactive — managed imperatively)
   // ---------------------------------------------------------------------------
 
-  let peer_manager: RTCPeerManager | null = null;
+  // Keyed by remote peer ID. QR mode uses QR_PEER_ID as a placeholder.
+  const peer_managers = new Map<string, RTCPeerManager>();
+  const yjs_providers = new Map<string, RTCDataChannelProvider>();
+  const peer_states = new Map<string, import("./rtc/peer.ts").PeerManagerState>();
+
+  const QR_PEER_ID = "qr-peer";
+
   let ws_transport: WebSocketTransport | null = null;
   let qr_transport: QrTransport | null = null;
-  let yjs_provider: RTCDataChannelProvider | null = null;
+  let qr_packet = $state<Uint8Array | null>(null);
 
   // ---------------------------------------------------------------------------
   // Initialise room ID on mount
@@ -89,6 +94,97 @@
     });
   }
 
+  // ---------------------------------------------------------------------------
+  // Peer state aggregation
+  // ---------------------------------------------------------------------------
+
+  function updateAggregateState(): void {
+    if (peer_states.size === 0) {
+      connection_store.setPeerState("idle");
+      return;
+    }
+    const states = Array.from(peer_states.values());
+    if (states.some((s) => s === "connected")) {
+      connection_store.setPeerState("connected");
+    } else if (states.some((s) => s === "connecting")) {
+      connection_store.setPeerState("connecting");
+    } else if (states.some((s) => s === "failed")) {
+      connection_store.setPeerState("failed");
+    } else {
+      connection_store.setPeerState("disconnected");
+    }
+  }
+
+  /**
+   * Disconnect and clean up a single peer. Safe to call when already disconnected
+   * (guards against re-entry via onStateChange callbacks).
+   */
+  function disconnectPeer(remote_peer_id: string): void {
+    if (!peer_managers.has(remote_peer_id)) {
+      return;
+    }
+    const manager = peer_managers.get(remote_peer_id)!;
+    // Delete first to prevent re-entry from the "closed" onStateChange fired by manager.close()
+    peer_managers.delete(remote_peer_id);
+    peer_states.delete(remote_peer_id);
+    yjs_providers.get(remote_peer_id)?.destroy();
+    yjs_providers.delete(remote_peer_id);
+    manager.close();
+    connection_store.removeRemotePeer(remote_peer_id);
+    updateAggregateState();
+  }
+
+  /**
+   * Start a WebRTC connection to a specific remote peer via the signalling transport.
+   * Each peer gets its own PerPeerChannel so their signals don't interfere.
+   */
+  function startWebRtc(remote_peer_id: string): void {
+    if (ws_transport === null) {
+      return;
+    }
+    const channel = ws_transport.createPeerChannel(remote_peer_id);
+    // Track whether this peer ever reached "connected" so we know whether
+    // a subsequent "disconnected" is a drop (clean up) or an ICE transient (ignore).
+    let was_ever_connected = false;
+    const manager = new RTCPeerManager(channel, {
+      onDataChannel(data_channel) {
+        const provider = new RTCDataChannelProvider(doc, data_channel);
+        yjs_providers.set(remote_peer_id, provider);
+      },
+      onStateChange(state) {
+        if (!peer_managers.has(remote_peer_id)) {
+          return; // already being cleaned up
+        }
+        peer_states.set(remote_peer_id, state);
+        if (state === "connected") {
+          was_ever_connected = true;
+          connection_store.addRemotePeer(remote_peer_id);
+        }
+        // Only auto-disconnect on "failed" (terminal ICE failure) or on
+        // "disconnected" after the connection was previously established.
+        // Ignoring "disconnected" during initial negotiation avoids spurious
+        // teardowns caused by transient ICE states.
+        if (state === "failed" || (state === "disconnected" && was_ever_connected)) {
+          disconnectPeer(remote_peer_id);
+        }
+        updateAggregateState();
+      },
+      onError(error) {
+        connection_store.setError(error.message);
+      },
+    });
+
+    peer_managers.set(remote_peer_id, manager);
+    peer_states.set(remote_peer_id, "connecting");
+    updateAggregateState();
+
+    if (isOfferer(local_peer_id, remote_peer_id)) {
+      manager.startAsOfferer();
+    } else {
+      manager.startAsAnswerer();
+    }
+  }
+
   function connectViaSignalling(): void {
     teardown(); // clean up any prior attempt before starting a new one
 
@@ -104,17 +200,14 @@
         } else if (state === "rate-limited") {
           connection_store.setError("Too many connection attempts — try again later");
         } else if (state === "disconnected") {
-          connection_store.setPeerState("disconnected");
+          teardown();
         }
       },
       onPeerJoined(remote_id) {
-        connection_store.setRemotePeer(remote_id);
-        startWebRtc(remote_id, ws_transport!);
+        startWebRtc(remote_id);
       },
-      onPeerLeft(_remote_id) {
-        connection_store.setRemotePeer(null);
-        connection_store.setPeerState("disconnected");
-        teardown();
+      onPeerLeft(remote_id) {
+        disconnectPeer(remote_id);
       },
       onError(error) {
         connection_store.setError(error.message);
@@ -147,25 +240,36 @@
       },
     });
 
-    // QR mode: local peer with larger UUID is always offerer (no server coordination)
-    // In QR mode we don't know the remote peer ID, so we always start as offerer
-    // (the answerer will scan and respond)
+    // QR mode: always offerer — the answerer scans and responds.
+    // Uses QR_PEER_ID as a placeholder since there is no signalling-server peer ID.
     const qr_peer_manager = new RTCPeerManager(qr_transport, {
-      onDataChannel(channel) {
-        yjs_provider = new RTCDataChannelProvider(doc, channel);
+      onDataChannel(data_channel) {
+        const provider = new RTCDataChannelProvider(doc, data_channel);
+        yjs_providers.set(QR_PEER_ID, provider);
       },
       onStateChange(state) {
-        connection_store.setPeerState(state);
+        if (!peer_managers.has(QR_PEER_ID)) {
+          return;
+        }
+        peer_states.set(QR_PEER_ID, state);
+        if (state === "connected") {
+          connection_store.addRemotePeer(QR_PEER_ID);
+        }
+        if (state === "disconnected" || state === "failed") {
+          disconnectPeer(QR_PEER_ID);
+        }
+        updateAggregateState();
       },
       onError(error) {
         connection_store.setError(error.message);
       },
     });
 
-    peer_manager = qr_peer_manager;
+    peer_managers.set(QR_PEER_ID, qr_peer_manager);
+    peer_states.set(QR_PEER_ID, "connecting");
     show_qr_overlay = true;
     connection_store.setMode("qr");
-    connection_store.setPeerState("connecting");
+    updateAggregateState();
     qr_peer_manager.startAsOfferer();
   }
 
@@ -181,41 +285,14 @@
     }
   }
 
-  function startWebRtc(remote_peer_id: string, transport: WebSocketTransport): void {
-    const offerer = isOfferer(local_peer_id, remote_peer_id);
-
-    const manager = new RTCPeerManager(transport, {
-      onDataChannel(channel) {
-        yjs_provider = new RTCDataChannelProvider(doc, channel);
-      },
-      onStateChange(state) {
-        connection_store.setPeerState(state);
-      },
-      onError(error) {
-        connection_store.setError(error.message);
-      },
-    });
-
-    peer_manager = manager;
-
-    if (offerer) {
-      manager.startAsOfferer();
-    } else {
-      manager.startAsAnswerer();
-    }
-  }
-
   function teardown(): void {
-    yjs_provider?.destroy();
-    yjs_provider = null;
-    peer_manager?.close();
-    peer_manager = null;
+    Array.from(peer_managers.keys()).forEach((id) => disconnectPeer(id));
+    ws_transport?.close();
     ws_transport = null;
     qr_transport = null;
     qr_packet = null;
     connection_store.setMode("none");
     connection_store.setPeerState("idle");
-    connection_store.setRemotePeer(null);
   }
 
   // ---------------------------------------------------------------------------

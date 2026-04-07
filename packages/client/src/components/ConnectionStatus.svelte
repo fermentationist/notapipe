@@ -12,7 +12,7 @@
 </script>
 
 <span class="status-dot state-{$connection_store.peer_state}" aria-label="Connection status: {status_label[$connection_store.peer_state] ?? 'unknown'}"></span>
-<span class="status-label">{status_label[$connection_store.peer_state] ?? "unknown"}</span>
+<span class="status-label">{status_label[$connection_store.peer_state] ?? "unknown"}{$connection_store.peer_state === "connected" && $connection_store.remote_peer_ids.length > 1 ? ` (${$connection_store.remote_peer_ids.length})` : ""}</span>
 
 <style>
   .status-dot {

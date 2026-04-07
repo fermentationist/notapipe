@@ -29,27 +29,102 @@ interface ServerMessage {
   payload?: unknown;
 }
 
+// ---------------------------------------------------------------------------
+// PerPeerChannel — implements SignalTransport for one specific remote peer.
+// Created by WebSocketTransport.createPeerChannel(); not exported directly.
+// ---------------------------------------------------------------------------
+
+class PerPeerChannel implements SignalTransport {
+  private offer_callback: OfferCallback | null = null;
+  private answer_callback: AnswerCallback | null = null;
+  private ice_candidate_callback: IceCandidateCallback | null = null;
+
+  constructor(
+    private readonly ws: WebSocketTransport,
+    private readonly remote_peer_id: string,
+  ) {}
+
+  sendOffer(sdp: RTCSessionDescriptionInit): void {
+    this.ws.sendSignalToPeer(this.remote_peer_id, { sdpType: sdp.type, sdp: sdp.sdp });
+  }
+
+  sendAnswer(sdp: RTCSessionDescriptionInit): void {
+    this.ws.sendSignalToPeer(this.remote_peer_id, { sdpType: sdp.type, sdp: sdp.sdp });
+  }
+
+  sendIceCandidate(candidate: RTCIceCandidate): void {
+    this.ws.sendSignalToPeer(this.remote_peer_id, {
+      candidate: candidate.candidate,
+      sdpMid: candidate.sdpMid,
+      sdpMLineIndex: candidate.sdpMLineIndex,
+    });
+  }
+
+  onOffer(callback: OfferCallback): void { this.offer_callback = callback; }
+  onAnswer(callback: AnswerCallback): void { this.answer_callback = callback; }
+  onIceCandidate(callback: IceCandidateCallback): void { this.ice_candidate_callback = callback; }
+
+  close(): void {
+    this.ws.removePeerChannel(this.remote_peer_id);
+  }
+
+  /** Called by WebSocketTransport when a signal arrives from this peer. */
+  handleIncoming(payload: unknown): void {
+    if (payload === null || typeof payload !== "object") {
+      return;
+    }
+    const signal = payload as Record<string, unknown>;
+
+    if ("sdpType" in signal) {
+      const sdp_type = signal["sdpType"];
+      const sdp = signal["sdp"];
+      if ((sdp_type === "offer" || sdp_type === "answer") && typeof sdp === "string") {
+        const sdp_init: RTCSessionDescriptionInit = { type: sdp_type, sdp };
+        if (sdp_type === "offer") {
+          this.offer_callback?.(sdp_init);
+        } else {
+          this.answer_callback?.(sdp_init);
+        }
+      }
+    } else if ("candidate" in signal) {
+      const candidate = signal["candidate"];
+      const sdp_mid = signal["sdpMid"];
+      const sdp_mline_index = signal["sdpMLineIndex"];
+      if (typeof candidate === "string") {
+        const ice_candidate = new RTCIceCandidate({
+          candidate,
+          sdpMid: typeof sdp_mid === "string" ? sdp_mid : null,
+          sdpMLineIndex: typeof sdp_mline_index === "number" ? sdp_mline_index : null,
+        });
+        this.ice_candidate_callback?.(ice_candidate);
+      }
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// WebSocketTransport
+// ---------------------------------------------------------------------------
+
 /**
- * WebSocketTransport — implements SignalTransport via the notapipe signalling server.
+ * Manages a single WebSocket connection to the signalling server.
+ * Call createPeerChannel(remote_peer_id) to get a SignalTransport for each
+ * remote peer — signals are routed to and from that specific peer only.
  *
  * Lifecycle:
- *   1. Construct with server URL, room ID, and peer ID.
- *   2. Call connect() to open the WebSocket.
- *   3. The server will confirm with a "joined" message (state → "joined").
- *   4. When the remote peer joins, "peer-joined" fires (state → "peer-present").
- *   5. Call close() to cleanly disconnect.
+ *   1. Construct with server URL, room ID, peer ID, and callbacks.
+ *   2. Call connect() to open the WebSocket and join the room.
+ *   3. For each onPeerJoined callback: call createPeerChannel(peer_id) and
+ *      pass the returned SignalTransport to an RTCPeerManager.
+ *   4. Call close() to leave the room and close the WebSocket.
  */
-export class WebSocketTransport implements SignalTransport {
+export class WebSocketTransport {
   private socket: WebSocket | null = null;
   private readonly server_url: string;
   private readonly room_id: string;
   private readonly peer_id: string;
   private readonly callbacks: WebSocketTransportCallbacks;
-
-  private offer_callback: OfferCallback | null = null;
-  private answer_callback: AnswerCallback | null = null;
-  private ice_candidate_callback: IceCandidateCallback | null = null;
-
+  private readonly peer_channels = new Map<string, PerPeerChannel>();
   private ping_interval_id: ReturnType<typeof setInterval> | null = null;
 
   constructor(
@@ -88,56 +163,15 @@ export class WebSocketTransport implements SignalTransport {
     });
   }
 
-  // ---------------------------------------------------------------------------
-  // SignalTransport implementation
-  // ---------------------------------------------------------------------------
-
-  sendOffer(sdp: RTCSessionDescriptionInit): void {
-    // The transport doesn't know the remote peer ID at send time — the server
-    // routes by room. We broadcast to all peers in the room (just one in v1).
-    this.send({
-      type: "signal",
-      roomId: this.room_id,
-      from: this.peer_id,
-      to: "__broadcast__",
-      payload: { sdpType: sdp.type, sdp: sdp.sdp },
-    });
-  }
-
-  sendAnswer(sdp: RTCSessionDescriptionInit): void {
-    this.send({
-      type: "signal",
-      roomId: this.room_id,
-      from: this.peer_id,
-      to: "__broadcast__",
-      payload: { sdpType: sdp.type, sdp: sdp.sdp },
-    });
-  }
-
-  sendIceCandidate(candidate: RTCIceCandidate): void {
-    this.send({
-      type: "signal",
-      roomId: this.room_id,
-      from: this.peer_id,
-      to: "__broadcast__",
-      payload: {
-        candidate: candidate.candidate,
-        sdpMid: candidate.sdpMid,
-        sdpMLineIndex: candidate.sdpMLineIndex,
-      },
-    });
-  }
-
-  onOffer(callback: OfferCallback): void {
-    this.offer_callback = callback;
-  }
-
-  onAnswer(callback: AnswerCallback): void {
-    this.answer_callback = callback;
-  }
-
-  onIceCandidate(callback: IceCandidateCallback): void {
-    this.ice_candidate_callback = callback;
+  /**
+   * Create a dedicated signal channel for one remote peer.
+   * Signals sent through this channel are addressed to remote_peer_id.
+   * Signals received from remote_peer_id are routed to this channel's callbacks.
+   */
+  createPeerChannel(remote_peer_id: string): SignalTransport {
+    const channel = new PerPeerChannel(this, remote_peer_id);
+    this.peer_channels.set(remote_peer_id, channel);
+    return channel;
   }
 
   close(): void {
@@ -147,6 +181,25 @@ export class WebSocketTransport implements SignalTransport {
       this.socket.close();
     }
     this.socket = null;
+    this.peer_channels.clear();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Package-internal — called by PerPeerChannel
+  // ---------------------------------------------------------------------------
+
+  sendSignalToPeer(remote_peer_id: string, payload: Record<string, unknown>): void {
+    this.send({
+      type: "signal",
+      roomId: this.room_id,
+      from: this.peer_id,
+      to: remote_peer_id,
+      payload,
+    });
+  }
+
+  removePeerChannel(remote_peer_id: string): void {
+    this.peer_channels.delete(remote_peer_id);
   }
 
   // ---------------------------------------------------------------------------
@@ -170,10 +223,12 @@ export class WebSocketTransport implements SignalTransport {
     switch (message.type) {
       case "joined": {
         this.callbacks.onStateChange("joined");
-        // If peers is non-empty, the other peer is already in the room
+        // Fire onPeerJoined for every peer already in the room (not just the first)
         const existing_peers = message.peers ?? [];
+        existing_peers.forEach((peer_id) => {
+          this.callbacks.onPeerJoined(peer_id);
+        });
         if (existing_peers.length > 0) {
-          this.callbacks.onPeerJoined(existing_peers[0]!);
           this.callbacks.onStateChange("peer-present");
         }
         break;
@@ -195,7 +250,11 @@ export class WebSocketTransport implements SignalTransport {
       }
 
       case "signal": {
-        this.routeSignalPayload(message.payload);
+        // Route each signal to the channel registered for its sender
+        if (message.from !== undefined) {
+          const channel = this.peer_channels.get(message.from);
+          channel?.handleIncoming(message.payload);
+        }
         break;
       }
 
@@ -213,39 +272,6 @@ export class WebSocketTransport implements SignalTransport {
       case "pong": {
         // Keepalive acknowledged — nothing to do
         break;
-      }
-    }
-  }
-
-  private routeSignalPayload(payload: unknown): void {
-    if (payload === null || typeof payload !== "object") {
-      return;
-    }
-
-    const signal_payload = payload as Record<string, unknown>;
-
-    if ("sdpType" in signal_payload) {
-      const sdp_type = signal_payload["sdpType"];
-      const sdp = signal_payload["sdp"];
-      if ((sdp_type === "offer" || sdp_type === "answer") && typeof sdp === "string") {
-        const sdp_init: RTCSessionDescriptionInit = { type: sdp_type, sdp };
-        if (sdp_type === "offer") {
-          this.offer_callback?.(sdp_init);
-        } else {
-          this.answer_callback?.(sdp_init);
-        }
-      }
-    } else if ("candidate" in signal_payload) {
-      const candidate = signal_payload["candidate"];
-      const sdp_mid = signal_payload["sdpMid"];
-      const sdp_mline_index = signal_payload["sdpMLineIndex"];
-      if (typeof candidate === "string") {
-        const ice_candidate = new RTCIceCandidate({
-          candidate,
-          sdpMid: typeof sdp_mid === "string" ? sdp_mid : null,
-          sdpMLineIndex: typeof sdp_mline_index === "number" ? sdp_mline_index : null,
-        });
-        this.ice_candidate_callback?.(ice_candidate);
       }
     }
   }

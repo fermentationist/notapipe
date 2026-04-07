@@ -6,7 +6,7 @@ export type ConnectionMode = "none" | "signalling" | "qr";
 export interface ConnectionState {
   mode: ConnectionMode;
   peer_state: PeerManagerState;
-  remote_peer_id: string | null;
+  remote_peer_ids: string[];
   room_id: string | null;
   error: string | null;
 }
@@ -14,7 +14,7 @@ export interface ConnectionState {
 const initial_state: ConnectionState = {
   mode: "none",
   peer_state: "idle",
-  remote_peer_id: null,
+  remote_peer_ids: [],
   room_id: null,
   error: null,
 };
@@ -30,8 +30,19 @@ function createConnectionStore() {
     setPeerState(peer_state: PeerManagerState): void {
       update((state) => ({ ...state, peer_state }));
     },
-    setRemotePeer(remote_peer_id: string | null): void {
-      update((state) => ({ ...state, remote_peer_id }));
+    addRemotePeer(peer_id: string): void {
+      update((state) => ({
+        ...state,
+        remote_peer_ids: state.remote_peer_ids.includes(peer_id)
+          ? state.remote_peer_ids
+          : [...state.remote_peer_ids, peer_id],
+      }));
+    },
+    removeRemotePeer(peer_id: string): void {
+      update((state) => ({
+        ...state,
+        remote_peer_ids: state.remote_peer_ids.filter((id) => id !== peer_id),
+      }));
     },
     setRoomId(room_id: string): void {
       update((state) => ({ ...state, room_id }));

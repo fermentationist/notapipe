@@ -2,7 +2,7 @@
 // Defends against brute-force of geo mode passphrase-derived room IDs.
 
 const WINDOW_MS = 60_000; // 1 minute
-const MAX_JOINS_PER_WINDOW = 10;
+const MAX_JOINS_PER_WINDOW = Number(process.env["MAX_JOINS_PER_WINDOW"] ?? 10);
 
 // Map of IP address → array of attempt timestamps (ms)
 const attempt_timestamps = new Map<string, number[]>();
