@@ -426,6 +426,28 @@
     }
   }
 
+  function importDocument(): void {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".txt,text/plain";
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (file === undefined) { return; }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const text = reader.result as string;
+        const current = ytext.toString();
+        // Replace entire document content
+        doc.transact(() => {
+          if (current.length > 0) { ytext.delete(0, current.length); }
+          if (text.length > 0) { ytext.insert(0, text); }
+        });
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  }
+
   function handleDisconnect(): void {
     teardown();
   }
@@ -556,9 +578,16 @@
         {#if $persistence_store}
           <span class="persist-indicator" title="localStorage persistence is on" aria-label="Persistence active">●</span>
         {/if}
-        <button class="icon-btn" onclick={exportDocument} title="Export document" aria-label="Export">↓</button>
+        <button class="icon-btn" onclick={importDocument} title="Load text file" aria-label="Load text file">↑</button>
+        <button class="icon-btn" onclick={exportDocument} title="Save as text file" aria-label="Save as text file">↓</button>
         {#if can_share}
-          <button class="icon-btn" onclick={shareDocument} title="Share document" aria-label="Share">↑</button>
+          <button class="icon-btn" onclick={shareDocument} title="Share document" aria-label="Share document">
+            <svg width="14" height="15" viewBox="0 0 14 15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="7" y1="1" x2="7" y2="10"/>
+              <polyline points="4,4 7,1 10,4"/>
+              <path d="M2 7v7h10V7"/>
+            </svg>
+          </button>
         {/if}
         <div class="cleanup-wrapper">
           <button
@@ -979,32 +1008,52 @@
   }
 
   .focus-toggle-btn {
-    position: absolute;
-    bottom: 1rem;
-    right: 1rem;
-    background: none;
+    position: fixed;
+    bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+    right: 1.25rem;
+    background: var(--color-surface);
     border: 1px solid var(--color-border);
-    border-radius: 4px;
+    border-radius: 6px;
     color: var(--color-text-muted);
-    font-size: 1.1rem;
-    width: 2rem;
-    height: 2rem;
+    font-size: 1rem;
+    width: 2.5rem;
+    height: 2.5rem;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    opacity: 0.4;
+    opacity: 0.55;
     transition: opacity 0.15s;
-    z-index: 10;
+    z-index: 20;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
   }
 
   .focus-toggle-btn:hover {
     opacity: 1;
   }
 
+  /* On touch devices there's no hover — keep the button clearly visible */
+  @media (hover: none) {
+    .focus-toggle-btn {
+      opacity: 0.85;
+    }
+  }
+
   :global(.focus-mode) .focus-toggle-btn {
+    background: var(--color-focus-bg);
     border-color: var(--color-focus-rule);
-    color: var(--color-focus-rule);
+    color: var(--color-focus-text);
+    opacity: 0.7;
+  }
+
+  :global(.focus-mode) .focus-toggle-btn:hover {
+    opacity: 1;
+  }
+
+  @media (hover: none) {
+    :global(.focus-mode) .focus-toggle-btn {
+      opacity: 0.9;
+    }
   }
 
   /* Grain texture in focus mode — SVG noise pseudo-element */
