@@ -162,7 +162,6 @@ export async function scanQr(
 /**
  * Attempt a single-frame QR decode from the current video frame.
  * Returns the decoded bytes, or null if no QR code was found.
- * Used by the manual "Capture" button as a fallback when continuous scanning misses.
  */
 export async function detectFrame(
   video_element: HTMLVideoElement,

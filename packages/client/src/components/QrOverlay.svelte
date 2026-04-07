@@ -1,7 +1,7 @@
 <script lang="ts">
   import QRCode from "qrcode";
   import { tick } from "svelte";
-  import { scanQr, detectFrame, startCamera, stopCamera } from "../rtc/qr_mode/scanner.ts";
+  import { scanQr, startCamera, stopCamera } from "../rtc/qr_mode/scanner.ts";
 
   interface Props {
     packet: Uint8Array | null;
@@ -18,13 +18,12 @@
   // "choose": initial role-selection screen
   // "show": showing a QR code (offer for offerer, answer for answerer)
   // "scan": camera open, reading a QR code
-  let view = $state<"choose" | "show" | "scan">("choose");
+  // "connecting": offerer has scanned the answer, waiting for WebRTC to connect
+  let view = $state<"choose" | "show" | "scan" | "connecting">("choose");
   let role = $state<"offerer" | "answerer" | null>(null);
   let camera_stream: MediaStream | null = null;
   let scan_abort_controller: AbortController | null = null;
   let camera_error = $state<string | null>(null);
-  let capture_feedback = $state<"not-found" | null>(null);
-  let capturing = $state(false);
 
   // Render QR code whenever the canvas element is bound and packet is ready.
   $effect(() => {
@@ -71,45 +70,25 @@
       scan_abort_controller = new AbortController();
       const scanned_packet = await scanQr(video_element, scan_abort_controller.signal);
 
-      // Stop camera before transitioning
       stopCamera(video_element, camera_stream);
       camera_stream = null;
 
       onscanned(scanned_packet);
 
       if (role === "offerer") {
-        // Offerer received the answer — connection is establishing, close the overlay.
-        onclose();
+        // Show "connecting" state — the overlay closes automatically via the
+        // onStateChange handler in App.svelte when WebRTC reaches "connected".
+        // Do NOT call onclose() here: it would trigger teardown() while the
+        // peer connection is still establishing.
+        view = "connecting";
       }
-      // Answerer: stay open; the $effect above will transition to "show" once the
-      // answer packet arrives via the `packet` prop.
+      // Answerer: the $effect above transitions view to "show" once `packet` arrives.
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
         return;
       }
       camera_error = error instanceof Error ? error.message : "Camera error";
     }
-  }
-
-  async function captureFrame(): Promise<void> {
-    if (capturing) { return; }
-    capturing = true;
-    capture_feedback = null;
-    const packet = await detectFrame(video_element);
-    if (packet !== null) {
-      // Abort the continuous scan so it doesn't double-fire
-      scan_abort_controller?.abort();
-      stopCamera(video_element, camera_stream!);
-      camera_stream = null;
-      onscanned(packet);
-      if (role === "offerer") {
-        onclose();
-      }
-    } else {
-      capture_feedback = "not-found";
-      setTimeout(() => { capture_feedback = null; }, 2000);
-    }
-    capturing = false;
   }
 
   function handleClose(): void {
@@ -181,7 +160,7 @@
         {/if}
       </div>
 
-    {:else}
+    {:else if view === "scan"}
       <div class="step">
         <p class="step-label">{stepLabel()}</p>
 
@@ -192,20 +171,17 @@
         <!-- svelte-ignore a11y_media_has_caption -->
         <video bind:this={video_element} class="camera-preview" playsinline></video>
 
-        <button class="action-btn" onclick={captureFrame} disabled={capturing}>
-          {capturing ? "Scanning…" : "📷 Capture"}
-        </button>
-
-        {#if capture_feedback === "not-found"}
-          <p class="hint">No QR code found — try again.</p>
-        {/if}
-
         <button class="action-btn secondary" onclick={() => {
           scan_abort_controller?.abort();
           view = role === null ? "choose" : "show";
         }}>
           ← Back
         </button>
+      </div>
+
+    {:else}
+      <div class="step">
+        <p class="hint">Connecting…</p>
       </div>
     {/if}
   </div>
