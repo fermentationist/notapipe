@@ -105,7 +105,7 @@ test.describe("Dropdown menus", () => {
     await expect(qr).toBeVisible();
   });
 
-  test("clicking Use QR code opens the QR overlay", async ({ page }) => {
+  test("clicking Use QR code opens the QR overlay with role selection", async ({ page }) => {
     const errors: string[] = [];
     page.on("pageerror", (err) => errors.push(err.message));
 
@@ -115,11 +115,14 @@ test.describe("Dropdown menus", () => {
     await page.getByRole("button", { name: /Connect to peer/ }).click();
     await page.getByRole("menuitem", { name: /QR code/ }).click();
 
-    await expect(page.getByRole("dialog", { name: /QR/i })).toBeVisible({ timeout: 2000 });
+    const dialog = page.getByRole("dialog", { name: /QR/i });
+    await expect(dialog).toBeVisible({ timeout: 2000 });
+    await expect(page.getByRole("button", { name: /Show my QR/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Scan their QR/ })).toBeVisible();
     expect(errors, `JS errors: ${errors.join("\n")}`).toHaveLength(0);
   });
 
-  test("QR canvas renders after ICE gathering completes", async ({ page }) => {
+  test("QR canvas renders after choosing offerer role", async ({ page }) => {
     const errors: string[] = [];
     page.on("pageerror", (err) => errors.push(err.message));
 
@@ -128,6 +131,7 @@ test.describe("Dropdown menus", () => {
 
     await page.getByRole("button", { name: /Connect to peer/ }).click();
     await page.getByRole("menuitem", { name: /QR code/ }).click();
+    await page.getByRole("button", { name: /Show my QR/ }).click();
 
     // Wait for the canvas to appear — it only renders once packet !== null,
     // which happens after iceGatheringState === "complete" or the 15s timeout.
@@ -140,12 +144,34 @@ test.describe("Dropdown menus", () => {
       const ctx = canvas.getContext("2d");
       if (ctx === null) { return false; }
       const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      // A rendered QR code has both dark and light pixels — check that not all pixels are identical
       const first_pixel = data[0];
       return Array.from(data).some((byte) => byte !== first_pixel);
     });
 
     expect(has_content, "QR canvas should have rendered content, not a blank image").toBe(true);
+    expect(errors, `JS errors: ${errors.join("\n")}`).toHaveLength(0);
+  });
+
+  test("choosing answerer role opens the camera immediately", async ({ page }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (err) => errors.push(err.message));
+
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    await page.getByRole("button", { name: /Connect to peer/ }).click();
+    await page.getByRole("menuitem", { name: /QR code/ }).click();
+
+    // Choosing "Scan first" should go straight to the camera view.
+    // In Playwright there's no real camera, so we expect a camera error or the video element.
+    await page.getByRole("button", { name: /Scan their QR/ }).click();
+
+    // Either the video element appears (camera granted) or an error message (camera denied)
+    // — either way, the scan step rendered without a JS crash.
+    await expect(
+      page.locator(".camera-preview, .error")
+    ).toBeVisible({ timeout: 5000 });
+
     expect(errors, `JS errors: ${errors.join("\n")}`).toHaveLength(0);
   });
 

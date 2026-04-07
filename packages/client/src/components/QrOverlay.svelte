@@ -7,18 +7,24 @@
     packet: Uint8Array | null;
     onscanned: (packet: Uint8Array) => void;
     onclose: () => void;
+    onstartofferer: () => void;
+    onstartanswerer: () => void;
   }
 
-  let { packet, onscanned, onclose }: Props = $props();
+  let { packet, onscanned, onclose, onstartofferer, onstartanswerer }: Props = $props();
 
   let qr_canvas: HTMLCanvasElement = $state() as HTMLCanvasElement;
   let video_element: HTMLVideoElement = $state() as HTMLVideoElement;
-  let step = $state<1 | 2>(1);
+  // "choose": initial role-selection screen
+  // "show": showing a QR code (offer for offerer, answer for answerer)
+  // "scan": camera open, reading a QR code
+  let view = $state<"choose" | "show" | "scan">("choose");
+  let role = $state<"offerer" | "answerer" | null>(null);
   let camera_stream: MediaStream | null = null;
   let scan_abort_controller: AbortController | null = null;
   let camera_error = $state<string | null>(null);
 
-  // Render QR code when packet is ready
+  // Render QR code whenever the canvas element is bound and packet is ready.
   $effect(() => {
     if (packet !== null && qr_canvas) {
       const binary_string = Array.from(packet, (byte) => String.fromCharCode(byte)).join("");
@@ -32,19 +38,48 @@
     }
   });
 
+  // Answerer: once the answer packet arrives (after scanning the offer), show it.
+  $effect(() => {
+    if (role === "answerer" && packet !== null && view === "scan") {
+      view = "show";
+    }
+  });
+
+  function chooseOfferer(): void {
+    role = "offerer";
+    view = "show";
+    onstartofferer();
+  }
+
+  async function chooseAnswerer(): Promise<void> {
+    role = "answerer";
+    onstartanswerer();
+    await startScanning();
+  }
+
   async function startScanning(): Promise<void> {
-    step = 2;
+    view = "scan";
     camera_error = null;
     // Wait for Svelte to render the <video> element before accessing it.
-    // step = 2 schedules a DOM update but doesn't apply it synchronously.
     await tick();
 
     try {
       camera_stream = await startCamera(video_element);
       scan_abort_controller = new AbortController();
       const scanned_packet = await scanQr(video_element, scan_abort_controller.signal);
+
+      // Stop camera before transitioning
+      stopCamera(video_element, camera_stream);
+      camera_stream = null;
+
       onscanned(scanned_packet);
-      handleClose();
+
+      if (role === "offerer") {
+        // Offerer received the answer — connection is establishing, close the overlay.
+        onclose();
+      }
+      // Answerer: stay open; the $effect above will transition to "show" once the
+      // answer packet arrives via the `packet` prop.
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
         return;
@@ -67,6 +102,18 @@
       handleClose();
     }
   }
+
+  function stepLabel(): string {
+    if (role === "offerer") {
+      return view === "show"
+        ? "Step 1 of 2 — Show this to the other device"
+        : "Step 2 of 2 — Scan the other device's QR code";
+    }
+    // answerer
+    return view === "scan"
+      ? "Step 1 of 2 — Scan the other device's QR code"
+      : "Step 2 of 2 — Show this to the other device";
+  }
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -79,9 +126,21 @@
   <div class="panel" role="dialog" aria-modal="true" aria-label="Air-gapped QR connection">
     <button class="close-btn" onclick={handleClose} aria-label="Close QR overlay">✕</button>
 
-    {#if step === 1}
+    {#if view === "choose"}
       <div class="step">
-        <p class="step-label">Step 1 of 2 — Show this to the other device</p>
+        <p class="step-label">Air-gapped QR connection</p>
+        <p class="hint">One device shows their QR code first; the other scans it.</p>
+        <button class="action-btn" onclick={chooseOfferer}>
+          Show my QR code first
+        </button>
+        <button class="action-btn secondary" onclick={chooseAnswerer}>
+          Scan their QR code first
+        </button>
+      </div>
+
+    {:else if view === "show"}
+      <div class="step">
+        <p class="step-label">{stepLabel()}</p>
 
         {#if packet === null}
           <p class="hint">Gathering network info…</p>
@@ -89,13 +148,18 @@
           <canvas bind:this={qr_canvas} class="qr-canvas"></canvas>
         {/if}
 
-        <button class="action-btn" onclick={startScanning} disabled={packet === null}>
-          → Scan their QR
-        </button>
+        {#if role === "offerer"}
+          <button class="action-btn" onclick={startScanning} disabled={packet === null}>
+            → Scan their QR
+          </button>
+        {:else}
+          <p class="hint">Once they scan this, you'll be connected.</p>
+        {/if}
       </div>
+
     {:else}
       <div class="step">
-        <p class="step-label">Step 2 of 2 — Scan the other device's QR code</p>
+        <p class="step-label">{stepLabel()}</p>
 
         {#if camera_error !== null}
           <p class="error">{camera_error}</p>
@@ -104,7 +168,10 @@
         <!-- svelte-ignore a11y_media_has_caption -->
         <video bind:this={video_element} class="camera-preview" playsinline></video>
 
-        <button class="action-btn secondary" onclick={() => { step = 1; }}>
+        <button class="action-btn secondary" onclick={() => {
+          scan_abort_controller?.abort();
+          view = role === null ? "choose" : "show";
+        }}>
           ← Back
         </button>
       </div>
@@ -183,6 +250,7 @@
     margin: 0;
     color: var(--color-text-muted);
     font-size: 0.85rem;
+    text-align: center;
   }
 
   .error {

@@ -315,6 +315,7 @@
         peer_states.set(QR_PEER_ID, state);
         if (state === "connected") {
           connection_store.addRemotePeer(QR_PEER_ID);
+          show_qr_overlay = false;
         }
         if (state === "disconnected" || state === "failed") {
           disconnectPeer(QR_PEER_ID);
@@ -331,12 +332,24 @@
     show_qr_overlay = true;
     connection_store.setMode("qr");
     updateAggregateState();
-    qr_peer_manager.startAsOfferer();
+    // Role selection is deferred — user picks "Show my QR" or "Scan first" in the overlay.
+  }
+
+  function startQrAsOfferer(): void {
+    const manager = peer_managers.get(QR_PEER_ID);
+    manager?.startAsOfferer();
+  }
+
+  function startQrAsAnswerer(): void {
+    const manager = peer_managers.get(QR_PEER_ID);
+    manager?.startAsAnswerer();
   }
 
   function handleQrScanned(scanned_packet: Uint8Array): void {
     qr_transport?.receiveScannedPacket(scanned_packet);
-    show_qr_overlay = false;
+    // Do not close the overlay here — the answerer needs to stay open to show their
+    // answer QR. The overlay closes itself after the scan step is handled, or when
+    // the connection reaches "connected" state (handled in onStateChange above).
   }
 
   function closeQrOverlay(): void {
@@ -623,6 +636,8 @@
       packet={qr_packet}
       onscanned={handleQrScanned}
       onclose={closeQrOverlay}
+      onstartofferer={startQrAsOfferer}
+      onstartanswerer={startQrAsAnswerer}
     />
   {/if}
 
