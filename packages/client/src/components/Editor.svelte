@@ -1,6 +1,6 @@
 <script lang="ts">
   import * as Y from "yjs";
-  import { applyTextareaDiff } from "../yjs/provider.ts";
+  import { applyTextareaDiff, adjustCursor } from "../yjs/provider.ts";
 
   interface Props {
     doc: Y.Doc;
@@ -20,17 +20,22 @@
       if (is_applying_remote) {
         return;
       }
-      const remote_value = ytext.toString();
-      if (remote_value !== local_value) {
-        const selection_start = textarea_element?.selectionStart ?? 0;
-        const selection_end = textarea_element?.selectionEnd ?? 0;
-        local_value = remote_value;
+      const new_value = ytext.toString();
+      if (new_value !== local_value) {
+        const old_value = local_value;
+        const cursor_start = textarea_element?.selectionStart ?? 0;
+        const cursor_end = textarea_element?.selectionEnd ?? 0;
+        local_value = new_value;
 
-        // Restore cursor after DOM update
+        // Adjust cursor for remote edits rather than blindly restoring the old position.
+        // Without this, a remote insert before the cursor pulls it backward.
+        const new_start = adjustCursor(old_value, new_value, cursor_start);
+        const new_end = adjustCursor(old_value, new_value, cursor_end);
+
         requestAnimationFrame(() => {
           if (textarea_element) {
-            textarea_element.selectionStart = selection_start;
-            textarea_element.selectionEnd = selection_end;
+            textarea_element.selectionStart = new_start;
+            textarea_element.selectionEnd = new_end;
           }
         });
       }

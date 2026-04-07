@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import * as Y from "yjs";
-import { applyTextareaDiff } from "../src/yjs/provider.ts";
+import { applyTextareaDiff, adjustCursor } from "../src/yjs/provider.ts";
 
 function makeDocAndText(): { doc: Y.Doc; ytext: Y.Text } {
   const doc = new Y.Doc();
@@ -79,5 +79,58 @@ describe("applyTextareaDiff", () => {
     ytext.insert(0, "hello 🌍");
     applyTextareaDiff(ytext, doc, "hello 🌍", "hello 🌎");
     expect(ytext.toString()).toBe("hello 🌎");
+  });
+});
+
+describe("adjustCursor", () => {
+  it("cursor before remote insert is unchanged", () => {
+    // "hello world" → "hello beautiful world", cursor at 5 (after "hello")
+    expect(adjustCursor("hello world", "hello beautiful world", 5)).toBe(5);
+  });
+
+  it("cursor after remote insert shifts forward", () => {
+    // Remote prepends "abc" to "hello" — cursor was at end (5), should move to 8
+    expect(adjustCursor("hello", "abchello", 5)).toBe(8);
+  });
+
+  it("cursor after remote insert in middle shifts forward", () => {
+    // "hello world", remote inserts "beautiful " at position 6
+    // cursor was at 11 (end), should become 21
+    expect(adjustCursor("hello world", "hello beautiful world", 11)).toBe(21);
+  });
+
+  it("cursor at exact insert point stays put (before semantics)", () => {
+    // "ab", insert "X" at position 1 → "aXb", cursor at 1 → stays at 1
+    expect(adjustCursor("ab", "aXb", 1)).toBe(1);
+  });
+
+  it("cursor inside deleted region is clamped to start of change", () => {
+    // "hello world", remote deletes "lo wo" (positions 3-8)
+    // cursor at 5 (inside deleted region) → clamped to 3
+    expect(adjustCursor("hello world", "helrld", 5)).toBe(3);
+  });
+
+  it("cursor after deletion shifts backward", () => {
+    // "hello world", remote deletes " world" (positions 5-11)
+    // cursor at 11 (end) → becomes 5
+    expect(adjustCursor("hello world", "hello", 11)).toBe(5);
+  });
+
+  it("cursor at position 0 is always unchanged", () => {
+    expect(adjustCursor("hello", "xyz hello", 0)).toBe(0);
+  });
+
+  it("no-op edit leaves cursor unchanged", () => {
+    expect(adjustCursor("hello", "hello", 3)).toBe(3);
+  });
+
+  it("remote replace before cursor adjusts correctly (net zero change)", () => {
+    // "abcde", replace "ab" with "XY" — cursor at 5, net change = 0
+    expect(adjustCursor("abcde", "XYcde", 5)).toBe(5);
+  });
+
+  it("remote replace shrinks text before cursor — cursor shifts back", () => {
+    // "hello world", replace "hello" with "hi" (save 3 chars), cursor at 11
+    expect(adjustCursor("hello world", "hi world", 11)).toBe(8);
   });
 });

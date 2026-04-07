@@ -282,3 +282,16 @@ test.describe("Settings panel", () => {
     await expect(toggle).not.toBeChecked();
   });
 });
+
+test.describe("Signalling connection state", () => {
+  test("shows 'waiting for peer' after connecting via signalling server", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    await page.getByRole("button", { name: /Connect to peer/ }).click();
+    await page.getByRole("menuitem", { name: "Use signalling server" }).click();
+
+    // Once joined the room with no other peer present, status should say "waiting for peer…"
+    await expect(page.locator(".status-label")).toHaveText("waiting for peer…", { timeout: 5000 });
+  });
+});

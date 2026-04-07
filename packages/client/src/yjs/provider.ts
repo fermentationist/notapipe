@@ -119,6 +119,40 @@ export class RTCDataChannelProvider {
 // ---------------------------------------------------------------------------
 
 /**
+ * Adjust a cursor offset after a remote edit.
+ * Uses prefix/suffix diff to find where the change landed relative to `cursor`,
+ * then returns the corrected position.
+ *
+ * - Before the change: unchanged
+ * - Inside deleted region: clamped to the start of the change
+ * - After the change: shifted by (inserted − deleted)
+ */
+export function adjustCursor(old_text: string, new_text: string, cursor: number): number {
+  let prefix = 0;
+  while (prefix < old_text.length && prefix < new_text.length && old_text[prefix] === new_text[prefix]) {
+    prefix++;
+  }
+  let suffix = 0;
+  while (
+    suffix < old_text.length - prefix &&
+    suffix < new_text.length - prefix &&
+    old_text[old_text.length - 1 - suffix] === new_text[new_text.length - 1 - suffix]
+  ) {
+    suffix++;
+  }
+  const deleted = old_text.length - prefix - suffix;
+  const inserted = new_text.length - prefix - suffix;
+
+  if (cursor <= prefix) {
+    return cursor;
+  } else if (cursor <= prefix + deleted) {
+    return prefix;
+  } else {
+    return cursor + inserted - deleted;
+  }
+}
+
+/**
  * Apply a textarea value change to a Y.Text using a prefix/suffix diff.
  * Zero dependencies beyond Yjs — avoids diff libraries.
  *
