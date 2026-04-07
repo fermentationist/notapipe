@@ -48,6 +48,7 @@
   let show_cleanup_menu = $state(false);
   let show_share_menu = $state(false);
   let cleanup_menu_anchor = $state<{ top: number; right: number } | null>(null);
+  let share_menu_anchor = $state<{ top: number; right: number } | null>(null);
   let confirm_dialog = $state<{ message: string; onconfirm: () => void } | null>(null);
 
   // ---------------------------------------------------------------------------
@@ -104,13 +105,12 @@
   const yjs_providers = new Map<string, RTCDataChannelProvider>();
   const peer_states = new Map<string, import("./rtc/peer.ts").PeerManagerState>();
 
-  const QR_PEER_ID = "qr-peer";
-
   let ws_transport: WebSocketTransport | null = null;
   // Set while signalling is active; cleared in teardown() to prevent auto-reconnect.
   let signalling_url: string | null = null;
   let qr_transport: QrTransport | null = null;
   let qr_packet = $state<Uint8Array | null>(null);
+  let active_qr_session_id = $state<string | null>(null);
 
   // ---------------------------------------------------------------------------
   // Initialise room ID on mount
@@ -315,7 +315,16 @@
   }
 
   function connectViaQr(): void {
-    teardown(); // clean up any prior attempt before starting a new one
+    // Do NOT call teardown() — we want to ADD a peer, not replace existing connections.
+    // If there's an in-progress QR session that never connected, clean it up first.
+    if (active_qr_session_id !== null && peer_states.get(active_qr_session_id) !== "connected") {
+      disconnectPeer(active_qr_session_id);
+    }
+
+    // Generate a unique ID for this QR pairing session.
+    const session_id = `qr-${crypto.randomUUID()}`;
+    active_qr_session_id = session_id;
+    qr_packet = null;
 
     // Create the RTCPeerConnection up-front so both QrTransport and RTCPeerManager
     // share the same instance. QrTransport must monitor ICE gathering on the exact
@@ -332,25 +341,22 @@
       },
     });
 
-    // QR mode: always offerer — the answerer scans and responds.
-    // Uses QR_PEER_ID as a placeholder since there is no signalling-server peer ID.
-    // Pass `pc` so RTCPeerManager reuses the same instance that QrTransport monitors.
-    const qr_peer_manager = new RTCPeerManager(qr_transport, {
+    const manager = new RTCPeerManager(qr_transport, {
       onDataChannel(data_channel) {
         const provider = new RTCDataChannelProvider(doc, data_channel);
-        yjs_providers.set(QR_PEER_ID, provider);
+        yjs_providers.set(session_id, provider);
       },
       onStateChange(state) {
-        if (!peer_managers.has(QR_PEER_ID)) {
+        if (!peer_managers.has(session_id)) {
           return;
         }
-        peer_states.set(QR_PEER_ID, state);
+        peer_states.set(session_id, state);
         if (state === "connected") {
-          connection_store.addRemotePeer(QR_PEER_ID);
+          connection_store.addRemotePeer(session_id);
           show_qr_overlay = false;
         }
         if (state === "disconnected" || state === "failed") {
-          disconnectPeer(QR_PEER_ID);
+          disconnectPeer(session_id);
         }
         updateAggregateState();
       },
@@ -359,22 +365,25 @@
       },
     }, pc);
 
-    peer_managers.set(QR_PEER_ID, qr_peer_manager);
-    peer_states.set(QR_PEER_ID, "connecting");
+    peer_managers.set(session_id, manager);
+    peer_states.set(session_id, "connecting");
     show_qr_overlay = true;
-    connection_store.setMode("qr");
+    // Only switch mode to "qr" if we aren't already connected via another method.
+    if (peer_managers.size === 1) {
+      connection_store.setMode("qr");
+    }
     updateAggregateState();
     // Role selection is deferred — user picks "Show my QR" or "Scan first" in the overlay.
   }
 
   function startQrAsOfferer(): void {
-    const manager = peer_managers.get(QR_PEER_ID);
-    manager?.startAsOfferer();
+    if (active_qr_session_id === null) { return; }
+    peer_managers.get(active_qr_session_id)?.startAsOfferer();
   }
 
   function startQrAsAnswerer(): void {
-    const manager = peer_managers.get(QR_PEER_ID);
-    manager?.startAsAnswerer();
+    if (active_qr_session_id === null) { return; }
+    peer_managers.get(active_qr_session_id)?.startAsAnswerer();
   }
 
   function handleQrScanned(scanned_packet: Uint8Array): void {
@@ -386,13 +395,24 @@
 
   function closeQrOverlay(): void {
     show_qr_overlay = false;
-    if ($connection_store.peer_state !== "connected") {
-      teardown();
+    qr_packet = null;
+    const session_id = active_qr_session_id;
+    active_qr_session_id = null;
+    qr_transport = null;
+    // Only tear down this QR session — leave any other connected peers intact.
+    if (session_id !== null && peer_states.get(session_id) !== "connected") {
+      disconnectPeer(session_id);
+    }
+    // If nothing remains, reset to idle.
+    if (peer_managers.size === 0) {
+      connection_store.setMode("none");
+      connection_store.setPeerState("idle");
     }
   }
 
   function teardown(): void {
     signalling_url = null; // prevent auto-reconnect if WS close event fires after this
+    active_qr_session_id = null;
     Array.from(peer_managers.keys()).forEach((id) => disconnectPeer(id));
     ws_transport?.close();
     ws_transport = null;
@@ -595,10 +615,15 @@
         {/if}
         <button class="icon-btn" onclick={importDocument} title="Load text file" aria-label="Load text file">↑</button>
         <button class="icon-btn" onclick={exportDocument} title="Save as text file" aria-label="Save as text file">↓</button>
-        <div class="share-wrapper" style="position:relative">
+        <div class="share-wrapper">
           <button
             class="icon-btn"
-            onclick={() => { show_share_menu = !show_share_menu; }}
+            onclick={(e) => {
+              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+              share_menu_anchor = { top: rect.bottom + 4, right: window.innerWidth - rect.right };
+              show_share_menu = !show_share_menu;
+              if (!show_share_menu) { share_menu_anchor = null; }
+            }}
             title="Share"
             aria-label="Share"
             aria-haspopup="menu"
@@ -610,18 +635,6 @@
               <path d="M2 7v7h10V7"/>
             </svg>
           </button>
-          {#if show_share_menu}
-            <div class="connect-menu" role="menu" style="right:0;left:auto;top:calc(100% + 4px)">
-              <button class="menu-item" role="menuitem" onclick={shareRoomLink}>
-                Share room link
-              </button>
-              {#if can_share}
-                <button class="menu-item" role="menuitem" onclick={shareDocument}>
-                  Share document as file
-                </button>
-              {/if}
-            </div>
-          {/if}
         </div>
         <div class="cleanup-wrapper">
           <button
@@ -644,7 +657,12 @@
 
     <div class="room-bar">
       <span class="room-id">{room_id}</span>
-      <button class="copy-btn" onclick={copyRoomUrl} title="Copy room URL" aria-label="Copy room link">📋</button>
+      <button class="copy-btn" onclick={copyRoomUrl} title="Copy room URL" aria-label="Copy room link">
+        <svg width="13" height="14" viewBox="0 0 13 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="4" y="4" width="8" height="9" rx="1.5"/>
+          <path d="M2 10H1.5A1.5 1.5 0 0 1 0 8.5v-7A1.5 1.5 0 0 1 1.5 0h7A1.5 1.5 0 0 1 10 1.5V2"/>
+        </svg>
+      </button>
       <div class="find-room-wrapper">
         <button
           class="find-room-btn"
@@ -705,6 +723,9 @@
   {#if show_actions}
     <div class="actions">
       {#if is_connected}
+        <button class="action-btn" onclick={connectViaQr}>
+          Add peer via QR
+        </button>
         <button class="action-btn" onclick={handleDisconnect}>
           Disconnect
         </button>
@@ -770,6 +791,19 @@
         show_cleanup_menu = false;
         showConfirm("Clear everything — all documents and settings? This cannot be undone.", clearEverything);
       }}>Clear everything</button>
+    </div>
+  {/if}
+
+  {#if show_share_menu && share_menu_anchor !== null}
+    <div
+      class="connect-menu"
+      role="menu"
+      style="position: fixed; top: {share_menu_anchor.top}px; right: {share_menu_anchor.right}px; z-index: 200; left: auto; bottom: auto; min-width: auto; white-space: nowrap;"
+    >
+      <button class="menu-item" role="menuitem" onclick={shareRoomLink}>Share room link</button>
+      {#if can_share}
+        <button class="menu-item" role="menuitem" onclick={shareDocument}>Share document as file</button>
+      {/if}
     </div>
   {/if}
 
@@ -846,9 +880,15 @@
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 0.9rem;
     padding: 0.15rem 0.3rem;
     line-height: 1;
+    color: var(--color-text-muted);
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .copy-btn:hover {
+    color: var(--color-text);
   }
 
   .passphrase-bar {

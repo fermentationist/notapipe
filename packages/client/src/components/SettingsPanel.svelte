@@ -1,6 +1,8 @@
 <script lang="ts">
+  import { get } from "svelte/store";
   import { theme_store } from "../stores/theme.ts";
   import { persistence_store } from "../stores/persistence.ts";
+  import { DEFAULT_LIGHT_THEME, DEFAULT_DARK_THEME } from "$lib/constants/theme.ts";
 
   interface Props {
     onclose: () => void;
@@ -8,26 +10,102 @@
 
   let { onclose }: Props = $props();
 
-  let custom_json = $state("");
-  let custom_json_error = $state<string | null>(null);
-  let custom_json_success = $state(false);
+  // Snapshot the current CSS variable values so the input styles don't shift
+  // when the user live-edits tokens like --color-bg or --color-text.
+  const root_style = getComputedStyle(document.documentElement);
+  const frozen_input_bg = root_style.getPropertyValue("--color-bg").trim() || "#ffffff";
+  const frozen_input_text = root_style.getPropertyValue("--color-text").trim() || "#000000";
+  const frozen_input_border = root_style.getPropertyValue("--color-border").trim() || "#cccccc";
+  const frozen_input_style = `background:${frozen_input_bg};color:${frozen_input_text};border-color:${frozen_input_border};`;
 
-  function applyCustomTheme(): void {
-    const result = theme_store.applyCustomJson(custom_json);
-    if (result.success) {
-      custom_json_error = null;
-      custom_json_success = true;
-      setTimeout(() => { custom_json_success = false; }, 1500);
+  type ThemeTab = "light" | "dark" | "custom";
+
+  // All CSS custom property keys (excludes "name")
+  const token_keys = Object.keys(DEFAULT_LIGHT_THEME).filter((k) => k.startsWith("--"));
+
+  // Determine initial tab from currently active theme
+  function getInitialTab(): ThemeTab {
+    const theme = get(theme_store);
+    if (theme["name"] === "dark") { return "dark"; }
+    if (theme["name"] === "light") { return "light"; }
+    return "custom";
+  }
+
+  let active_tab = $state<ThemeTab>(getInitialTab());
+
+  // Custom tab values — initialized from current theme (preserves any existing custom work)
+  const current_theme = get(theme_store);
+  let custom_values = $state<Record<string, string>>(
+    Object.fromEntries(
+      token_keys.map((k) => [k, current_theme[k] ?? DEFAULT_LIGHT_THEME[k as keyof typeof DEFAULT_LIGHT_THEME] as string])
+    )
+  );
+
+  function isColorValue(value: string): boolean {
+    return value.startsWith("#");
+  }
+
+  function selectTab(tab: ThemeTab): void {
+    active_tab = tab;
+    if (tab === "light") {
+      theme_store.setBuiltIn("light");
+    } else if (tab === "dark") {
+      theme_store.setBuiltIn("dark");
     } else {
-      custom_json_error = result.error ?? "Invalid theme";
-      custom_json_success = false;
+      // Apply current custom values immediately when switching to custom tab
+      theme_store.setTheme(custom_values);
     }
   }
 
+  function handleCustomChange(token: string, value: string): void {
+    custom_values[token] = value;
+    theme_store.setTheme(custom_values);
+  }
+
+  function saveCustom(): void {
+    const json = JSON.stringify(custom_values, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "notapipe-theme.json";
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function loadCustom(): void {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json,application/json";
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (file === undefined) { return; }
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const parsed = JSON.parse(reader.result as string) as Record<string, unknown>;
+          token_keys.forEach((k) => {
+            if (typeof parsed[k] === "string") {
+              custom_values[k] = parsed[k] as string;
+            }
+          });
+          theme_store.setTheme(custom_values);
+        } catch {
+          // Silently ignore malformed JSON
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  }
+
   function handleKeydown(event: KeyboardEvent): void {
-    if (event.key === "Escape") {
-      onclose();
-    }
+    if (event.key === "Escape") { onclose(); }
+  }
+
+  function tokenLabel(key: string): string {
+    // Strip leading "--" for display; keep the rest
+    return key.slice(2);
   }
 </script>
 
@@ -60,35 +138,80 @@
 
     <section>
       <h3>Theme</h3>
-      <div class="theme-buttons">
-        <button onclick={() => theme_store.setBuiltIn("light")} class="theme-btn">
-          Light
-        </button>
-        <button onclick={() => theme_store.setBuiltIn("dark")} class="theme-btn">
-          Dark
-        </button>
+      <div class="tabs" role="tablist">
+        <button
+          class="tab-btn"
+          class:active={active_tab === "light"}
+          role="tab"
+          aria-selected={active_tab === "light"}
+          onclick={() => selectTab("light")}
+        >Light</button>
+        <button
+          class="tab-btn"
+          class:active={active_tab === "dark"}
+          role="tab"
+          aria-selected={active_tab === "dark"}
+          onclick={() => selectTab("dark")}
+        >Dark</button>
+        <button
+          class="tab-btn"
+          class:active={active_tab === "custom"}
+          role="tab"
+          aria-selected={active_tab === "custom"}
+          onclick={() => selectTab("custom")}
+        >Custom</button>
+        {#if active_tab === "custom"}
+          <div class="tab-actions">
+            <button class="tab-icon-btn" onclick={loadCustom} title="Load theme from JSON file" aria-label="Load theme">↑</button>
+            <button class="tab-icon-btn" onclick={saveCustom} title="Save theme as JSON file" aria-label="Save theme">↓</button>
+          </div>
+        {/if}
       </div>
 
-      <label class="custom-label" for="custom-theme-input">
-        Custom theme JSON:
-      </label>
-      <textarea
-        id="custom-theme-input"
-        class="custom-json"
-        bind:value={custom_json}
-        placeholder={`{ "--color-bg": "#f5f0e8", ... }`}
-        spellcheck="false"
-        rows="6"
-      ></textarea>
-      {#if custom_json_error !== null}
-        <p class="error">{custom_json_error}</p>
-      {/if}
-      {#if custom_json_success}
-        <p class="success">Theme applied</p>
-      {/if}
-      <button class="apply-btn" onclick={applyCustomTheme} disabled={custom_json.trim() === ""}>
-        Apply
-      </button>
+      <div class="token-list" role="tabpanel">
+        {#if active_tab === "light" || active_tab === "dark"}
+          {@const source = active_tab === "light" ? DEFAULT_LIGHT_THEME : DEFAULT_DARK_THEME}
+          {#each token_keys as key (key)}
+            {@const value = source[key as keyof typeof source] as string}
+            <div class="token-row">
+              <span class="token-name">{tokenLabel(key)}</span>
+              <div class="token-value">
+                {#if isColorValue(value)}
+                  <span class="color-swatch" style="background: {value};"></span>
+                {/if}
+                <span class="token-text">{value}</span>
+              </div>
+            </div>
+          {/each}
+        {:else}
+          {#each token_keys as key (key)}
+            {@const value = custom_values[key] ?? ""}
+            <div class="token-row">
+              <span class="token-name">{tokenLabel(key)}</span>
+              <div class="token-value">
+                {#if isColorValue(value)}
+                  <input
+                    type="color"
+                    value={value}
+                    oninput={(e) => handleCustomChange(key, (e.target as HTMLInputElement).value)}
+                    class="color-picker"
+                    aria-label={key}
+                  />
+                {/if}
+                <input
+                  type="text"
+                  value={value}
+                  oninput={(e) => handleCustomChange(key, (e.target as HTMLInputElement).value)}
+                  class="token-input"
+                  style={frozen_input_style}
+                  spellcheck="false"
+                  aria-label={key}
+                />
+              </div>
+            </div>
+          {/each}
+        {/if}
+      </div>
     </section>
   </div>
 </div>
@@ -110,11 +233,13 @@
     border: 1px solid var(--color-border);
     border-radius: 8px;
     padding: 1.5rem;
-    width: min(90vw, 300px);
+    width: min(90vw, 360px);
     position: relative;
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    max-height: calc(100vh - 5rem);
+    overflow-y: auto;
   }
 
   .close-btn {
@@ -149,28 +274,6 @@
     gap: 0.5rem;
   }
 
-  .theme-buttons {
-    display: flex;
-    gap: 0.5rem;
-  }
-
-  .theme-btn {
-    flex: 1;
-    background: transparent;
-    border: 1px solid var(--color-border);
-    color: var(--color-text);
-    padding: 0.4rem 0;
-    border-radius: 4px;
-    font-family: inherit;
-    font-size: 0.85rem;
-    cursor: pointer;
-    min-height: 44px;
-  }
-
-  .theme-btn:hover {
-    border-color: var(--color-accent);
-  }
-
   .toggle-label {
     display: flex;
     align-items: center;
@@ -186,51 +289,129 @@
     line-height: 1.4;
   }
 
-  .custom-label {
-    font-size: 0.8rem;
-    color: var(--color-text-muted);
+  /* Tabs */
+  .tabs {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 0;
+    margin-bottom: 0.5rem;
   }
 
-  .custom-json {
-    font-family: inherit;
-    font-size: 0.8rem;
-    background: var(--color-bg);
-    color: var(--color-text);
-    border: 1px solid var(--color-border);
-    border-radius: 4px;
-    padding: 0.5rem;
-    resize: vertical;
-    width: 100%;
-    box-sizing: border-box;
-  }
-
-  .apply-btn {
-    background: var(--color-accent);
-    color: #fff;
+  .tab-btn {
+    background: none;
     border: none;
-    border-radius: 4px;
-    padding: 0.5rem 1rem;
+    border-bottom: 2px solid transparent;
+    color: var(--color-text-muted);
     font-family: inherit;
     font-size: 0.85rem;
+    padding: 0.3rem 0.6rem;
     cursor: pointer;
-    align-self: flex-start;
-    min-height: 44px;
+    margin-bottom: -1px;
+    border-radius: 4px 4px 0 0;
   }
 
-  .apply-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  .tab-btn.active {
+    color: var(--color-text);
+    border-bottom-color: var(--color-accent);
   }
 
-  .error {
-    margin: 0;
-    color: var(--color-status-error);
-    font-size: 0.8rem;
+  .tab-btn:hover:not(.active) {
+    color: var(--color-text);
   }
 
-  .success {
-    margin: 0;
-    color: var(--color-status-connected);
-    font-size: 0.8rem;
+  .tab-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 2px;
+  }
+
+  .tab-icon-btn {
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    font-family: inherit;
+    font-size: 0.9rem;
+    padding: 0.25rem 0.4rem;
+    cursor: pointer;
+    border-radius: 3px;
+    line-height: 1;
+  }
+
+  .tab-icon-btn:hover {
+    color: var(--color-text);
+    background: var(--color-bg);
+  }
+
+  /* Token rows */
+  .token-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .token-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 28px;
+  }
+
+  .token-name {
+    flex: 1;
+    font-size: 0.72rem;
+    font-family: "IBM Plex Mono", monospace;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .token-value {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .color-swatch {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    border: 1px solid var(--color-border);
+    flex-shrink: 0;
+  }
+
+  .token-text {
+    font-size: 0.72rem;
+    font-family: "IBM Plex Mono", monospace;
+    color: var(--color-text);
+  }
+
+  .color-picker {
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 1px solid var(--color-border);
+    border-radius: 3px;
+    cursor: pointer;
+    background: none;
+    flex-shrink: 0;
+  }
+
+  .token-input {
+    width: 80px;
+    font-size: 0.72rem;
+    font-family: "IBM Plex Mono", monospace;
+    border: 1px solid;
+    border-radius: 3px;
+    padding: 2px 4px;
+  }
+
+  .token-input:focus {
+    outline: 1px solid var(--color-accent);
+    border-color: var(--color-accent);
   }
 </style>

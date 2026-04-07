@@ -11,7 +11,7 @@ export default defineConfig({
     basicSsl(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.svg"],
+      includeAssets: ["favicon.svg", "apple-touch-icon.svg", "icons/*.png"],
       manifest: {
         name: "notapipe",
         short_name: "notapipe",
@@ -19,9 +19,27 @@ export default defineConfig({
         theme_color: "#f5f0e8",
         background_color: "#f5f0e8",
         display: "standalone",
-        orientation: "portrait-primary",
+        orientation: "any",
         start_url: "/",
         icons: [
+          {
+            src: "icons/icon-192x192.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "any",
+          },
+          {
+            src: "icons/icon-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "any",
+          },
+          {
+            src: "icons/icon-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable",
+          },
           {
             src: "favicon.svg",
             sizes: "any",
@@ -31,11 +49,8 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // Precache all compiled assets
-        globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
-        // Serve index.html for all navigation (SPA routing)
+        globPatterns: ["**/*.{js,css,html,svg,woff2}", "icons/*.png"],
         navigateFallback: "index.html",
-        // Don't intercept WebSocket upgrade requests
         navigateFallbackDenylist: [/^\/ws/],
       },
     }),

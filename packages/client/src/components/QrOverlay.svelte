@@ -7,8 +7,8 @@
     packet: Uint8Array | null;
     onscanned: (packet: Uint8Array) => void;
     onclose: () => void;
-    onstartofferer: () => void;
-    onstartanswerer: () => void;
+    onstartofferer?: () => void;
+    onstartanswerer?: () => void;
   }
 
   let { packet, onscanned, onclose, onstartofferer, onstartanswerer }: Props = $props();
@@ -24,6 +24,17 @@
   let camera_stream: MediaStream | null = null;
   let scan_abort_controller: AbortController | null = null;
   let camera_error = $state<string | null>(null);
+  let dot_count = $state(0);
+  const front_padding = $derived(["", " ", "  ", "   "][dot_count]);
+  const dots = $derived(["", ".", "..", "..."][dot_count]);
+
+  $effect(() => {
+    if (packet !== null) { return; }
+    const interval = setInterval(() => {
+      dot_count = (dot_count + 1) % 4;
+    }, 500);
+    return () => clearInterval(interval);
+  });
 
   // Render QR code whenever the canvas element is bound and packet is ready.
   $effect(() => {
@@ -50,12 +61,12 @@
   function chooseOfferer(): void {
     role = "offerer";
     view = "show";
-    onstartofferer();
+    onstartofferer?.();
   }
 
   async function chooseAnswerer(): Promise<void> {
     role = "answerer";
-    onstartanswerer();
+    onstartanswerer?.();
     await startScanning();
   }
 
@@ -146,7 +157,7 @@
         <p class="step-label">{stepLabel()}</p>
 
         {#if packet === null}
-          <p class="hint">Gathering network info…</p>
+          <p class="hint">{front_padding}Gathering network info{dots}</p>
         {:else}
           <canvas bind:this={qr_canvas} class="qr-canvas"></canvas>
         {/if}
