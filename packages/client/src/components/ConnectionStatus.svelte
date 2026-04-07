@@ -4,15 +4,22 @@
   const status_label: Record<string, string> = {
     idle: "waiting",
     connecting: "connecting",
-    connected: "connected",
     disconnected: "disconnected",
     failed: "error",
     closed: "closed",
   };
+
+  function connectedLabel(peer_count: number): string {
+    return `${peer_count} ${peer_count === 1 ? "peer" : "peers"} connected`;
+  }
+
+  $: display_label = $connection_store.peer_state === "connected"
+    ? connectedLabel($connection_store.remote_peer_ids.length)
+    : (status_label[$connection_store.peer_state] ?? "unknown");
 </script>
 
-<span class="status-dot state-{$connection_store.peer_state}" aria-label="Connection status: {status_label[$connection_store.peer_state] ?? 'unknown'}"></span>
-<span class="status-label">{status_label[$connection_store.peer_state] ?? "unknown"}{$connection_store.peer_state === "connected" && $connection_store.remote_peer_ids.length > 1 ? ` (${$connection_store.remote_peer_ids.length})` : ""}</span>
+<span class="status-dot state-{$connection_store.peer_state}" aria-label="Connection status: {display_label}"></span>
+<span class="status-label">{display_label}</span>
 
 <style>
   .status-dot {

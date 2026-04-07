@@ -1,5 +1,6 @@
 <script lang="ts">
   import { theme_store } from "../stores/theme.ts";
+  import { persistence_store } from "../stores/persistence.ts";
 
   interface Props {
     onclose: () => void;
@@ -40,6 +41,22 @@
   <div class="panel" role="dialog" aria-modal="true" aria-label="Settings">
     <button class="close-btn" onclick={onclose} aria-label="Close settings">✕</button>
     <h2>Settings</h2>
+
+    <section>
+      <h3>Storage</h3>
+      <label class="toggle-label">
+        <input
+          type="checkbox"
+          checked={$persistence_store}
+          onchange={() => { $persistence_store ? persistence_store.disable() : persistence_store.enable(); }}
+        />
+        <span>Save to localStorage</span>
+      </label>
+      <p class="storage-note">
+        Stores document content in your browser's local storage — never sent to a server.
+        Off by default.
+      </p>
+    </section>
 
     <section>
       <h3>Theme</h3>
@@ -152,6 +169,21 @@
 
   .theme-btn:hover {
     border-color: var(--color-accent);
+  }
+
+  .toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+
+  .storage-note {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    line-height: 1.4;
   }
 
   .custom-label {

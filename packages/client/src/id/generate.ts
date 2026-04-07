@@ -1,5 +1,5 @@
 import { WORDLIST } from "./wordlist.ts";
-import { ROOM_WORD_COUNT, PASSPHRASE_WORD_COUNT } from "$lib/constants/id.ts";
+import { ROOM_WORD_COUNT, PASSPHRASE_WORD_COUNT, GEO_GRID_PRECISION } from "$lib/constants/id.ts";
 
 const WORDLIST_MASK = WORDLIST.length - 1; // 0x7FF — works because length is 2048 (2^11)
 
@@ -43,6 +43,36 @@ export function generateId(): string {
  */
 export function generatePassphrase(): string {
   return pickRandomWords(PASSPHRASE_WORD_COUNT).join("-");
+}
+
+/**
+ * Derive a deterministic room ID from GPS coordinates.
+ * Coordinates are snapped to a ~111 m grid (GEO_GRID_PRECISION degrees) before
+ * hashing so that two nearby devices produce the same ID without exchanging data.
+ * Returns a hyphen-separated 3-word string in the same format as generateId().
+ *
+ * Only call this when the user explicitly requests geo mode — it requires the
+ * Geolocation permission and makes no network requests itself.
+ */
+export async function geoId(
+  coords: { latitude: number; longitude: number },
+  passphrase: string,
+): Promise<string> {
+  const quantized_lat = Math.round(coords.latitude / GEO_GRID_PRECISION);
+  const quantized_lon = Math.round(coords.longitude / GEO_GRID_PRECISION);
+
+  const encoded = new TextEncoder().encode(`${quantized_lat},${quantized_lon},${passphrase.toLowerCase()}`);
+  const hash_buffer = await crypto.subtle.digest("SHA-256", encoded);
+  const hash_bytes = new Uint8Array(hash_buffer);
+
+  const words: string[] = [];
+  for (let i = 0; i < ROOM_WORD_COUNT; i++) {
+    const byte_offset = i * 2;
+    const value = ((hash_bytes[byte_offset]! << 8) | hash_bytes[byte_offset + 1]!) & WORDLIST_MASK;
+    words.push(WORDLIST[value]!);
+  }
+
+  return words.join("-");
 }
 
 /**

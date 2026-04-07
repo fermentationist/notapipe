@@ -1,7 +1,10 @@
 <script lang="ts">
   import * as Y from "yjs";
   import { onMount } from "svelte";
-  import { generateId, parseId, isValidId } from "./id/generate.ts";
+  import { generateId, generatePassphrase, parseId, isValidId, geoId } from "./id/generate.ts";
+  import { GEO_GRID_PRECISION } from "$lib/constants/id.ts";
+  import { DOC_DB_PREFIX, GEO_PASSPHRASE_PREFIX, PERSISTENCE_ENABLED_KEY } from "$lib/constants/storage.ts";
+  import { IndexeddbPersistence } from "y-indexeddb";
   import { RTCPeerManager, isOfferer } from "./rtc/peer.ts";
   import {
     WebSocketTransport,
@@ -11,10 +14,12 @@
   import { RTCDataChannelProvider } from "./yjs/provider.ts";
   import { connection_store } from "./stores/connection.ts";
   import { focus_mode_store } from "./stores/focus_mode.ts";
+  import { persistence_store } from "./stores/persistence.ts";
   import Editor from "./components/Editor.svelte";
   import ConnectionStatus from "./components/ConnectionStatus.svelte";
   import QrOverlay from "./components/QrOverlay.svelte";
   import SettingsPanel from "./components/SettingsPanel.svelte";
+  import ConfirmDialog from "./components/ConfirmDialog.svelte";
 
   // ---------------------------------------------------------------------------
   // Yjs document (single shared text type)
@@ -37,6 +42,55 @@
   let show_qr_overlay = $state(false);
   let show_settings = $state(false);
   let show_connect_menu = $state(false);
+  let show_find_room_menu = $state(false);
+  let show_cleanup_menu = $state(false);
+  let cleanup_menu_anchor = $state<{ top: number; right: number } | null>(null);
+  let confirm_dialog = $state<{ message: string; onconfirm: () => void } | null>(null);
+
+  // ---------------------------------------------------------------------------
+  // Persistence (y-indexeddb)
+  // ---------------------------------------------------------------------------
+
+  let idb_persistence: IndexeddbPersistence | null = null;
+
+  function reinitPersistence(): void {
+    idb_persistence?.destroy();
+    idb_persistence = null;
+    if ($persistence_store && room_id !== "") {
+      idb_persistence = new IndexeddbPersistence(`${DOC_DB_PREFIX}${room_id}`, doc);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Geo mode state
+  // ---------------------------------------------------------------------------
+
+  let geo_mode = $state(false);
+  let geo_coords = $state<{ latitude: number; longitude: number } | null>(null);
+  let geo_passphrase = $state<string>("");
+
+  function geoPassphraseKey(coords: { latitude: number; longitude: number }): string {
+    const lat = Math.round(coords.latitude / GEO_GRID_PRECISION);
+    const lon = Math.round(coords.longitude / GEO_GRID_PRECISION);
+    return `${GEO_PASSPHRASE_PREFIX}${lat},${lon}`;
+  }
+
+  function loadGeoPassphrase(coords: { latitude: number; longitude: number }): string | null {
+    return localStorage.getItem(geoPassphraseKey(coords));
+  }
+
+  function saveGeoPassphrase(coords: { latitude: number; longitude: number }, passphrase: string): void {
+    localStorage.setItem(geoPassphraseKey(coords), passphrase);
+  }
+
+  async function applyGeoRoomId(): Promise<void> {
+    if (geo_coords === null) { return; }
+    const new_id = await geoId(geo_coords, geo_passphrase);
+    room_id = new_id;
+    history.replaceState(null, "", `/${new_id}`);
+    connection_store.setRoomId(new_id);
+    reinitPersistence();
+  }
 
   // ---------------------------------------------------------------------------
   // Runtime references (not reactive — managed imperatively)
@@ -66,6 +120,11 @@
       history.replaceState(null, "", `/${room_id}`);
     }
     connection_store.setRoomId(room_id);
+    reinitPersistence();
+
+    const unsubscribe_persistence = persistence_store.subscribe(() => {
+      reinitPersistence();
+    });
 
     // Focus mode keyboard shortcut: 'F' when textarea is not focused
     const handle_keydown = (event: KeyboardEvent): void => {
@@ -80,6 +139,8 @@
     window.addEventListener("keydown", handle_keydown);
     return () => {
       window.removeEventListener("keydown", handle_keydown);
+      unsubscribe_persistence();
+      idb_persistence?.destroy();
       teardown();
     };
   });
@@ -129,8 +190,8 @@
     peer_states.delete(remote_peer_id);
     yjs_providers.get(remote_peer_id)?.destroy();
     yjs_providers.delete(remote_peer_id);
-    manager.close();
     connection_store.removeRemotePeer(remote_peer_id);
+    manager.close();
     updateAggregateState();
   }
 
@@ -324,6 +385,44 @@
     teardown();
   }
 
+  async function regeneratePassphrase(): Promise<void> {
+    geo_passphrase = generatePassphrase();
+    if (geo_coords !== null) { saveGeoPassphrase(geo_coords, geo_passphrase); }
+    await applyGeoRoomId();
+  }
+
+  function selectRandom(): void {
+    show_find_room_menu = false;
+    geo_mode = false;
+    geo_coords = null;
+    geo_passphrase = "";
+    teardown();
+    const new_room_id = generateId();
+    room_id = new_room_id;
+    history.replaceState(null, "", `/${new_room_id}`);
+    connection_store.setRoomId(new_room_id);
+    reinitPersistence();
+  }
+
+  function selectNearby(): void {
+    show_find_room_menu = false;
+    teardown();
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const coords = { latitude: position.coords.latitude, longitude: position.coords.longitude };
+        geo_coords = coords;
+        geo_passphrase = loadGeoPassphrase(coords) ?? generatePassphrase();
+        saveGeoPassphrase(coords, geo_passphrase);
+        geo_mode = true;
+        applyGeoRoomId();
+      },
+      (error) => {
+        connection_store.setError(`Location unavailable: ${error.message}`);
+      },
+      { timeout: 10_000, maximumAge: 60_000 },
+    );
+  }
+
   function selectSignalling(): void {
     show_connect_menu = false;
     connectViaSignalling();
@@ -334,10 +433,68 @@
     connectViaQr();
   }
 
+  // ---------------------------------------------------------------------------
+  // Cleanup / data management
+  // ---------------------------------------------------------------------------
+
+  function showConfirm(message: string, onconfirm: () => void): void {
+    confirm_dialog = { message, onconfirm };
+  }
+
+  function clearCurrentDoc(): void {
+    doc.transact(() => {
+      if (ytext.length > 0) { ytext.delete(0, ytext.length); }
+    });
+    if (idb_persistence !== null) {
+      idb_persistence.clearData();
+    } else {
+      indexedDB.deleteDatabase(`${DOC_DB_PREFIX}${room_id}`);
+    }
+  }
+
+  async function clearAllDocs(): Promise<void> {
+    doc.transact(() => {
+      if (ytext.length > 0) { ytext.delete(0, ytext.length); }
+    });
+    const databases = await indexedDB.databases();
+    databases
+      .filter((db) => db.name?.startsWith(DOC_DB_PREFIX))
+      .forEach((db) => { indexedDB.deleteDatabase(db.name!); });
+  }
+
+  function clearSettings(): void {
+    Object.keys(localStorage)
+      .filter((key) => key.startsWith("notapipe:"))
+      .forEach((key) => { localStorage.removeItem(key); });
+    persistence_store.disable();
+    idb_persistence?.destroy();
+    idb_persistence = null;
+  }
+
+  async function clearEverything(): Promise<void> {
+    await clearAllDocs();
+    clearSettings();
+  }
+
+  function handleWindowClick(event: MouseEvent): void {
+    const target = event.target as Element;
+    if (show_connect_menu && !target.closest(".connect-wrapper")) {
+      show_connect_menu = false;
+    }
+    if (show_find_room_menu && !target.closest(".find-room-wrapper")) {
+      show_find_room_menu = false;
+    }
+    if (show_cleanup_menu && !target.closest(".cleanup-wrapper")) {
+      show_cleanup_menu = false;
+    }
+  }
+
   const can_share = $derived(typeof navigator !== "undefined" && "share" in navigator);
   const is_connected = $derived($connection_store.peer_state === "connected");
   const show_actions = $derived(!$focus_mode_store);
 </script>
+
+<svelte:window onclick={handleWindowClick} />
 
 <div class="app" class:focus-mode={$focus_mode_store}>
 
@@ -351,10 +508,28 @@
         <ConnectionStatus />
       </div>
       <div class="header-right">
+        {#if $persistence_store}
+          <span class="persist-indicator" title="localStorage persistence is on" aria-label="Persistence active">●</span>
+        {/if}
         <button class="icon-btn" onclick={exportDocument} title="Export document" aria-label="Export">↓</button>
         {#if can_share}
           <button class="icon-btn" onclick={shareDocument} title="Share document" aria-label="Share">↑</button>
         {/if}
+        <div class="cleanup-wrapper">
+          <button
+            class="icon-btn"
+            onclick={(e) => {
+              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+              cleanup_menu_anchor = { top: rect.bottom + 4, right: window.innerWidth - rect.right };
+              show_cleanup_menu = !show_cleanup_menu;
+              if (!show_cleanup_menu) { cleanup_menu_anchor = null; }
+            }}
+            title="Clear data"
+            aria-label="Clear data"
+            aria-haspopup="menu"
+            aria-expanded={show_cleanup_menu}
+          >⊗</button>
+        </div>
         <button class="icon-btn" onclick={() => { show_settings = !show_settings; }} title="Settings" aria-label="Settings">⚙</button>
       </div>
     </header>
@@ -362,7 +537,47 @@
     <div class="room-bar">
       <span class="room-id">{room_id}</span>
       <button class="copy-btn" onclick={copyRoomUrl} title="Copy room URL" aria-label="Copy room link">📋</button>
+      <div class="find-room-wrapper">
+        <button
+          class="find-room-btn"
+          onclick={() => { show_find_room_menu = !show_find_room_menu; }}
+          aria-haspopup="menu"
+          aria-expanded={show_find_room_menu}
+        >
+          Find a room ▾
+        </button>
+        {#if show_find_room_menu}
+          <div class="connect-menu" role="menu">
+            <button class="menu-item" role="menuitem" onclick={selectNearby}>
+              Nearby
+            </button>
+            <button class="menu-item" role="menuitem" onclick={selectRandom}>
+              Random
+            </button>
+          </div>
+        {/if}
+      </div>
     </div>
+
+    {#if geo_mode}
+      <div class="passphrase-bar">
+        <span class="passphrase-label">📍 passphrase</span>
+        <input
+          class="passphrase-input"
+          type="text"
+          value={geo_passphrase}
+          oninput={(e) => {
+            geo_passphrase = (e.target as HTMLInputElement).value.toLowerCase();
+            if (geo_coords !== null) { saveGeoPassphrase(geo_coords, geo_passphrase); }
+            applyGeoRoomId();
+          }}
+          aria-label="Geo mode passphrase"
+          spellcheck="false"
+          autocomplete="off"
+        />
+        <button class="passphrase-regen-btn" onclick={regeneratePassphrase} title="Generate new passphrase" aria-label="Regenerate passphrase">↺</button>
+      </div>
+    {/if}
   {/if}
 
   <!-- Editor -->
@@ -388,11 +603,6 @@
             Connect to peer ▾
           </button>
           {#if show_connect_menu}
-            <div
-              class="menu-backdrop"
-              onclick={() => { show_connect_menu = false; }}
-              aria-hidden="true"
-            ></div>
             <div class="connect-menu" role="menu">
               <button class="menu-item" role="menuitem" onclick={selectSignalling}>
                 Use signalling server
@@ -420,6 +630,39 @@
     <SettingsPanel onclose={() => { show_settings = false; }} />
   {/if}
 
+  {#if show_cleanup_menu && cleanup_menu_anchor !== null}
+    <div
+      class="connect-menu"
+      role="menu"
+      style="position: fixed; top: {cleanup_menu_anchor.top}px; right: {cleanup_menu_anchor.right}px; z-index: 200; left: auto; bottom: auto; min-width: auto; white-space: nowrap;"
+    >
+      <button class="menu-item" role="menuitem" onclick={() => {
+        show_cleanup_menu = false;
+        showConfirm("Clear the current document? This cannot be undone.", clearCurrentDoc);
+      }}>Clear current doc</button>
+      <button class="menu-item" role="menuitem" onclick={() => {
+        show_cleanup_menu = false;
+        showConfirm("Clear all saved documents? This cannot be undone.", clearAllDocs);
+      }}>Clear all docs</button>
+      <button class="menu-item" role="menuitem" onclick={() => {
+        show_cleanup_menu = false;
+        showConfirm("Clear all notapipe settings (theme, persistence, geo passphrases)?", clearSettings);
+      }}>Clear settings</button>
+      <button class="menu-item menu-item-danger" role="menuitem" onclick={() => {
+        show_cleanup_menu = false;
+        showConfirm("Clear everything — all documents and settings? This cannot be undone.", clearEverything);
+      }}>Clear everything</button>
+    </div>
+  {/if}
+
+  {#if confirm_dialog !== null}
+    <ConfirmDialog
+      message={confirm_dialog.message}
+      onconfirm={() => { confirm_dialog?.onconfirm(); confirm_dialog = null; }}
+      oncancel={() => { confirm_dialog = null; }}
+    />
+  {/if}
+
 </div>
 
 <style>
@@ -440,6 +683,8 @@
     border-bottom: 1px solid var(--color-border);
     gap: 0.5rem;
     flex-shrink: 0;
+    position: relative;
+    z-index: 50;
   }
 
   .header-left {
@@ -471,6 +716,7 @@
     padding: 0.25rem 1rem;
     border-bottom: 1px solid var(--color-border);
     flex-shrink: 0;
+    position: relative;
   }
 
   .room-id {
@@ -485,6 +731,90 @@
     font-size: 0.9rem;
     padding: 0.15rem 0.3rem;
     line-height: 1;
+  }
+
+  .passphrase-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-surface);
+    flex-shrink: 0;
+  }
+
+  .passphrase-label {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+  }
+
+  .passphrase-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-accent);
+    font-family: inherit;
+    font-size: 0.85rem;
+    padding: 0.1rem 0.25rem;
+    outline: none;
+    min-width: 0;
+  }
+
+  .passphrase-input:focus {
+    border-bottom-color: var(--color-accent);
+  }
+
+  .passphrase-regen-btn {
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0.1rem 0.25rem;
+    line-height: 1;
+  }
+
+  .passphrase-regen-btn:hover {
+    color: var(--color-text);
+  }
+
+  .find-room-wrapper {
+    position: relative;
+    margin-left: auto;
+  }
+
+  .find-room-btn {
+    background: none;
+    border: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    font-family: inherit;
+    font-size: 0.75rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .find-room-btn:hover {
+    color: var(--color-text);
+    border-color: var(--color-text-muted);
+  }
+
+  .persist-indicator {
+    font-size: 0.5rem;
+    color: var(--color-accent);
+    opacity: 0.7;
+    align-self: center;
+  }
+
+  .cleanup-wrapper {
+    position: relative;
+  }
+
+.menu-item-danger {
+    color: var(--color-status-error);
   }
 
   .icon-btn {
@@ -548,13 +878,7 @@
     position: relative;
   }
 
-  .menu-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 10;
-  }
-
-  .connect-menu {
+.connect-menu {
     position: absolute;
     bottom: calc(100% + 4px);
     left: 0;
@@ -567,6 +891,14 @@
     min-width: 100%;
     overflow: hidden;
     box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .find-room-wrapper .connect-menu {
+    bottom: auto;
+    top: calc(100% + 4px);
+    right: 0;
+    left: auto;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
 
   .menu-item {

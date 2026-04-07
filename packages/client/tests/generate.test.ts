@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { generateId, generatePassphrase, parseId, isValidId } from "../src/id/generate.ts";
+import { generateId, generatePassphrase, geoId, parseId, isValidId } from "../src/id/generate.ts";
 import { WORDLIST } from "../src/id/wordlist.ts";
-import { ROOM_WORD_COUNT, PASSPHRASE_WORD_COUNT } from "$lib/constants/id.ts";
+import { ROOM_WORD_COUNT, PASSPHRASE_WORD_COUNT, GEO_GRID_PRECISION } from "$lib/constants/id.ts";
 
 // ---------------------------------------------------------------------------
 // generateId
@@ -46,6 +46,74 @@ describe("generatePassphrase", () => {
     const wordlist_set = new Set(WORDLIST);
     const passphrase = generatePassphrase();
     passphrase.split("-").forEach((word) => {
+      expect(wordlist_set.has(word)).toBe(true);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// geoId
+// ---------------------------------------------------------------------------
+
+describe("geoId", () => {
+  const san_francisco = { latitude: 37.7749, longitude: -122.4194 };
+  const paris = { latitude: 48.8566, longitude: 2.3522 };
+  const passphrase = "forest-table";
+
+  it("returns a valid 3-word ID", async () => {
+    const id = await geoId(san_francisco, passphrase);
+    expect(isValidId(id)).toBe(true);
+  });
+
+  it("is deterministic for the same coordinates and passphrase", async () => {
+    const id_a = await geoId(san_francisco, passphrase);
+    const id_b = await geoId(san_francisco, passphrase);
+    expect(id_a).toBe(id_b);
+  });
+
+  it("produces different IDs for distant coordinates", async () => {
+    const id_a = await geoId(san_francisco, passphrase);
+    const id_b = await geoId(paris, passphrase);
+    expect(id_a).not.toBe(id_b);
+  });
+
+  it("produces different IDs for the same coordinates with different passphrases", async () => {
+    const id_a = await geoId(san_francisco, "forest-table");
+    const id_b = await geoId(san_francisco, "river-clock");
+    expect(id_a).not.toBe(id_b);
+  });
+
+  it("snaps coordinates within the same grid cell to the same ID", async () => {
+    // Offset by less than half a grid cell — both round to the same quantized value
+    const nearby = {
+      latitude: san_francisco.latitude + GEO_GRID_PRECISION * 0.4,
+      longitude: san_francisco.longitude + GEO_GRID_PRECISION * 0.4,
+    };
+    const id_a = await geoId(san_francisco, passphrase);
+    const id_b = await geoId(nearby, passphrase);
+    expect(id_a).toBe(id_b);
+  });
+
+  it("produces different IDs for coordinates in adjacent grid cells", async () => {
+    const adjacent = {
+      latitude: san_francisco.latitude + GEO_GRID_PRECISION * 1.5,
+      longitude: san_francisco.longitude,
+    };
+    const id_a = await geoId(san_francisco, passphrase);
+    const id_b = await geoId(adjacent, passphrase);
+    expect(id_a).not.toBe(id_b);
+  });
+
+  it("returns a hyphen-separated string of exactly 3 words", async () => {
+    const id = await geoId(san_francisco, passphrase);
+    expect(id.split("-")).toHaveLength(3);
+    expect(id).toMatch(/^[a-z]+-[a-z]+-[a-z]+$/);
+  });
+
+  it("each word is in the wordlist", async () => {
+    const wordlist_set = new Set(WORDLIST);
+    const id = await geoId(san_francisco, passphrase);
+    id.split("-").forEach((word) => {
       expect(wordlist_set.has(word)).toBe(true);
     });
   });

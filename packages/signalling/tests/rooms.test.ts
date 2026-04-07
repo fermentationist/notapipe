@@ -81,18 +81,17 @@ describe("joinRoom", () => {
     });
   });
 
-  it("returns 'full' and sends 'room-full' when a third peer tries to join", () => {
+  it("allows a third peer to join an existing room (open-ended mesh)", () => {
     const { socket: socket_a } = makeSocket();
     const { socket: socket_b } = makeSocket();
-    const { socket: socket_c, sent: sent_c } = makeSocket();
+    const { socket: socket_c } = makeSocket();
 
     joinRoom("room-1", "peer-a", socket_a);
     joinRoom("room-1", "peer-b", socket_b);
     const result = joinRoom("room-1", "peer-c", socket_c);
 
-    expect(result).toBe("full");
-    expect(sent_c[0]).toEqual({ type: "room-full", roomId: "room-1" });
-    expect(getRoomCount()).toBe(1); // room not modified
+    expect(result).toBe("joined");
+    expect(getRoomCount()).toBe(1);
   });
 
   it("allows two peers in separate rooms independently", () => {
