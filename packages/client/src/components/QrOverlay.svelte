@@ -1,5 +1,6 @@
 <script lang="ts">
   import QRCode from "qrcode";
+  import { tick } from "svelte";
   import { scanQr, startCamera, stopCamera } from "../rtc/qr_mode/scanner.ts";
 
   interface Props {
@@ -34,6 +35,9 @@
   async function startScanning(): Promise<void> {
     step = 2;
     camera_error = null;
+    // Wait for Svelte to render the <video> element before accessing it.
+    // step = 2 schedules a DOM update but doesn't apply it synchronously.
+    await tick();
 
     try {
       camera_stream = await startCamera(video_element);
