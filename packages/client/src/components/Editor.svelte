@@ -1,7 +1,6 @@
 <script lang="ts">
   import * as Y from "yjs";
   import { applyTextareaDiff } from "../yjs/provider.ts";
-  import { focus_mode_store } from "../stores/focus_mode.ts";
 
   interface Props {
     doc: Y.Doc;
@@ -56,23 +55,13 @@
     is_applying_remote = false;
   }
 
-  function handleKeydown(event: KeyboardEvent): void {
-    if (event.key === "Escape" && $focus_mode_store) {
-      focus_mode_store.disable();
-    }
-  }
 
-  function handleDblClick(): void {
-    focus_mode_store.enable();
-  }
 </script>
 
 <textarea
   bind:this={textarea_element}
   value={local_value}
   oninput={handleInput}
-  onkeydown={handleKeydown}
-  ondblclick={handleDblClick}
   {readonly}
   spellcheck="false"
   autocorrect="off"
@@ -102,14 +91,26 @@
     color: var(--color-text-muted);
   }
 
-  /* Focus mode: ruled lines + grain — activated by .focus-mode on :root */
+  /* Focus mode: lined notebook paper look */
   :global(.focus-mode) textarea {
+    padding: 0.5rem 3rem 4rem 4rem; /* generous left margin like a notebook */
+    font-size: 1.05rem;
+    color: var(--color-focus-text);
+    caret-color: var(--color-focus-text);
+    /* Ruled lines aligned to line-height grid */
     background-image: repeating-linear-gradient(
       to bottom,
       transparent, transparent calc(var(--line-height) - 1px),
-      var(--color-rule) calc(var(--line-height) - 1px),
-      var(--color-rule) var(--line-height)
+      var(--color-focus-rule) calc(var(--line-height) - 1px),
+      var(--color-focus-rule) var(--line-height)
     );
     background-attachment: local;
+    /* Push first line down to align with the first rule */
+    padding-top: calc(var(--line-height) * 2);
+  }
+
+  :global(.focus-mode) textarea::placeholder {
+    font-style: italic;
+    color: var(--color-focus-rule);
   }
 </style>

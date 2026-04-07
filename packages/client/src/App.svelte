@@ -1,6 +1,7 @@
 <script lang="ts">
   import * as Y from "yjs";
   import { onMount } from "svelte";
+  import { get } from "svelte/store";
   import { generateId, generatePassphrase, parseId, isValidId, geoId } from "./id/generate.ts";
   import { GEO_GRID_PRECISION } from "$lib/constants/id.ts";
   import { DOC_DB_PREFIX, GEO_PASSPHRASE_PREFIX, PERSISTENCE_ENABLED_KEY } from "$lib/constants/storage.ts";
@@ -127,14 +128,15 @@
       reinitPersistence();
     });
 
-    // Focus mode keyboard shortcut: 'F' when textarea is not focused
+    // Focus mode keyboard shortcuts
     const handle_keydown = (event: KeyboardEvent): void => {
-      if (
-        event.key === "f" &&
-        document.activeElement?.tagName !== "TEXTAREA" &&
-        document.activeElement?.tagName !== "INPUT"
-      ) {
+      if (event.key === "f" && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault();
         focus_mode_store.toggle();
+        return;
+      }
+      if (event.key === "Escape" && get(focus_mode_store)) {
+        focus_mode_store.disable();
       }
     };
     window.addEventListener("keydown", handle_keydown);
@@ -596,6 +598,14 @@
   <!-- Editor -->
   <main>
     <Editor {doc} {ytext} readonly={false} />
+    <button
+      class="focus-toggle-btn"
+      onclick={() => focus_mode_store.toggle()}
+      title={$focus_mode_store ? "Exit focus mode" : "Enter focus mode"}
+      aria-label={$focus_mode_store ? "Exit focus mode" : "Enter focus mode"}
+    >
+      {$focus_mode_store ? "✕" : "⛶"}
+    </button>
   </main>
 
   <!-- Connection actions (hidden in focus mode) -->
@@ -856,6 +866,7 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
+    position: relative;
   }
 
   .actions {
@@ -930,6 +941,40 @@
 
   .menu-item:hover {
     background: var(--color-surface);
+  }
+
+  /* Focus mode: full-page cream background, no chrome */
+  :global(.focus-mode) {
+    background-color: var(--color-focus-bg);
+  }
+
+  .focus-toggle-btn {
+    position: absolute;
+    bottom: 1rem;
+    right: 1rem;
+    background: none;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    color: var(--color-text-muted);
+    font-size: 1.1rem;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0.4;
+    transition: opacity 0.15s;
+    z-index: 10;
+  }
+
+  .focus-toggle-btn:hover {
+    opacity: 1;
+  }
+
+  :global(.focus-mode) .focus-toggle-btn {
+    border-color: var(--color-focus-rule);
+    color: var(--color-focus-rule);
   }
 
   /* Grain texture in focus mode — SVG noise pseudo-element */

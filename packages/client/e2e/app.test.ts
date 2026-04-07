@@ -236,26 +236,33 @@ test.describe("Editor", () => {
     await expect(page.locator("textarea")).toHaveValue("hello world");
   });
 
-  test("focus mode activates on double-click", async ({ page }) => {
+  test("focus mode button enters focus mode", async ({ page }) => {
     await page.goto("/");
-    await page.locator("textarea").dblclick();
+    await page.getByRole("button", { name: "Enter focus mode" }).click();
     await expect(page.locator("header")).not.toBeVisible();
   });
 
   test("Escape key exits focus mode", async ({ page }) => {
     await page.goto("/");
-    await page.locator("textarea").dblclick();
+    await page.getByRole("button", { name: "Enter focus mode" }).click();
     await expect(page.locator("header")).not.toBeVisible();
     await page.keyboard.press("Escape");
     await expect(page.locator("header")).toBeVisible();
   });
 
-  test("F key toggles focus mode when textarea is not focused", async ({ page }) => {
+  test("focus mode button exits focus mode when active", async ({ page }) => {
     await page.goto("/");
-    await page.locator(".app-name").click();
-    await page.keyboard.press("f");
+    await page.getByRole("button", { name: "Enter focus mode" }).click();
     await expect(page.locator("header")).not.toBeVisible();
-    await page.keyboard.press("f");
+    await page.getByRole("button", { name: "Exit focus mode" }).click();
+    await expect(page.locator("header")).toBeVisible();
+  });
+
+  test("Cmd+F toggles focus mode", async ({ page }) => {
+    await page.goto("/");
+    await page.keyboard.press("Meta+f");
+    await expect(page.locator("header")).not.toBeVisible();
+    await page.keyboard.press("Meta+f");
     await expect(page.locator("header")).toBeVisible();
   });
 });
