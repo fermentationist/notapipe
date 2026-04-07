@@ -119,6 +119,36 @@ test.describe("Dropdown menus", () => {
     expect(errors, `JS errors: ${errors.join("\n")}`).toHaveLength(0);
   });
 
+  test("QR canvas renders after ICE gathering completes", async ({ page }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (err) => errors.push(err.message));
+
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    await page.getByRole("button", { name: /Connect to peer/ }).click();
+    await page.getByRole("menuitem", { name: /QR code/ }).click();
+
+    // Wait for the canvas to appear — it only renders once packet !== null,
+    // which happens after iceGatheringState === "complete" or the 15s timeout.
+    // ICE gathering in headless Chromium typically completes in < 2s for host candidates.
+    const qr_canvas = page.locator(".qr-canvas");
+    await expect(qr_canvas).toBeVisible({ timeout: 20_000 });
+
+    // Verify the canvas has actually been painted (not just blank white pixels)
+    const has_content = await qr_canvas.evaluate((canvas: HTMLCanvasElement) => {
+      const ctx = canvas.getContext("2d");
+      if (ctx === null) { return false; }
+      const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      // A rendered QR code has both dark and light pixels — check that not all pixels are identical
+      const first_pixel = data[0];
+      return Array.from(data).some((byte) => byte !== first_pixel);
+    });
+
+    expect(has_content, "QR canvas should have rendered content, not a blank image").toBe(true);
+    expect(errors, `JS errors: ${errors.join("\n")}`).toHaveLength(0);
+  });
+
   test("cleanup menu opens and items are visible and interactable", async ({ page }) => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");

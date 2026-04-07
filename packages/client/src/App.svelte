@@ -4,6 +4,7 @@
   import { generateId, generatePassphrase, parseId, isValidId, geoId } from "./id/generate.ts";
   import { GEO_GRID_PRECISION } from "$lib/constants/id.ts";
   import { DOC_DB_PREFIX, GEO_PASSPHRASE_PREFIX, PERSISTENCE_ENABLED_KEY } from "$lib/constants/storage.ts";
+  import { ICE_SERVERS } from "$lib/constants/rtc.ts";
   import { IndexeddbPersistence } from "y-indexeddb";
   import { RTCPeerManager, isOfferer } from "./rtc/peer.ts";
   import {
@@ -284,13 +285,11 @@
   function connectViaQr(): void {
     teardown(); // clean up any prior attempt before starting a new one
 
-    // Create a bare RTCPeerConnection for the QrTransport to monitor ICE gathering
-    const pc = new RTCPeerConnection({
-      iceServers: [
-        { urls: "stun:stun.l.google.com:19302" },
-        { urls: "stun:stun1.l.google.com:19302" },
-      ],
-    });
+    // Create the RTCPeerConnection up-front so both QrTransport and RTCPeerManager
+    // share the same instance. QrTransport must monitor ICE gathering on the exact
+    // PC that drives the offer/answer exchange — if they were separate objects,
+    // localDescription on the QrTransport's PC would always be null.
+    const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
 
     qr_transport = new QrTransport(pc, {
       onQrPacketReady(packet) {
@@ -303,6 +302,7 @@
 
     // QR mode: always offerer — the answerer scans and responds.
     // Uses QR_PEER_ID as a placeholder since there is no signalling-server peer ID.
+    // Pass `pc` so RTCPeerManager reuses the same instance that QrTransport monitors.
     const qr_peer_manager = new RTCPeerManager(qr_transport, {
       onDataChannel(data_channel) {
         const provider = new RTCDataChannelProvider(doc, data_channel);
@@ -324,7 +324,7 @@
       onError(error) {
         connection_store.setError(error.message);
       },
-    });
+    }, pc);
 
     peer_managers.set(QR_PEER_ID, qr_peer_manager);
     peer_states.set(QR_PEER_ID, "connecting");

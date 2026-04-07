@@ -36,15 +36,25 @@ export interface PeerManagerCallbacks {
  * Manages a single RTCPeerConnection using the provided SignalTransport.
  * The caller is responsible for determining the role (offerer vs answerer)
  * before calling start().
+ *
+ * If `peer_connection` is provided it will be used as-is instead of creating
+ * a new one. This is required for QR mode, where the QrTransport must monitor
+ * the same RTCPeerConnection that the manager drives.
  */
 export class RTCPeerManager {
   private peer_connection: RTCPeerConnection | null = null;
   private transport: SignalTransport;
   private callbacks: PeerManagerCallbacks;
+  private provided_peer_connection: RTCPeerConnection | null;
 
-  constructor(transport: SignalTransport, callbacks: PeerManagerCallbacks) {
+  constructor(
+    transport: SignalTransport,
+    callbacks: PeerManagerCallbacks,
+    peer_connection?: RTCPeerConnection,
+  ) {
     this.transport = transport;
     this.callbacks = callbacks;
+    this.provided_peer_connection = peer_connection ?? null;
   }
 
   /**
@@ -104,7 +114,7 @@ export class RTCPeerManager {
     pc: RTCPeerConnection;
     flush_pending: () => Promise<void>;
   } {
-    const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+    const pc = this.provided_peer_connection ?? new RTCPeerConnection({ iceServers: ICE_SERVERS });
     this.peer_connection = pc;
 
     pc.onicecandidate = (event) => {
