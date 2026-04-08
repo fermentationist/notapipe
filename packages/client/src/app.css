@@ -1,0 +1,26 @@
+/* Global styles for notapipe
+ * Theme CSS custom properties are applied dynamically from the theme constants.
+ * IBM Plex Mono is the global editor font.
+ */
+
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap");
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: "IBM Plex Mono", monospace;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+}
+
+#app {
+  height: 100%;
+}

@@ -1,0 +1,17 @@
+{
+  "name": "notapipe",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm -r --parallel run dev",
+    "build": "vp build",
+    "test": "vp test",
+    "check": "vp check"
+  },
+  "packageManager": "pnpm@10.33.0",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}

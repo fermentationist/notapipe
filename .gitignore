@@ -17,9 +17,16 @@ pnpm-debug.log*
 
 # Editor
 .DS_Store
-.vscode/
 *.swp
 *.swo
 
+# Playwright MCP session artifacts
+.playwright-mcp/
+
 # Claude Code local settings
 .claude/
+
+test-results/dev-dist
+packages/client/dev-dist
+packages/client/test-results
+test-results/

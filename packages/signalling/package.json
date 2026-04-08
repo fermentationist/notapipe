@@ -1,0 +1,19 @@
+{
+  "name": "@notapipe/signalling",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --experimental-strip-types --watch src/index.ts",
+    "start": "node --experimental-strip-types src/index.ts"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.12.0",
+    "@types/ws": "^8.5.14",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.2"
+  }
+}
