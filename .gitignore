@@ -27,3 +27,6 @@ pnpm-debug.log*
 .claude/
 
 test-results/dev-dist
+packages/client/dev-dist
+packages/client/test-results
+test-results/
