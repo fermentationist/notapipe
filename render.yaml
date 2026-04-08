@@ -4,7 +4,7 @@ services:
     runtime: node
     plan: free
     # Build the client first, then start the signalling server which also serves the client
-    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @notapipe/client run build
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @notapipe/client exec vite build
     startCommand: node --experimental-strip-types packages/signalling/src/index.ts
     healthCheckPath: /health
     envVars:
