@@ -75,7 +75,7 @@ Every notapipe session is identified by a **3-word room ID** — a phrase like `
 
 Click **Find a room ▾** in the room bar:
 
-- **Nearby** — derives a room ID from your GPS coordinates. Devices in the same physical grid cell (roughly 1 km²) get the same room automatically. You will be prompted for location permission. A passphrase field appears so you can narrow the match if needed (useful in dense areas)
+- **Nearby** — derives a room ID from your GPS coordinates. Coordinates are quantised to a 0.001° grid (roughly 111 m × 111 m cells), so devices within the same cell automatically get the same room ID. You will be prompted for location permission. A passphrase field appears so you can narrow the match within a cell if needed (useful in dense areas like offices or apartment buildings)
 - **Random** — generates a new random room ID and navigates to it
 
 ---
