@@ -1,4 +1,6 @@
-import { createServer, type IncomingMessage } from "http";
+import { createServer, type IncomingMessage, type ServerResponse } from "http";
+import { readFile, access } from "fs/promises";
+import { join, extname, resolve } from "path";
 import { WebSocketServer, type WebSocket } from "ws";
 import type { ClientMessage } from "./types.ts";
 import { joinRoom, leaveRoom, forwardSignal, findPeerRoom } from "./rooms.ts";
@@ -6,16 +8,79 @@ import { checkRateLimit } from "./rate_limiter.ts";
 
 const PORT = Number(process.env["PORT"] ?? 3001);
 
+// Static client files are built into packages/client/dist relative to the repo root.
+const CLIENT_DIST = resolve(process.cwd(), "packages/client/dist");
+
+const MIME_TYPES: Record<string, string> = {
+  ".html": "text/html; charset=utf-8",
+  ".js": "application/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".woff2": "font/woff2",
+  ".json": "application/json",
+  ".webmanifest": "application/manifest+json",
+  ".txt": "text/plain; charset=utf-8",
+};
+
+async function serveStatic(request: IncomingMessage, response: ServerResponse): Promise<boolean> {
+  const url = new URL(request.url ?? "/", "http://localhost");
+  const url_path = url.pathname;
+
+  // Resolve the file path and guard against path traversal
+  const candidate = resolve(join(CLIENT_DIST, url_path));
+  if (!candidate.startsWith(CLIENT_DIST)) {
+    response.writeHead(403);
+    response.end();
+    return true;
+  }
+
+  // Try the exact path, then the exact path + /index.html, then SPA fallback
+  const candidates = [
+    candidate,
+    join(candidate, "index.html"),
+    join(CLIENT_DIST, "index.html"),
+  ];
+
+  for (const file_path of candidates) {
+    try {
+      await access(file_path);
+      const content = await readFile(file_path);
+      const ext = extname(file_path);
+      const content_type = MIME_TYPES[ext] ?? "application/octet-stream";
+      // Cache hashed assets aggressively; everything else no-cache
+      const cache_control = file_path.includes("/assets/")
+        ? "public, max-age=31536000, immutable"
+        : "no-cache";
+      response.writeHead(200, { "Content-Type": content_type, "Cache-Control": cache_control });
+      response.end(content);
+      return true;
+    } catch {
+      // File not found — try next candidate
+    }
+  }
+
+  return false;
+}
+
 // ---------------------------------------------------------------------------
 // HTTP server (health check endpoint)
 // ---------------------------------------------------------------------------
 
-const http_server = createServer((request, response) => {
-  if (request.method === "GET" && request.url === "/") {
+const http_server = createServer(async (request, response) => {
+  // Health check endpoint (used by Render and other platforms)
+  if (request.method === "GET" && request.url === "/health") {
     response.writeHead(200, { "Content-Type": "application/json" });
     response.end(JSON.stringify({ status: "ok" }));
     return;
   }
+
+  // Serve built client static files for all non-WebSocket GET requests
+  if (request.method === "GET") {
+    const served = await serveStatic(request, response);
+    if (served) { return; }
+  }
+
   response.writeHead(404);
   response.end();
 });

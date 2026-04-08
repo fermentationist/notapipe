@@ -12,6 +12,19 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="notapipe" />
     <title>notapipe</title>
+    <script>
+      // Restore path encoded by 404.html for GitHub Pages SPA routing.
+      (function () {
+        var params = new URLSearchParams(window.location.search);
+        var p = params.get("p");
+        if (p) {
+          var q = params.get("q");
+          var hash = window.location.hash;
+          var restored = p + (q ? "?" + q : "") + hash;
+          window.history.replaceState(null, "", restored);
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="app"></div>

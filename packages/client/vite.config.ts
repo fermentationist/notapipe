@@ -4,8 +4,15 @@ import { VitePWA } from "vite-plugin-pwa";
 import basicSsl from "@vitejs/plugin-basic-ssl";
 import { resolve } from "path";
 
+// Base path for asset references.
+// Set VITE_BASE_PATH=/notapipe for GitHub Pages subdirectory deployment.
+// Leave unset for root deployment (Render, custom domain).
+const raw_base = process.env["VITE_BASE_PATH"] ?? "/";
+const base = raw_base.endsWith("/") ? raw_base : `${raw_base}/`;
+
 // https://vite.dev/config/
 export default defineConfig({
+  base,
   plugins: [
     svelte(),
     basicSsl(),

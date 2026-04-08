@@ -1,0 +1,61 @@
+name: Deploy client to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # allow manual trigger from GitHub UI
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only allow one deployment at a time
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build client
+        run: pnpm --filter @notapipe/client run build
+        env:
+          # Point the client at the Render signalling server.
+          # Set this secret in: GitHub repo → Settings → Secrets → Actions → VITE_SIGNAL_URL
+          # Example value: wss://notapipe.onrender.com/ws
+          VITE_SIGNAL_URL: ${{ secrets.VITE_SIGNAL_URL }}
+          # Base path must match your GitHub Pages URL prefix.
+          # If your repo is github.com/you/notapipe → pages URL is you.github.io/notapipe
+          # Change this if your repo has a different name.
+          VITE_BASE_PATH: /notapipe
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: packages/client/dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

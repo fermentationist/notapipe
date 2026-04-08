@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: notapipe
+    runtime: node
+    plan: free
+    # Build the client first, then start the signalling server which also serves the client
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @notapipe/client run build
+    startCommand: node --experimental-strip-types packages/signalling/src/index.ts
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 22.22.2
+      - key: PORT
+        value: 10000

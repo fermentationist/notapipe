@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>notapipe</title>
+    <script>
+      // GitHub Pages SPA redirect.
+      // When GitHub Pages serves a 404 for a deep path (e.g. /notapipe/word-word-word),
+      // this page encodes the path into a query string and redirects to the base index.
+      // index.html then restores the original path via history.replaceState.
+      //
+      // pathSegmentsToKeep = 1 preserves the /notapipe repo prefix.
+      // Set to 0 if deploying to a custom root domain.
+      var pathSegmentsToKeep = 1;
+      var l = window.location;
+      l.replace(
+        l.protocol + "//" + l.hostname + (l.port ? ":" + l.port : "") +
+        l.pathname.split("/").slice(0, 1 + pathSegmentsToKeep).join("/") + "/?p=/" +
+        l.pathname.slice(1).split("/").slice(pathSegmentsToKeep).join("/") +
+        (l.search ? "&q=" + l.search.slice(1) : "") +
+        l.hash
+      );
+    </script>
+  </head>
+  <body></body>
+</html>
