@@ -13,7 +13,7 @@
     type WebSocketTransportCallbacks,
   } from "./rtc/websocket_transport.ts";
   import { QrTransport } from "./rtc/qr_mode/qr_transport.ts";
-  import { decodeRoomId } from "./rtc/qr_mode/sdp_codec.ts";
+  import { decodePacketMeta } from "./rtc/qr_mode/sdp_codec.ts";
   import { RTCDataChannelProvider } from "./yjs/provider.ts";
   import { connection_store } from "./stores/connection.ts";
   import { focus_mode_store } from "./stores/focus_mode.ts";
@@ -396,10 +396,11 @@
 
   function handleQrScanned(scanned_packet: Uint8Array): void {
     // Extract the room ID embedded in the QR packet and switch to it if needed.
-    // The offerer's room ID is always authoritative — the scanner (answerer) adopts it.
+    // The offerer's room ID is always authoritative — only adopt it when scanning an offer.
+    // Answer packets also carry a room ID but it should never override the offerer's.
     try {
-      const incoming_room_id = decodeRoomId(scanned_packet);
-      if (incoming_room_id !== "" && incoming_room_id !== room_id) {
+      const { room_id: incoming_room_id, is_answer } = decodePacketMeta(scanned_packet);
+      if (!is_answer && incoming_room_id !== "" && incoming_room_id !== room_id) {
         const has_content = ytext.toString().length > 0;
         const has_persistence = $persistence_store;
         if (has_content || has_persistence) {

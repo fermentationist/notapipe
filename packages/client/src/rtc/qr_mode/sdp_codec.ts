@@ -488,9 +488,12 @@ export function decodeSdp(packet: Uint8Array): {
 }
 
 /**
- * Extract just the room ID from a QR packet without full SDP reconstruction.
+ * Extract the room ID and packet type from a QR packet without full SDP reconstruction.
  * Used by the scanning peer to determine whether a room switch is needed.
+ * Only offer packets carry an authoritative room ID — answer packets should be ignored
+ * for room switching purposes.
  */
-export function decodeRoomId(packet: Uint8Array): string {
-  return decodePacket(packet).room_id;
+export function decodePacketMeta(packet: Uint8Array): { room_id: string; is_answer: boolean } {
+  const decoded = decodePacket(packet);
+  return { room_id: decoded.room_id, is_answer: decoded.is_answer };
 }
