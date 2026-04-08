@@ -2,6 +2,7 @@
   import type { IncomingOffer } from "../rtc/file_transfer.ts";
 
   interface Props {
+    connected: boolean;
     incoming_offers: Map<string, IncomingOffer>;
     transfer_progress: Map<string, { received: number; total: number }>;
     completed_files: Map<string, { url: string; filename: string }>;
@@ -13,6 +14,7 @@
   }
 
   let {
+    connected,
     incoming_offers,
     transfer_progress,
     completed_files,
@@ -51,14 +53,14 @@
   }
 </script>
 
-<!-- Drag overlay — covers the whole editor area -->
+<!-- Drag overlay — covers the whole editor area, only interactive when connected -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
   class="drop-zone"
   class:active={drag_over}
-  ondragover={(e) => { e.preventDefault(); drag_over = true; }}
+  ondragover={(e) => { if (!connected) { return; } e.preventDefault(); drag_over = true; }}
   ondragleave={() => { drag_over = false; }}
-  ondrop={handleDrop}
+  ondrop={(e) => { if (!connected) { return; } handleDrop(e); }}
 >
   {#if drag_over}
     <div class="drop-hint">Drop file to send</div>
@@ -68,8 +70,9 @@
 <!-- Send button (hidden file input trigger) -->
 <button
   class="send-file-btn"
-  title="Send a file"
+  title={connected ? "Send a file" : "Connect to a peer to send files"}
   aria-label="Send a file"
+  disabled={!connected}
   onclick={() => file_input.click()}
 >
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -119,8 +122,7 @@
           Ready: <strong>{file.filename}</strong>
         </span>
         <div class="strip-actions">
-          <a class="strip-btn accept" href={file.url} download={file.filename}>Download</a>
-          <button class="strip-btn decline" onclick={() => ondismiss(transfer_id)}>Dismiss</button>
+          <a class="strip-btn accept" href={file.url} download={file.filename} onclick={() => ondismiss(transfer_id)}>Download</a>
         </div>
       </div>
     {/each}
@@ -172,8 +174,13 @@
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
   }
 
-  .send-file-btn:hover {
+  .send-file-btn:hover:not(:disabled) {
     opacity: 1;
+  }
+
+  .send-file-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
   }
 
   @media (hover: none) {

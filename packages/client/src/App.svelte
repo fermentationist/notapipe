@@ -1010,18 +1010,17 @@
   <!-- Editor -->
   <main>
     <Editor {doc} {ytext} readonly={false} />
-    {#if is_connected}
-      <FileTransferBar
-        incoming_offers={ft_incoming_offers}
-        transfer_progress={ft_progress}
-        completed_files={ft_completed}
-        onaccept={acceptTransfer}
-        ondecline={declineTransfer}
-        oncancel={cancelTransfer}
-        ondismiss={dismissCompleted}
-        onsendfile={sendFileToAllPeers}
-      />
-    {/if}
+    <FileTransferBar
+      connected={is_connected}
+      incoming_offers={ft_incoming_offers}
+      transfer_progress={ft_progress}
+      completed_files={ft_completed}
+      onaccept={acceptTransfer}
+      ondecline={declineTransfer}
+      oncancel={cancelTransfer}
+      ondismiss={dismissCompleted}
+      onsendfile={sendFileToAllPeers}
+    />
     <button
       class="copy-content-btn"
       onclick={copyEditorContent}
