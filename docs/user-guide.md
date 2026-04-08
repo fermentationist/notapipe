@@ -31,6 +31,8 @@
 
 notapipe is a browser-based tool for sharing text between devices in real time. It uses peer-to-peer WebRTC to sync a shared document directly between browsers — no server ever sees your text.
 
+**The primary use case** is moving text from one machine to another without a cable, cloud account, or chat app. Open the same room URL on both devices, wait for the connection indicator to turn green, and whatever you type on one device instantly appears on the other. Then copy it from the editor with the copy button (bottom-right corner) and paste it wherever you need it.
+
 **Key properties:**
 - Nothing you type is stored on any server
 - The signalling server only brokers the initial connection handshake; it never sees document content
@@ -56,6 +58,7 @@ The interface has four main regions:
 **Editor** (main area)
 - A plain-text textarea that fills the available space
 - All connected peers see the same content and can edit simultaneously
+- A **copy button** (overlapping-pages icon) in the bottom-right copies all editor text to the clipboard in one tap — useful for transferring the synced content into another app
 
 **Action bar** (bottom)
 - When not connected: a **Connect to peer** button that opens a dropdown with connection method options
@@ -144,6 +147,7 @@ The editor is a plain-text `textarea`. There is no markdown rendering in the edi
 - **Simultaneous editing** — multiple peers can type at the same time. Conflicts are resolved automatically using Yjs CRDTs. Your cursor position is preserved across remote edits
 - **No formatting** — content is plain text only
 - **Spellcheck, autocorrect, and autocapitalise** are disabled so the editor behaves consistently across devices
+- **Copy button** — the overlapping-pages icon in the bottom-right corner copies the entire editor contents to your clipboard instantly. After syncing text from another device, tap this to grab it without selecting all manually. The icon briefly shows a `✓` to confirm the copy succeeded
 
 ---
 

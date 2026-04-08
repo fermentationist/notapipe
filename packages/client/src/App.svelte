@@ -2,9 +2,19 @@
   import * as Y from "yjs";
   import { onMount } from "svelte";
   import { get } from "svelte/store";
-  import { generateId, generatePassphrase, parseId, isValidId, geoId } from "./id/generate.ts";
+  import {
+    generateId,
+    generatePassphrase,
+    parseId,
+    isValidId,
+    geoId,
+  } from "./id/generate.ts";
   import { GEO_GRID_PRECISION } from "$lib/constants/id.ts";
-  import { DOC_DB_PREFIX, GEO_PASSPHRASE_PREFIX, PERSISTENCE_ENABLED_KEY } from "$lib/constants/storage.ts";
+  import {
+    DOC_DB_PREFIX,
+    GEO_PASSPHRASE_PREFIX,
+    PERSISTENCE_ENABLED_KEY,
+  } from "$lib/constants/storage.ts";
   import { ICE_SERVERS } from "$lib/constants/rtc.ts";
   import { IndexeddbPersistence } from "y-indexeddb";
   import { RTCPeerManager, isOfferer } from "./rtc/peer.ts";
@@ -50,7 +60,10 @@
   let show_share_menu = $state(false);
   let cleanup_menu_anchor = $state<{ top: number; right: number } | null>(null);
   let share_menu_anchor = $state<{ top: number; right: number } | null>(null);
-  let confirm_dialog = $state<{ message: string; onconfirm: () => void } | null>(null);
+  let confirm_dialog = $state<{
+    message: string;
+    onconfirm: () => void;
+  } | null>(null);
 
   // ---------------------------------------------------------------------------
   // Persistence (y-indexeddb)
@@ -62,7 +75,10 @@
     idb_persistence?.destroy();
     idb_persistence = null;
     if ($persistence_store && room_id !== "") {
-      idb_persistence = new IndexeddbPersistence(`${DOC_DB_PREFIX}${room_id}`, doc);
+      idb_persistence = new IndexeddbPersistence(
+        `${DOC_DB_PREFIX}${room_id}`,
+        doc,
+      );
     }
   }
 
@@ -74,22 +90,33 @@
   let geo_coords = $state<{ latitude: number; longitude: number } | null>(null);
   let geo_passphrase = $state<string>("");
 
-  function geoPassphraseKey(coords: { latitude: number; longitude: number }): string {
+  function geoPassphraseKey(coords: {
+    latitude: number;
+    longitude: number;
+  }): string {
     const lat = Math.round(coords.latitude / GEO_GRID_PRECISION);
     const lon = Math.round(coords.longitude / GEO_GRID_PRECISION);
     return `${GEO_PASSPHRASE_PREFIX}${lat},${lon}`;
   }
 
-  function loadGeoPassphrase(coords: { latitude: number; longitude: number }): string | null {
+  function loadGeoPassphrase(coords: {
+    latitude: number;
+    longitude: number;
+  }): string | null {
     return localStorage.getItem(geoPassphraseKey(coords));
   }
 
-  function saveGeoPassphrase(coords: { latitude: number; longitude: number }, passphrase: string): void {
+  function saveGeoPassphrase(
+    coords: { latitude: number; longitude: number },
+    passphrase: string,
+  ): void {
     localStorage.setItem(geoPassphraseKey(coords), passphrase);
   }
 
   async function applyGeoRoomId(): Promise<void> {
-    if (geo_coords === null) { return; }
+    if (geo_coords === null) {
+      return;
+    }
     const new_id = await geoId(geo_coords, geo_passphrase);
     room_id = new_id;
     history.replaceState(null, "", `/${new_id}`);
@@ -104,7 +131,10 @@
   // Keyed by remote peer ID. QR mode uses QR_PEER_ID as a placeholder.
   const peer_managers = new Map<string, RTCPeerManager>();
   const yjs_providers = new Map<string, RTCDataChannelProvider>();
-  const peer_states = new Map<string, import("./rtc/peer.ts").PeerManagerState>();
+  const peer_states = new Map<
+    string,
+    import("./rtc/peer.ts").PeerManagerState
+  >();
 
   let ws_transport: WebSocketTransport | null = null;
   // Set while signalling is active; cleared in teardown() to prevent auto-reconnect.
@@ -158,6 +188,20 @@
 
   function copyRoomUrl(): void {
     navigator.clipboard.writeText(window.location.href).catch(() => {
+      // Clipboard not available — fail silently
+    });
+  }
+
+  let copy_content_feedback = $state(false);
+
+  function copyEditorContent(): void {
+    const text = ytext.toString();
+    navigator.clipboard.writeText(text).then(() => {
+      copy_content_feedback = true;
+      setTimeout(() => {
+        copy_content_feedback = false;
+      }, 1500);
+    }).catch(() => {
       // Clipboard not available — fail silently
     });
   }
@@ -232,7 +276,10 @@
         // "disconnected" after the connection was previously established.
         // Ignoring "disconnected" during initial negotiation avoids spurious
         // teardowns caused by transient ICE states.
-        if (state === "failed" || (state === "disconnected" && was_ever_connected)) {
+        if (
+          state === "failed" ||
+          (state === "disconnected" && was_ever_connected)
+        ) {
           disconnectPeer(remote_peer_id);
         }
         updateAggregateState();
@@ -265,7 +312,9 @@
         if (state === "room-full") {
           connection_store.setError("Room is full — try a different room ID");
         } else if (state === "rate-limited") {
-          connection_store.setError("Too many connection attempts — try again later");
+          connection_store.setError(
+            "Too many connection attempts — try again later",
+          );
         } else if (state === "disconnected") {
           // If ws_transport is still set, this was an unexpected drop (not our teardown).
           // teardown() clears ws_transport synchronously before the async close event fires.
@@ -298,7 +347,12 @@
       },
     };
 
-    ws_transport = new WebSocketTransport(url, room_id, local_peer_id, callbacks);
+    ws_transport = new WebSocketTransport(
+      url,
+      room_id,
+      local_peer_id,
+      callbacks,
+    );
     ws_transport.connect();
   }
 
@@ -306,8 +360,9 @@
     teardown(); // clean up any prior attempt before starting a new one
 
     const ws_protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    const url = import.meta.env["VITE_SIGNAL_URL"] as string | undefined
-      ?? `${ws_protocol}://${window.location.host}/ws`;
+    const url =
+      (import.meta.env["VITE_SIGNAL_URL"] as string | undefined) ??
+      `${ws_protocol}://${window.location.host}/ws`;
 
     signalling_url = url;
     openSignallingSocket(url);
@@ -318,7 +373,10 @@
   function connectViaQr(): void {
     // Do NOT call teardown() — we want to ADD a peer, not replace existing connections.
     // If there's an in-progress QR session that never connected, clean it up first.
-    if (active_qr_session_id !== null && peer_states.get(active_qr_session_id) !== "connected") {
+    if (
+      active_qr_session_id !== null &&
+      peer_states.get(active_qr_session_id) !== "connected"
+    ) {
       disconnectPeer(active_qr_session_id);
     }
 
@@ -333,38 +391,46 @@
     // localDescription on the QrTransport's PC would always be null.
     const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
 
-    qr_transport = new QrTransport(pc, {
-      onQrPacketReady(packet) {
-        qr_packet = packet;
+    qr_transport = new QrTransport(
+      pc,
+      {
+        onQrPacketReady(packet) {
+          qr_packet = packet;
+        },
+        onError(error) {
+          connection_store.setError(error.message);
+        },
       },
-      onError(error) {
-        connection_store.setError(error.message);
-      },
-    }, room_id);
+      room_id,
+    );
 
-    const manager = new RTCPeerManager(qr_transport, {
-      onDataChannel(data_channel) {
-        const provider = new RTCDataChannelProvider(doc, data_channel);
-        yjs_providers.set(session_id, provider);
+    const manager = new RTCPeerManager(
+      qr_transport,
+      {
+        onDataChannel(data_channel) {
+          const provider = new RTCDataChannelProvider(doc, data_channel);
+          yjs_providers.set(session_id, provider);
+        },
+        onStateChange(state) {
+          if (!peer_managers.has(session_id)) {
+            return;
+          }
+          peer_states.set(session_id, state);
+          if (state === "connected") {
+            connection_store.addRemotePeer(session_id);
+            show_qr_overlay = false;
+          }
+          if (state === "disconnected" || state === "failed") {
+            disconnectPeer(session_id);
+          }
+          updateAggregateState();
+        },
+        onError(error) {
+          connection_store.setError(error.message);
+        },
       },
-      onStateChange(state) {
-        if (!peer_managers.has(session_id)) {
-          return;
-        }
-        peer_states.set(session_id, state);
-        if (state === "connected") {
-          connection_store.addRemotePeer(session_id);
-          show_qr_overlay = false;
-        }
-        if (state === "disconnected" || state === "failed") {
-          disconnectPeer(session_id);
-        }
-        updateAggregateState();
-      },
-      onError(error) {
-        connection_store.setError(error.message);
-      },
-    }, pc);
+      pc,
+    );
 
     peer_managers.set(session_id, manager);
     peer_states.set(session_id, "connecting");
@@ -378,12 +444,16 @@
   }
 
   function startQrAsOfferer(): void {
-    if (active_qr_session_id === null) { return; }
+    if (active_qr_session_id === null) {
+      return;
+    }
     peer_managers.get(active_qr_session_id)?.startAsOfferer();
   }
 
   function startQrAsAnswerer(): void {
-    if (active_qr_session_id === null) { return; }
+    if (active_qr_session_id === null) {
+      return;
+    }
     peer_managers.get(active_qr_session_id)?.startAsAnswerer();
   }
 
@@ -399,8 +469,13 @@
     // The offerer's room ID is always authoritative — only adopt it when scanning an offer.
     // Answer packets also carry a room ID but it should never override the offerer's.
     try {
-      const { room_id: incoming_room_id, is_answer } = decodePacketMeta(scanned_packet);
-      if (!is_answer && incoming_room_id !== "" && incoming_room_id !== room_id) {
+      const { room_id: incoming_room_id, is_answer } =
+        decodePacketMeta(scanned_packet);
+      if (
+        !is_answer &&
+        incoming_room_id !== "" &&
+        incoming_room_id !== room_id
+      ) {
         const has_content = ytext.toString().length > 0;
         const has_persistence = $persistence_store;
         if (has_content || has_persistence) {
@@ -480,8 +555,12 @@
   async function shareRoomLink(): Promise<void> {
     show_share_menu = false;
     const url = window.location.href;
-    if (navigator.share !== undefined) {
-      await navigator.share({ url, title: "notapipe", text: `Join me on notapipe: ${url}` });
+    if (navigator.share !== void 0) {
+      await navigator.share({
+        url,
+        title: "notapipe",
+        text: `A notapipe document has been shared with you. After clicking the link, click "Connect" to join the document. \n\nTo learn more about the notapipe project and to view the source code, visit github.com/fermentationist/notapipe`,
+      });
     } else {
       await navigator.clipboard.writeText(url);
     }
@@ -493,15 +572,21 @@
     input.accept = ".txt,text/plain";
     input.onchange = () => {
       const file = input.files?.[0];
-      if (file === undefined) { return; }
+      if (file === undefined) {
+        return;
+      }
       const reader = new FileReader();
       reader.onload = () => {
         const text = reader.result as string;
         const current = ytext.toString();
         // Replace entire document content
         doc.transact(() => {
-          if (current.length > 0) { ytext.delete(0, current.length); }
-          if (text.length > 0) { ytext.insert(0, text); }
+          if (current.length > 0) {
+            ytext.delete(0, current.length);
+          }
+          if (text.length > 0) {
+            ytext.insert(0, text);
+          }
         });
       };
       reader.readAsText(file);
@@ -515,7 +600,9 @@
 
   async function regeneratePassphrase(): Promise<void> {
     geo_passphrase = generatePassphrase();
-    if (geo_coords !== null) { saveGeoPassphrase(geo_coords, geo_passphrase); }
+    if (geo_coords !== null) {
+      saveGeoPassphrase(geo_coords, geo_passphrase);
+    }
     await applyGeoRoomId();
   }
 
@@ -537,7 +624,10 @@
     teardown();
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const coords = { latitude: position.coords.latitude, longitude: position.coords.longitude };
+        const coords = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        };
         geo_coords = coords;
         geo_passphrase = loadGeoPassphrase(coords) ?? generatePassphrase();
         saveGeoPassphrase(coords, geo_passphrase);
@@ -571,7 +661,9 @@
 
   function clearCurrentDoc(): void {
     doc.transact(() => {
-      if (ytext.length > 0) { ytext.delete(0, ytext.length); }
+      if (ytext.length > 0) {
+        ytext.delete(0, ytext.length);
+      }
     });
     if (idb_persistence !== null) {
       idb_persistence.clearData();
@@ -582,18 +674,24 @@
 
   async function clearAllDocs(): Promise<void> {
     doc.transact(() => {
-      if (ytext.length > 0) { ytext.delete(0, ytext.length); }
+      if (ytext.length > 0) {
+        ytext.delete(0, ytext.length);
+      }
     });
     const databases = await indexedDB.databases();
     databases
       .filter((db) => db.name?.startsWith(DOC_DB_PREFIX))
-      .forEach((db) => { indexedDB.deleteDatabase(db.name!); });
+      .forEach((db) => {
+        indexedDB.deleteDatabase(db.name!);
+      });
   }
 
   function clearSettings(): void {
     Object.keys(localStorage)
       .filter((key) => key.startsWith("notapipe:"))
-      .forEach((key) => { localStorage.removeItem(key); });
+      .forEach((key) => {
+        localStorage.removeItem(key);
+      });
     persistence_store.disable();
     idb_persistence?.destroy();
     idb_persistence = null;
@@ -620,7 +718,9 @@
     }
   }
 
-  const can_share = $derived(typeof navigator !== "undefined" && "share" in navigator);
+  const can_share = $derived(
+    typeof navigator !== "undefined" && "share" in navigator,
+  );
   const is_connected = $derived($connection_store.peer_state === "connected");
   const show_actions = $derived(!$focus_mode_store);
 </script>
@@ -628,7 +728,6 @@
 <svelte:window onclick={handleWindowClick} />
 
 <div class="app" class:focus-mode={$focus_mode_store}>
-
   <!-- Header (hidden in focus mode) -->
   {#if !$focus_mode_store}
     <header>
@@ -640,28 +739,59 @@
       </div>
       <div class="header-right">
         {#if $persistence_store}
-          <span class="persist-indicator" title="localStorage persistence is on" aria-label="Persistence active">●</span>
+          <span
+            class="persist-indicator"
+            title="localStorage persistence is on"
+            aria-label="Persistence active">●</span
+          >
         {/if}
-        <button class="icon-btn" onclick={importDocument} title="Load text file" aria-label="Load text file">↑</button>
-        <button class="icon-btn" onclick={exportDocument} title="Save as text file" aria-label="Save as text file">↓</button>
+        <button
+          class="icon-btn"
+          onclick={importDocument}
+          title="Load text file"
+          aria-label="Load text file">↑</button
+        >
+        <button
+          class="icon-btn"
+          onclick={exportDocument}
+          title="Save as text file"
+          aria-label="Save as text file">↓</button
+        >
         <div class="share-wrapper">
           <button
             class="icon-btn"
             onclick={(e) => {
-              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-              share_menu_anchor = { top: rect.bottom + 4, right: window.innerWidth - rect.right };
+              const rect = (
+                e.currentTarget as HTMLElement
+              ).getBoundingClientRect();
+              share_menu_anchor = {
+                top: rect.bottom + 4,
+                right: window.innerWidth - rect.right,
+              };
               show_share_menu = !show_share_menu;
-              if (!show_share_menu) { share_menu_anchor = null; }
+              if (!show_share_menu) {
+                share_menu_anchor = null;
+              }
             }}
             title="Share"
             aria-label="Share"
             aria-haspopup="menu"
             aria-expanded={show_share_menu}
           >
-            <svg width="14" height="15" viewBox="0 0 14 15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <line x1="7" y1="1" x2="7" y2="10"/>
-              <polyline points="4,4 7,1 10,4"/>
-              <path d="M2 7v7h10V7"/>
+            <svg
+              width="14"
+              height="15"
+              viewBox="0 0 14 15"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <line x1="7" y1="1" x2="7" y2="10"></line>
+              <polyline points="4,4 7,1 10,4"></polyline>
+              <path d="M2 7v7h10V7"></path>
             </svg>
           </button>
         </div>
@@ -669,33 +799,66 @@
           <button
             class="icon-btn"
             onclick={(e) => {
-              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-              cleanup_menu_anchor = { top: rect.bottom + 4, right: window.innerWidth - rect.right };
+              const rect = (
+                e.currentTarget as HTMLElement
+              ).getBoundingClientRect();
+              cleanup_menu_anchor = {
+                top: rect.bottom + 4,
+                right: window.innerWidth - rect.right,
+              };
               show_cleanup_menu = !show_cleanup_menu;
-              if (!show_cleanup_menu) { cleanup_menu_anchor = null; }
+              if (!show_cleanup_menu) {
+                cleanup_menu_anchor = null;
+              }
             }}
             title="Clear data"
             aria-label="Clear data"
             aria-haspopup="menu"
-            aria-expanded={show_cleanup_menu}
-          >⊗</button>
+            aria-expanded={show_cleanup_menu}>⊗</button
+          >
         </div>
-        <button class="icon-btn" onclick={() => { show_settings = !show_settings; }} title="Settings" aria-label="Settings">⚙</button>
+        <button
+          class="icon-btn"
+          onclick={() => {
+            show_settings = !show_settings;
+          }}
+          title="Settings"
+          aria-label="Settings">⚙</button
+        >
       </div>
     </header>
 
     <div class="room-bar">
       <span class="room-id">{room_id}</span>
-      <button class="copy-btn" onclick={copyRoomUrl} title="Copy room URL" aria-label="Copy room link">
-        <svg width="13" height="14" viewBox="0 0 13 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <rect x="4" y="4" width="8" height="9" rx="1.5"/>
-          <path d="M2 10H1.5A1.5 1.5 0 0 1 0 8.5v-7A1.5 1.5 0 0 1 1.5 0h7A1.5 1.5 0 0 1 10 1.5V2"/>
+      <button
+        class="copy-btn"
+        onclick={copyRoomUrl}
+        title="Copy room URL"
+        aria-label="Copy room link"
+      >
+        <svg
+          width="13"
+          height="14"
+          viewBox="0 0 13 14"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <rect x="4" y="4" width="8" height="9" rx="1.5"></rect>
+          <path
+            d="M2 10H1.5A1.5 1.5 0 0 1 0 8.5v-7A1.5 1.5 0 0 1 1.5 0h7A1.5 1.5 0 0 1 10 1.5V2"
+          ></path>
         </svg>
       </button>
       <div class="find-room-wrapper">
         <button
           class="find-room-btn"
-          onclick={() => { show_find_room_menu = !show_find_room_menu; }}
+          onclick={() => {
+            show_find_room_menu = !show_find_room_menu;
+          }}
           aria-haspopup="menu"
           aria-expanded={show_find_room_menu}
         >
@@ -723,14 +886,21 @@
           value={geo_passphrase}
           oninput={(e) => {
             geo_passphrase = (e.target as HTMLInputElement).value.toLowerCase();
-            if (geo_coords !== null) { saveGeoPassphrase(geo_coords, geo_passphrase); }
+            if (geo_coords !== null) {
+              saveGeoPassphrase(geo_coords, geo_passphrase);
+            }
             applyGeoRoomId();
           }}
           aria-label="Geo mode passphrase"
           spellcheck="false"
           autocomplete="off"
         />
-        <button class="passphrase-regen-btn" onclick={regeneratePassphrase} title="Generate new passphrase" aria-label="Regenerate passphrase">↺</button>
+        <button
+          class="passphrase-regen-btn"
+          onclick={regeneratePassphrase}
+          title="Generate new passphrase"
+          aria-label="Regenerate passphrase">↺</button
+        >
       </div>
     {/if}
   {/if}
@@ -738,6 +908,31 @@
   <!-- Editor -->
   <main>
     <Editor {doc} {ytext} readonly={false} />
+    <button
+      class="copy-content-btn"
+      onclick={copyEditorContent}
+      title="Copy all text to clipboard"
+      aria-label="Copy editor content to clipboard"
+    >
+      {#if copy_content_feedback}
+        ✓
+      {:else}
+        <svg
+          width="15"
+          height="15"
+          viewBox="0 0 13 14"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <rect x="4" y="4" width="8" height="9" rx="1.5"></rect>
+          <path d="M2 10H1.5A1.5 1.5 0 0 1 0 8.5v-7A1.5 1.5 0 0 1 1.5 0h7A1.5 1.5 0 0 1 10 1.5V2"></path>
+        </svg>
+      {/if}
+    </button>
     <button
       class="focus-toggle-btn"
       onclick={() => focus_mode_store.toggle()}
@@ -762,7 +957,9 @@
         <div class="connect-wrapper">
           <button
             class="action-btn primary"
-            onclick={() => { show_connect_menu = !show_connect_menu; }}
+            onclick={() => {
+              show_connect_menu = !show_connect_menu;
+            }}
             aria-haspopup="menu"
             aria-expanded={show_connect_menu}
           >
@@ -770,7 +967,11 @@
           </button>
           {#if show_connect_menu}
             <div class="connect-menu" role="menu">
-              <button class="menu-item" role="menuitem" onclick={selectSignalling}>
+              <button
+                class="menu-item"
+                role="menuitem"
+                onclick={selectSignalling}
+              >
                 Use signalling server
               </button>
               <button class="menu-item" role="menuitem" onclick={selectQr}>
@@ -795,7 +996,11 @@
   {/if}
 
   {#if show_settings}
-    <SettingsPanel onclose={() => { show_settings = false; }} />
+    <SettingsPanel
+      onclose={() => {
+        show_settings = false;
+      }}
+    />
   {/if}
 
   {#if show_cleanup_menu && cleanup_menu_anchor !== null}
@@ -804,22 +1009,50 @@
       role="menu"
       style="position: fixed; top: {cleanup_menu_anchor.top}px; right: {cleanup_menu_anchor.right}px; z-index: 200; left: auto; bottom: auto; min-width: auto; white-space: nowrap;"
     >
-      <button class="menu-item" role="menuitem" onclick={() => {
-        show_cleanup_menu = false;
-        showConfirm("Clear the current document? This cannot be undone.", clearCurrentDoc);
-      }}>Clear current doc</button>
-      <button class="menu-item" role="menuitem" onclick={() => {
-        show_cleanup_menu = false;
-        showConfirm("Clear all saved documents? This cannot be undone.", clearAllDocs);
-      }}>Clear all docs</button>
-      <button class="menu-item" role="menuitem" onclick={() => {
-        show_cleanup_menu = false;
-        showConfirm("Clear all notapipe settings (theme, persistence, geo passphrases)?", clearSettings);
-      }}>Clear settings</button>
-      <button class="menu-item menu-item-danger" role="menuitem" onclick={() => {
-        show_cleanup_menu = false;
-        showConfirm("Clear everything — all documents and settings? This cannot be undone.", clearEverything);
-      }}>Clear everything</button>
+      <button
+        class="menu-item"
+        role="menuitem"
+        onclick={() => {
+          show_cleanup_menu = false;
+          showConfirm(
+            "Clear the current document? This cannot be undone.",
+            clearCurrentDoc,
+          );
+        }}>Clear current doc</button
+      >
+      <button
+        class="menu-item"
+        role="menuitem"
+        onclick={() => {
+          show_cleanup_menu = false;
+          showConfirm(
+            "Clear all saved documents? This cannot be undone.",
+            clearAllDocs,
+          );
+        }}>Clear all docs</button
+      >
+      <button
+        class="menu-item"
+        role="menuitem"
+        onclick={() => {
+          show_cleanup_menu = false;
+          showConfirm(
+            "Clear all notapipe settings (theme, persistence, geo passphrases)?",
+            clearSettings,
+          );
+        }}>Clear settings</button
+      >
+      <button
+        class="menu-item menu-item-danger"
+        role="menuitem"
+        onclick={() => {
+          show_cleanup_menu = false;
+          showConfirm(
+            "Clear everything — all documents and settings? This cannot be undone.",
+            clearEverything,
+          );
+        }}>Clear everything</button
+      >
     </div>
   {/if}
 
@@ -829,9 +1062,13 @@
       role="menu"
       style="position: fixed; top: {share_menu_anchor.top}px; right: {share_menu_anchor.right}px; z-index: 200; left: auto; bottom: auto; min-width: auto; white-space: nowrap;"
     >
-      <button class="menu-item" role="menuitem" onclick={shareRoomLink}>Share room link</button>
+      <button class="menu-item" role="menuitem" onclick={shareRoomLink}
+        >Share room link</button
+      >
       {#if can_share}
-        <button class="menu-item" role="menuitem" onclick={shareDocument}>Share document as file</button>
+        <button class="menu-item" role="menuitem" onclick={shareDocument}
+          >Share document as file</button
+        >
       {/if}
     </div>
   {/if}
@@ -839,11 +1076,15 @@
   {#if confirm_dialog !== null}
     <ConfirmDialog
       message={confirm_dialog.message}
-      onconfirm={() => { confirm_dialog?.onconfirm(); confirm_dialog = null; }}
-      oncancel={() => { confirm_dialog = null; }}
+      onconfirm={() => {
+        confirm_dialog?.onconfirm();
+        confirm_dialog = null;
+      }}
+      oncancel={() => {
+        confirm_dialog = null;
+      }}
     />
   {/if}
-
 </div>
 
 <style>
@@ -1000,7 +1241,7 @@
     position: relative;
   }
 
-.menu-item-danger {
+  .menu-item-danger {
     color: var(--color-status-error);
   }
 
@@ -1066,7 +1307,7 @@
     position: relative;
   }
 
-.connect-menu {
+  .connect-menu {
     position: absolute;
     bottom: calc(100% + 4px);
     left: 0;
@@ -1110,6 +1351,54 @@
     background-color: var(--color-focus-bg);
   }
 
+  .copy-content-btn {
+    position: fixed;
+    bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+    right: calc(1.25rem + 2.5rem + 0.5rem); /* left of focus-toggle-btn */
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    color: var(--color-text-muted);
+    font-size: 1rem;
+    width: 2.5rem;
+    height: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0.55;
+    transition: opacity 0.15s, color 0.15s;
+    z-index: 20;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  }
+
+  .copy-content-btn:hover {
+    opacity: 1;
+  }
+
+  @media (hover: none) {
+    .copy-content-btn {
+      opacity: 0.85;
+    }
+  }
+
+  :global(.focus-mode) .copy-content-btn {
+    background: var(--color-focus-bg);
+    border-color: var(--color-focus-rule);
+    color: var(--color-focus-text);
+    opacity: 0.7;
+  }
+
+  :global(.focus-mode) .copy-content-btn:hover {
+    opacity: 1;
+  }
+
+  @media (hover: none) {
+    :global(.focus-mode) .copy-content-btn {
+      opacity: 0.9;
+    }
+  }
+
   .focus-toggle-btn {
     position: fixed;
     bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
@@ -1128,7 +1417,7 @@
     opacity: 0.55;
     transition: opacity 0.15s;
     z-index: 20;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
   }
 
   .focus-toggle-btn:hover {
