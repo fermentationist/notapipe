@@ -13,11 +13,11 @@ Two people open the same URL — identified by a memorable 3-word phrase — and
 - Each browser tab generates (or reads from the URL) a **3-word room ID** like `apple-river-moon`
 - Two or more peers connect either via the **signalling server** (same Wi-Fi or internet) or via **QR code** (fully air-gapped — no server at all)
 - Text is synchronised using **Yjs CRDTs** over a WebRTC data channel — conflicts merge automatically
-- Nothing is stored server-side. Content lives only in the browser tabs that are open
+- Nothing is stored server-side. Content lives only in the browser tabs that are open (and optionally in `localStorage` for persistence across reloads)
 
 ## Features
 
-- **Signalling & QR connection modes** — use whichever fits your threat model
+- **Signalling & QR connection modes** — use whichever fits your security needs
 - **Multi-peer mesh** — connect more than two devices; each pair syncs independently
 - **Focus mode** — distraction-free writing with a ruled-paper aesthetic (`Cmd+F`)
 - **Theming** — built-in light/dark themes plus a fully customisable token editor
