@@ -20,7 +20,10 @@
         if (p) {
           var q = params.get("q");
           var hash = window.location.hash;
-          var restored = p + (q ? "?" + q : "") + hash;
+          // Prepend the base path (e.g. /notapipe) that 404.html stripped from p.
+          // Derived from the current pathname so this works with any base prefix.
+          var base = window.location.pathname.replace(/\/$/, "");
+          var restored = base + p + (q ? "?" + q : "") + hash;
           window.history.replaceState(null, "", restored);
         }
       })();
