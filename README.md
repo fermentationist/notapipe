@@ -34,9 +34,11 @@ Two people open the same URL — identified by a memorable 3-word phrase — and
 
 ## Quick start
 
+You will need Node.js 18+ and pnpm installed globally
+
 ```bash
 # Install all workspace dependencies
-vp install
+vp install # this assumes you have vite-plus installed globally; if not, run `npm install -g vite-plus` first
 
 # Run client dev server + signalling server concurrently
 vp dev
