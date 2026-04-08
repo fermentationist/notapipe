@@ -1,4 +1,5 @@
 import { ICE_SERVERS, DATA_CHANNEL_LABEL } from "$lib/constants/rtc.ts";
+import { FILE_TRANSFER_CHANNEL_LABEL } from "./file_transfer.ts";
 
 // ---------------------------------------------------------------------------
 // SignalTransport interface
@@ -28,6 +29,7 @@ export type PeerManagerState =
 
 export interface PeerManagerCallbacks {
   onDataChannel: (channel: RTCDataChannel) => void;
+  onFileChannel: (channel: RTCDataChannel) => void;
   onStateChange: (state: PeerManagerState) => void;
   onError: (error: Error) => void;
 }
@@ -67,6 +69,9 @@ export class RTCPeerManager {
     const data_channel = pc.createDataChannel(DATA_CHANNEL_LABEL, { ordered: true });
     this.callbacks.onDataChannel(data_channel);
 
+    const file_channel = pc.createDataChannel(FILE_TRANSFER_CHANNEL_LABEL, { ordered: true });
+    this.callbacks.onFileChannel(file_channel);
+
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
 
@@ -88,7 +93,11 @@ export class RTCPeerManager {
     const { pc, flush_pending } = this.createPeerConnection();
 
     pc.ondatachannel = (event) => {
-      this.callbacks.onDataChannel(event.channel);
+      if (event.channel.label === FILE_TRANSFER_CHANNEL_LABEL) {
+        this.callbacks.onFileChannel(event.channel);
+      } else {
+        this.callbacks.onDataChannel(event.channel);
+      }
     };
 
     this.transport.onOffer(async (offer_sdp) => {

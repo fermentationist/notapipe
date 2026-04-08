@@ -25,6 +25,7 @@
   import { QrTransport } from "./rtc/qr_mode/qr_transport.ts";
   import { decodePacketMeta } from "./rtc/qr_mode/sdp_codec.ts";
   import { RTCDataChannelProvider } from "./yjs/provider.ts";
+  import { FileTransferManager, type IncomingOffer } from "./rtc/file_transfer.ts";
   import { connection_store } from "./stores/connection.ts";
   import { focus_mode_store } from "./stores/focus_mode.ts";
   import { persistence_store } from "./stores/persistence.ts";
@@ -33,6 +34,7 @@
   import QrOverlay from "./components/QrOverlay.svelte";
   import SettingsPanel from "./components/SettingsPanel.svelte";
   import ConfirmDialog from "./components/ConfirmDialog.svelte";
+  import FileTransferBar from "./components/FileTransferBar.svelte";
 
   // ---------------------------------------------------------------------------
   // Yjs document (single shared text type)
@@ -131,10 +133,100 @@
   // Keyed by remote peer ID. QR mode uses QR_PEER_ID as a placeholder.
   const peer_managers = new Map<string, RTCPeerManager>();
   const yjs_providers = new Map<string, RTCDataChannelProvider>();
+  const file_transfer_managers = new Map<string, FileTransferManager>();
   const peer_states = new Map<
     string,
     import("./rtc/peer.ts").PeerManagerState
   >();
+
+  // ---------------------------------------------------------------------------
+  // File transfer UI state (reactive so the bar re-renders)
+  // ---------------------------------------------------------------------------
+
+  let ft_incoming_offers = $state(new Map<string, IncomingOffer>());
+  let ft_progress = $state(new Map<string, { received: number; total: number }>());
+  let ft_completed = $state(new Map<string, { url: string; filename: string }>());
+
+  function makeFileTransferCallbacks(peer_id: string) {
+    return {
+      onIncomingOffer(offer: IncomingOffer) {
+        ft_incoming_offers = new Map(ft_incoming_offers).set(offer.transfer_id, offer);
+      },
+      onProgress(transfer_id: string, received: number, total: number) {
+        const next = new Map(ft_progress);
+        next.set(transfer_id, { received, total });
+        ft_progress = next;
+        // Remove from incoming once we start receiving chunks
+        if (ft_incoming_offers.has(transfer_id)) {
+          const offers = new Map(ft_incoming_offers);
+          offers.delete(transfer_id);
+          ft_incoming_offers = offers;
+        }
+      },
+      onFileReceived(transfer_id: string, blob: Blob, filename: string) {
+        const url = URL.createObjectURL(blob);
+        const progress = new Map(ft_progress);
+        progress.delete(transfer_id);
+        ft_progress = progress;
+        ft_completed = new Map(ft_completed).set(transfer_id, { url, filename });
+      },
+      onTransferCancelled(transfer_id: string) {
+        const offers = new Map(ft_incoming_offers);
+        offers.delete(transfer_id);
+        ft_incoming_offers = offers;
+        const progress = new Map(ft_progress);
+        progress.delete(transfer_id);
+        ft_progress = progress;
+        void peer_id; // suppress unused warning
+      },
+      onError(message: string) {
+        connection_store.setError(message);
+      },
+    };
+  }
+
+  function acceptTransfer(transfer_id: string): void {
+    for (const manager of file_transfer_managers.values()) {
+      manager.acceptTransfer(transfer_id);
+    }
+    const offers = new Map(ft_incoming_offers);
+    offers.delete(transfer_id);
+    ft_incoming_offers = offers;
+  }
+
+  function declineTransfer(transfer_id: string): void {
+    for (const manager of file_transfer_managers.values()) {
+      manager.declineTransfer(transfer_id);
+    }
+    const offers = new Map(ft_incoming_offers);
+    offers.delete(transfer_id);
+    ft_incoming_offers = offers;
+  }
+
+  function cancelTransfer(transfer_id: string): void {
+    for (const manager of file_transfer_managers.values()) {
+      manager.cancelTransfer(transfer_id);
+    }
+    const progress = new Map(ft_progress);
+    progress.delete(transfer_id);
+    ft_progress = progress;
+  }
+
+  function dismissCompleted(transfer_id: string): void {
+    const completed = new Map(ft_completed);
+    const entry = completed.get(transfer_id);
+    if (entry) {
+      URL.revokeObjectURL(entry.url);
+    }
+    completed.delete(transfer_id);
+    ft_completed = completed;
+  }
+
+  function sendFileToAllPeers(file: File): void {
+    for (const manager of file_transfer_managers.values()) {
+      manager.sendFile(file);
+    }
+  }
 
   let ws_transport: WebSocketTransport | null = null;
   // Set while signalling is active; cleared in teardown() to prevent auto-reconnect.
@@ -241,6 +333,8 @@
     peer_states.delete(remote_peer_id);
     yjs_providers.get(remote_peer_id)?.destroy();
     yjs_providers.delete(remote_peer_id);
+    file_transfer_managers.get(remote_peer_id)?.destroy();
+    file_transfer_managers.delete(remote_peer_id);
     connection_store.removeRemotePeer(remote_peer_id);
     manager.close();
     updateAggregateState();
@@ -262,6 +356,10 @@
       onDataChannel(data_channel) {
         const provider = new RTCDataChannelProvider(doc, data_channel);
         yjs_providers.set(remote_peer_id, provider);
+      },
+      onFileChannel(file_channel) {
+        const ft_manager = new FileTransferManager(file_channel, makeFileTransferCallbacks(remote_peer_id));
+        file_transfer_managers.set(remote_peer_id, ft_manager);
       },
       onStateChange(state) {
         if (!peer_managers.has(remote_peer_id)) {
@@ -410,6 +508,10 @@
         onDataChannel(data_channel) {
           const provider = new RTCDataChannelProvider(doc, data_channel);
           yjs_providers.set(session_id, provider);
+        },
+        onFileChannel(file_channel) {
+          const ft_manager = new FileTransferManager(file_channel, makeFileTransferCallbacks(session_id));
+          file_transfer_managers.set(session_id, ft_manager);
         },
         onStateChange(state) {
           if (!peer_managers.has(session_id)) {
@@ -908,6 +1010,18 @@
   <!-- Editor -->
   <main>
     <Editor {doc} {ytext} readonly={false} />
+    {#if is_connected}
+      <FileTransferBar
+        incoming_offers={ft_incoming_offers}
+        transfer_progress={ft_progress}
+        completed_files={ft_completed}
+        onaccept={acceptTransfer}
+        ondecline={declineTransfer}
+        oncancel={cancelTransfer}
+        ondismiss={dismissCompleted}
+        onsendfile={sendFileToAllPeers}
+      />
+    {/if}
     <button
       class="copy-content-btn"
       onclick={copyEditorContent}
