@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "pnpm -r --parallel run dev",
     "build": "vp build",
+    "start": "node --experimental-strip-types packages/signalling/src/index.ts",
     "test": "vp test",
     "check": "vp check"
   },
