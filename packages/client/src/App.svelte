@@ -1392,9 +1392,14 @@
     line-height: 1;
   }
 
-  .icon-btn:hover {
+  .icon-btn:hover:not(:disabled) {
     color: var(--color-text);
     background: var(--color-surface);
+  }
+
+  .icon-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
   }
 
   main {
