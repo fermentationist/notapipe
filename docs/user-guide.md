@@ -133,6 +133,8 @@ You can connect more than two devices. Once connected, additional peers can be a
 2. Follow the QR workflow above with the new device
 3. The new device only needs to exchange QR codes with one existing member — Yjs automatically propagates the full document history to the newcomer, and future edits from all peers flow through the connected mesh
 
+Note that scanning the QR code from any existing peer is sufficient to join the room — you do not need to scan every peer's code. However, if the peer you scan disconnects, you will lose connection until you scan another peer's code.
+
 ---
 
 ## The editor
@@ -189,14 +191,14 @@ Click **⚙** (Settings) → **Theme** to access the theme editor.
 
 ### Built-in themes
 
-The **Light** and **Dark** tabs show all available CSS colour tokens and their values for reference. Clicking either tab applies that theme immediately.
+The **Light** and **Dark** tabs show all available CSS color tokens and their values for reference. Clicking either tab applies that theme immediately.
 
 ### Custom theme
 
 The **Custom** tab lets you edit any token:
 
-- **Colour tokens** — shown with a colour picker swatch. Click the swatch to open a colour picker, or type a hex value directly into the text field
-- **Non-colour tokens** (e.g. `--line-height`) — plain text input
+- **Color tokens** — shown with a color picker swatch. Click the swatch to open a color picker, or type a hex value directly into the text field
+- **Non-color tokens** (e.g. `--line-height`) — plain text input
 
 Changes apply live as you edit — you see the result immediately.
 
@@ -275,14 +277,17 @@ Click **⊗** (Clear data) for options to remove stored content:
 
 | Option | What it clears |
 |---|---|
-| **Clear current doc** | Removes the saved document for the current room ID from `localStorage` |
-| **Clear all docs** | Removes saved documents for all room IDs |
+| **Clear current doc** | Empties the shared document and removes it from `localStorage` |
+| **Clear all docs** | Removes saved documents for all room IDs from `localStorage` |
 | **Clear settings** | Removes the saved theme and all other settings |
 | **Clear everything** | Clears all of the above |
 
-All of these affect only your local browser storage. They do not affect other peers' devices.
-
 Each option shows a confirmation dialog before proceeding.
+
+> **Warning — Clear current doc affects connected peers.**
+> Unlike the other options, **Clear current doc** is a collaborative action. Clearing the document deletes its content via Yjs, which immediately propagates to all connected peers — their editors will go blank too. If any connected peer has local persistence enabled, their saved copy for this room will also be overwritten with the empty state right away. Only use this option when all connected peers are aware and in agreement.
+
+The remaining options (**Clear all docs**, **Clear settings**, **Clear everything**) affect only your local browser storage and do not propagate to other peers.
 
 ---
 
