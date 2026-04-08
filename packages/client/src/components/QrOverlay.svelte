@@ -25,16 +25,16 @@
   let camera_stream: MediaStream | null = null;
   let scan_abort_controller: AbortController | null = null;
   let camera_error = $state<string | null>(null);
-  let dot_count = $state(0);
-  const spinner = [..."◴◷◶◵"];
-  const dots = $derived(spinner[dot_count]);
+  let spinner_index = $state(0);
+  const spinner_states = [..."◴◷◶◵"];
+  const spinner = $derived(spinner_states[spinner_index]);
 
   $effect(() => {
     if (packet !== null) {
       return;
     }
     const interval = setInterval(() => {
-      dot_count = (dot_count + 1) % 4;
+      spinner_index = (spinner_index + 1) % 4;
     }, 500);
     return () => clearInterval(interval);
   });
@@ -181,7 +181,7 @@
         {#if packet === null}
           <div class="hint-container">
             <div class="hint">Gathering network...</div>
-            <div class="dots">{dots}</div>
+            <div class="dots">{spinner}</div>
           </div>
         {:else}
           <canvas bind:this={qr_canvas} class="qr-canvas"></canvas>
