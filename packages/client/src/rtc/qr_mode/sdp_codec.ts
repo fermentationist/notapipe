@@ -3,9 +3,9 @@
 // Encodes a WebRTC SDP offer/answer into a compact binary packet (~78 bytes),
 // and decodes it back to a valid SDP string that browsers accept.
 //
-// Binary packet format:
+// Binary packet format (version 0x02):
 //   Byte 0:    Magic (0x4E = 'N' for notapipe)
-//   Byte 1:    Version (0x01)
+//   Byte 1:    Version (0x02)
 //   Byte 2:    Flags — bit 0: is_answer (0=offer, 1=answer)
 //   Bytes 3-34: DTLS SHA-256 fingerprint (32 bytes)
 //   Byte 35:   ufrag length (uint8)
@@ -14,11 +14,13 @@
 //   Bytes N+1: pwd (variable, typically 22 bytes)
 //   Byte M:    candidate count (uint8)
 //   Bytes M+1: candidate entries (variable)
+//   Byte P:    room_id length (uint8)
+//   Bytes P+1: room_id (ASCII, e.g. "word-word-word")
 //
 // See docs/qr-mode.md for the full format specification.
 
 const PACKET_MAGIC = 0x4e; // 'N'
-const PACKET_VERSION = 0x01;
+const PACKET_VERSION = 0x02;
 
 const FLAG_IS_ANSWER = 0b00000001;
 
@@ -44,6 +46,7 @@ interface DecodedPacket {
   ufrag: string;
   pwd: string;
   candidates: DecodedCandidate[];
+  room_id: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -279,7 +282,7 @@ function encodeMdnsCandidate(
 /**
  * Encode an SDP string into a compact binary packet.
  */
-export function encodeSdp(sdp: string, is_answer: boolean): Uint8Array {
+export function encodeSdp(sdp: string, is_answer: boolean, room_id: string): Uint8Array {
   const fingerprint_bytes = extractFingerprint(sdp);
   const ufrag = extractUfrag(sdp);
   const pwd = extractPwd(sdp);
@@ -289,6 +292,7 @@ export function encodeSdp(sdp: string, is_answer: boolean): Uint8Array {
   const encoder = new TextEncoder();
   const ufrag_bytes = encoder.encode(ufrag);
   const pwd_bytes = encoder.encode(pwd);
+  const room_id_bytes = encoder.encode(room_id);
 
   // Calculate total byte size
   let total_bytes = 3; // magic + version + flags
@@ -303,6 +307,7 @@ export function encodeSdp(sdp: string, is_answer: boolean): Uint8Array {
       total_bytes += 19; // IPv6 or mDNS
     }
   });
+  total_bytes += 1 + room_id_bytes.length; // room_id length + room_id
 
   const buffer = new ArrayBuffer(total_bytes);
   const view = new DataView(buffer);
@@ -336,6 +341,9 @@ export function encodeSdp(sdp: string, is_answer: boolean): Uint8Array {
       offset = encodeMdnsCandidate(candidate, view, offset);
     }
   });
+
+  view.setUint8(offset++, room_id_bytes.length);
+  bytes.set(room_id_bytes, offset);
 
   return bytes;
 }
@@ -426,7 +434,10 @@ function decodePacket(packet: Uint8Array): DecodedPacket {
     foundation_index++;
   }
 
-  return { is_answer, fingerprint_hex, ufrag, pwd, candidates };
+  const room_id_length = view.getUint8(offset++);
+  const room_id = new TextDecoder().decode(packet.subarray(offset, offset + room_id_length));
+
+  return { is_answer, fingerprint_hex, ufrag, pwd, candidates, room_id };
 }
 
 // ---------------------------------------------------------------------------
@@ -469,8 +480,17 @@ function buildSdpFromParts(decoded: DecodedPacket): string {
 export function decodeSdp(packet: Uint8Array): {
   sdp: string;
   type: "offer" | "answer";
+  room_id: string;
 } {
   const decoded = decodePacket(packet);
   const sdp = buildSdpFromParts(decoded);
-  return { sdp, type: decoded.is_answer ? "answer" : "offer" };
+  return { sdp, type: decoded.is_answer ? "answer" : "offer", room_id: decoded.room_id };
+}
+
+/**
+ * Extract just the room ID from a QR packet without full SDP reconstruction.
+ * Used by the scanning peer to determine whether a room switch is needed.
+ */
+export function decodeRoomId(packet: Uint8Array): string {
+  return decodePacket(packet).room_id;
 }

@@ -32,6 +32,7 @@ export interface QrTransportCallbacks {
 export class QrTransport implements SignalTransport {
   private readonly peer_connection: RTCPeerConnection;
   private readonly callbacks: QrTransportCallbacks;
+  private readonly room_id: string;
 
   private offer_callback: OfferCallback | null = null;
   private answer_callback: AnswerCallback | null = null;
@@ -42,9 +43,11 @@ export class QrTransport implements SignalTransport {
   constructor(
     peer_connection: RTCPeerConnection,
     callbacks: QrTransportCallbacks,
+    room_id: string,
   ) {
     this.peer_connection = peer_connection;
     this.callbacks = callbacks;
+    this.room_id = room_id;
   }
 
   // ---------------------------------------------------------------------------
@@ -139,7 +142,7 @@ export class QrTransport implements SignalTransport {
       return;
     }
     try {
-      const packet = encodeSdp(local_description.sdp, is_answer);
+      const packet = encodeSdp(local_description.sdp, is_answer, this.room_id);
       this.callbacks.onQrPacketReady(packet);
     } catch (error) {
       this.callbacks.onError(error instanceof Error ? error : new Error(String(error)));

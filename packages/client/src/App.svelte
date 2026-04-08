@@ -13,6 +13,7 @@
     type WebSocketTransportCallbacks,
   } from "./rtc/websocket_transport.ts";
   import { QrTransport } from "./rtc/qr_mode/qr_transport.ts";
+  import { decodeRoomId } from "./rtc/qr_mode/sdp_codec.ts";
   import { RTCDataChannelProvider } from "./yjs/provider.ts";
   import { connection_store } from "./stores/connection.ts";
   import { focus_mode_store } from "./stores/focus_mode.ts";
@@ -339,7 +340,7 @@
       onError(error) {
         connection_store.setError(error.message);
       },
-    });
+    }, room_id);
 
     const manager = new RTCPeerManager(qr_transport, {
       onDataChannel(data_channel) {
@@ -386,7 +387,34 @@
     peer_managers.get(active_qr_session_id)?.startAsAnswerer();
   }
 
+  function applyRoomId(new_room_id: string): void {
+    room_id = new_room_id;
+    history.replaceState(null, "", `/${new_room_id}`);
+    connection_store.setRoomId(new_room_id);
+    reinitPersistence();
+  }
+
   function handleQrScanned(scanned_packet: Uint8Array): void {
+    // Extract the room ID embedded in the QR packet and switch to it if needed.
+    // The offerer's room ID is always authoritative — the scanner (answerer) adopts it.
+    try {
+      const incoming_room_id = decodeRoomId(scanned_packet);
+      if (incoming_room_id !== "" && incoming_room_id !== room_id) {
+        const has_content = ytext.toString().length > 0;
+        const has_persistence = $persistence_store;
+        if (has_content || has_persistence) {
+          showConfirm(
+            `This QR code is for room "${incoming_room_id}". Your room ID will change from "${room_id}". Your current document will merge with theirs.${has_persistence ? " Your saved history for this room will remain under the old ID." : ""}`,
+            () => applyRoomId(incoming_room_id),
+          );
+        } else {
+          applyRoomId(incoming_room_id);
+        }
+      }
+    } catch {
+      // Malformed packet — let receiveScannedPacket report the error
+    }
+
     qr_transport?.receiveScannedPacket(scanned_packet);
     // Do not close the overlay here — the answerer needs to stay open to show their
     // answer QR. The overlay closes itself after the scan step is handled, or when
