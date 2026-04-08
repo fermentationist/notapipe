@@ -180,7 +180,7 @@
 
         {#if packet === null}
           <div class="hint-container">
-            <div class="hint">Gathering network...</div>
+            <div class="hint">Gathering network info...</div>
             <div class="dots">{spinner}</div>
           </div>
         {:else}
