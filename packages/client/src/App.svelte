@@ -30,11 +30,13 @@
   import { focus_mode_store } from "./stores/focus_mode.ts";
   import { persistence_store } from "./stores/persistence.ts";
   import Editor from "./components/Editor.svelte";
+  import MarkdownPreview from "./components/MarkdownPreview.svelte";
   import ConnectionStatus from "./components/ConnectionStatus.svelte";
   import QrOverlay from "./components/QrOverlay.svelte";
   import SettingsPanel from "./components/SettingsPanel.svelte";
   import ConfirmDialog from "./components/ConfirmDialog.svelte";
   import FileTransferBar from "./components/FileTransferBar.svelte";
+  import { preview_store } from "./stores/preview.ts";
 
   // ---------------------------------------------------------------------------
   // Yjs document (single shared text type)
@@ -820,11 +822,23 @@
     }
   }
 
+  // Reactive text content for markdown preview — tracks ytext changes
+  let preview_content = $state(ytext.toString());
+  $effect(() => {
+    const observer = () => {
+      preview_content = ytext.toString();
+    };
+    ytext.observe(observer);
+    return () => ytext.unobserve(observer);
+  });
+
   const can_share = $derived(
     typeof navigator !== "undefined" && "share" in navigator,
   );
   const is_connected = $derived($connection_store.peer_state === "connected");
   const show_actions = $derived(!$focus_mode_store);
+  // Preview is suppressed in focus mode
+  const show_preview = $derived($preview_store && !$focus_mode_store);
 </script>
 
 <svelte:window onclick={handleWindowClick} />
@@ -858,6 +872,15 @@
           onclick={exportDocument}
           title="Save as text file"
           aria-label="Save as text file">↓</button
+        >
+        <button
+          class="icon-btn"
+          class:active={show_preview}
+          onclick={() => preview_store.toggle()}
+          title={show_preview ? "Hide preview" : "Show markdown preview"}
+          aria-label={show_preview ? "Hide markdown preview" : "Show markdown preview"}
+          aria-pressed={show_preview}
+        >M↓</button
         >
         <button
           class="icon-btn"
@@ -1028,9 +1051,23 @@
     {/if}
   {/if}
 
-  <!-- Editor -->
-  <main>
-    <Editor {doc} {ytext} readonly={false} />
+  <!-- Editor (+ optional preview pane) -->
+  <main class:preview-split={show_preview}>
+    <!-- On narrow screens in preview mode, hide the editor; always show on wide or when preview is off -->
+    <div class="editor-pane" class:hidden-narrow={show_preview}>
+      <Editor {doc} {ytext} readonly={false} />
+    </div>
+    {#if show_preview}
+      <div class="preview-pane">
+        <!-- Narrow: toggle button to flip back to editor -->
+        <button
+          class="preview-back-btn"
+          onclick={() => preview_store.toggle()}
+          aria-label="Back to editor"
+        >← Edit</button>
+        <MarkdownPreview content={preview_content} />
+      </div>
+    {/if}
     <FileTransferBar
       connected={is_connected}
       incoming_offers={ft_incoming_offers}
@@ -1409,6 +1446,80 @@
     flex-direction: column;
     min-height: 0;
     position: relative;
+  }
+
+  /* Split-pane layout on wide screens */
+  @media (min-width: 768px) {
+    main.preview-split {
+      flex-direction: row;
+    }
+
+    main.preview-split .editor-pane {
+      flex: 1;
+      min-width: 0;
+      border-right: 1px solid var(--color-border);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    main.preview-split .preview-pane {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .preview-back-btn {
+      display: none;
+    }
+  }
+
+  /* Narrow: toggle between editor and preview */
+  @media (max-width: 767px) {
+    .editor-pane,
+    .preview-pane {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .editor-pane.hidden-narrow {
+      display: none;
+    }
+
+    .preview-back-btn {
+      flex-shrink: 0;
+      background: none;
+      border: none;
+      border-bottom: 1px solid var(--color-border);
+      color: var(--color-accent);
+      font-family: inherit;
+      font-size: 0.85rem;
+      padding: 0.4rem 1rem;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .preview-back-btn:hover {
+      background: var(--color-surface);
+    }
+  }
+
+  /* Shared pane styles for non-split mode */
+  .editor-pane {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Active state for M↓ button */
+  .icon-btn.active {
+    color: var(--color-accent);
   }
 
   .actions {

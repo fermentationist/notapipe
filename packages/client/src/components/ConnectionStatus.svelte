@@ -28,8 +28,12 @@
     display: inline-block;
     width: 8px;
     height: 8px;
+    min-width: 8px;
+    min-height: 8px;
     border-radius: 50%;
     vertical-align: middle;
+    align-self: center;
+    flex-shrink: 0;
     margin-right: 4px;
     background-color: var(--color-status-waiting);
   }
