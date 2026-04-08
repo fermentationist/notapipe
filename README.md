@@ -2,7 +2,7 @@
 
 > Ephemeral, local-first, peer-to-peer text sharing. No servers ever see your content.
 
-The primary use case: you want to move a piece of text from one device to another — phone to laptop, work machine to personal machine — without emailing yourself, opening a chat app, or signing into anything. Open the same room URL on both devices, wait for the green connection indicator, and the text syncs instantly. Hit the copy button and paste it wherever you need it.
+The primary use case: you want to move a piece of text from one device to another — phone to laptop, work machine to personal machine — without emailing yourself, opening a chat app, or signing into anything. Open the same room URL on both devices, choose your connection method, wait for the green connection indicator, and the text syncs instantly. Hit the copy button and paste it wherever you need it.
 
 Two or more peers open the same URL — identified by a memorable 3-word phrase — and their text stays in sync via Yjs CRDTs over a WebRTC data channel. The signalling server only brokers the WebRTC handshake and sees no document content. In QR mode, even that middleman is eliminated.
 
