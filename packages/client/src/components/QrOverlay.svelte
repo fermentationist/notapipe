@@ -11,7 +11,8 @@
     onstartanswerer?: () => void;
   }
 
-  let { packet, onscanned, onclose, onstartofferer, onstartanswerer }: Props = $props();
+  let { packet, onscanned, onclose, onstartofferer, onstartanswerer }: Props =
+    $props();
 
   let qr_canvas: HTMLCanvasElement = $state() as HTMLCanvasElement;
   let video_element: HTMLVideoElement = $state() as HTMLVideoElement;
@@ -25,11 +26,13 @@
   let scan_abort_controller: AbortController | null = null;
   let camera_error = $state<string | null>(null);
   let dot_count = $state(0);
-  const front_padding = $derived(["", " ", "  ", "   "][dot_count]);
-  const dots = $derived(["", ".", "..", "..."][dot_count]);
+  const spinner = [..."◴◷◶◵"];
+  const dots = $derived(spinner[dot_count]);
 
   $effect(() => {
-    if (packet !== null) { return; }
+    if (packet !== null) {
+      return;
+    }
     const interval = setInterval(() => {
       dot_count = (dot_count + 1) % 4;
     }, 500);
@@ -42,7 +45,9 @@
       // Base64-encode so the QR code contains only ASCII characters (0–127).
       // Passing binary bytes directly causes UTF-8 expansion for bytes ≥ 128,
       // which corrupts the round-trip when BarcodeDetector reads rawValue.
-      const base64_string = btoa(Array.from(packet, (byte) => String.fromCharCode(byte)).join(""));
+      const base64_string = btoa(
+        Array.from(packet, (byte) => String.fromCharCode(byte)).join(""),
+      );
       QRCode.toCanvas(qr_canvas, base64_string, {
         errorCorrectionLevel: "L",
         margin: 2,
@@ -79,7 +84,10 @@
     try {
       camera_stream = await startCamera(video_element);
       scan_abort_controller = new AbortController();
-      const scanned_packet = await scanQr(video_element, scan_abort_controller.signal);
+      const scanned_packet = await scanQr(
+        video_element,
+        scan_abort_controller.signal,
+      );
 
       stopCamera(video_element, camera_stream);
       camera_stream = null;
@@ -135,15 +143,30 @@
 <div
   class="overlay"
   role="presentation"
-  onclick={(e) => { if (e.target === e.currentTarget) { handleClose(); } }}
+  onclick={(e) => {
+    if (e.target === e.currentTarget) {
+      handleClose();
+    }
+  }}
 >
-  <div class="panel" role="dialog" aria-modal="true" aria-label="Air-gapped QR connection">
-    <button class="close-btn" onclick={handleClose} aria-label="Close QR overlay">✕</button>
+  <div
+    class="panel"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Air-gapped QR connection"
+  >
+    <button
+      class="close-btn"
+      onclick={handleClose}
+      aria-label="Close QR overlay">✕</button
+    >
 
     {#if view === "choose"}
       <div class="step">
         <p class="step-label">Air-gapped QR connection</p>
-        <p class="hint">One device shows their QR code first; the other scans it.</p>
+        <p class="hint">
+          One device shows their QR code first; the other scans it.
+        </p>
         <button class="action-btn" onclick={chooseOfferer}>
           Show my QR code first
         </button>
@@ -151,26 +174,31 @@
           Scan their QR code first
         </button>
       </div>
-
     {:else if view === "show"}
       <div class="step">
         <p class="step-label">{stepLabel()}</p>
 
         {#if packet === null}
-          <p class="hint">{front_padding}Gathering network info{dots}</p>
+          <div class="hint-container">
+            <div class="hint">Gathering network...</div>
+            <div class="dots">{dots}</div>
+          </div>
         {:else}
           <canvas bind:this={qr_canvas} class="qr-canvas"></canvas>
         {/if}
 
         {#if role === "offerer"}
-          <button class="action-btn" onclick={startScanning} disabled={packet === null}>
+          <button
+            class="action-btn"
+            onclick={startScanning}
+            disabled={packet === null}
+          >
             → Scan their QR
           </button>
         {:else}
           <p class="hint">Once they scan this, you'll be connected.</p>
         {/if}
       </div>
-
     {:else if view === "scan"}
       <div class="step">
         <p class="step-label">{stepLabel()}</p>
@@ -180,16 +208,19 @@
         {/if}
 
         <!-- svelte-ignore a11y_media_has_caption -->
-        <video bind:this={video_element} class="camera-preview" playsinline></video>
+        <video bind:this={video_element} class="camera-preview" playsinline
+        ></video>
 
-        <button class="action-btn secondary" onclick={() => {
-          scan_abort_controller?.abort();
-          view = role === null ? "choose" : "show";
-        }}>
+        <button
+          class="action-btn secondary"
+          onclick={() => {
+            scan_abort_controller?.abort();
+            view = role === null ? "choose" : "show";
+          }}
+        >
           ← Back
         </button>
       </div>
-
     {:else}
       <div class="step">
         <p class="hint">Connecting…</p>
@@ -301,5 +332,18 @@
     background: transparent;
     color: var(--color-text-muted);
     border: 1px solid var(--color-border);
+  }
+
+  .hint-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .dots {
+    font-size: 1.5rem;
+    color: var(--color-text-muted);
+    height: 1.5rem; /* prevent layout shift when changing dot count */
   }
 </style>

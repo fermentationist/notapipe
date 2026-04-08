@@ -47,6 +47,10 @@ export default defineConfig({
         navigateFallback: "index.html",
         navigateFallbackDenylist: [/^\/ws/],
       },
+      devOptions: {
+        enabled: true,
+        type: "module",
+      },
     }),
   ],
   resolve: {
