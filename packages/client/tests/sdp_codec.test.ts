@@ -115,7 +115,7 @@ function extractSdpFields(sdp: string): {
 
 describe("encodeSdp / decodeSdp round-trips", () => {
   it("round-trips a Chrome offer with IPv4 host + srflx candidates", () => {
-    const packet = encodeSdp(CHROME_OFFER_SDP, false);
+    const packet = encodeSdp(CHROME_OFFER_SDP, false, "test-room");
     const { sdp, type } = decodeSdp(packet);
 
     expect(type).toBe("offer");
@@ -130,7 +130,7 @@ describe("encodeSdp / decodeSdp round-trips", () => {
   });
 
   it("round-trips a Chrome answer (is_answer flag)", () => {
-    const packet = encodeSdp(CHROME_ANSWER_SDP, true);
+    const packet = encodeSdp(CHROME_ANSWER_SDP, true, "test-room");
     const { sdp, type } = decodeSdp(packet);
 
     expect(type).toBe("answer");
@@ -144,7 +144,7 @@ describe("encodeSdp / decodeSdp round-trips", () => {
   });
 
   it("round-trips an SDP with an IPv6 host candidate", () => {
-    const packet = encodeSdp(IPV6_SDP, false);
+    const packet = encodeSdp(IPV6_SDP, false, "test-room");
     const { sdp } = decodeSdp(packet);
 
     expect(sdp).toContain("2001:db8:85a3:0:0:8a2e:370:7334");
@@ -157,7 +157,7 @@ describe("encodeSdp / decodeSdp round-trips", () => {
   });
 
   it("round-trips an SDP with an mDNS candidate", () => {
-    const packet = encodeSdp(MDNS_SDP, false);
+    const packet = encodeSdp(MDNS_SDP, false, "test-room");
     const { sdp } = decodeSdp(packet);
 
     expect(sdp).toContain("550e8400-e29b-41d4-a716-446655440000.local");
@@ -176,31 +176,32 @@ describe("encodeSdp / decodeSdp round-trips", () => {
 
 describe("encodeSdp packet structure", () => {
   it("starts with the correct magic byte (0x4E)", () => {
-    const packet = encodeSdp(CHROME_OFFER_SDP, false);
+    const packet = encodeSdp(CHROME_OFFER_SDP, false, "test-room");
     expect(packet[0]).toBe(0x4e);
   });
 
-  it("has version byte 0x01", () => {
-    const packet = encodeSdp(CHROME_OFFER_SDP, false);
-    expect(packet[1]).toBe(0x01);
+  it("has version byte 0x02", () => {
+    const packet = encodeSdp(CHROME_OFFER_SDP, false, "test-room");
+    expect(packet[1]).toBe(0x02);
   });
 
   it("sets the is_answer flag for answers", () => {
-    const offer_packet = encodeSdp(CHROME_OFFER_SDP, false);
-    const answer_packet = encodeSdp(CHROME_ANSWER_SDP, true);
+    const offer_packet = encodeSdp(CHROME_OFFER_SDP, false, "test-room");
+    const answer_packet = encodeSdp(CHROME_ANSWER_SDP, true, "test-room");
     expect(offer_packet[2] & 0b1).toBe(0);
     expect(answer_packet[2] & 0b1).toBe(1);
   });
 
   it("produces a packet ≤ 100 bytes for a typical 2-candidate SDP", () => {
-    const packet = encodeSdp(CHROME_OFFER_SDP, false);
+    const packet = encodeSdp(CHROME_OFFER_SDP, false, "test-room");
     expect(packet.byteLength).toBeLessThanOrEqual(100);
   });
 
-  it("produces the expected 78-byte packet for 2 IPv4 candidates", () => {
-    // 3 (header) + 32 (fp) + 1 + 4 (ufrag) + 1 + 22 (pwd) + 1 + 7 + 7 (candidates) = 78
-    const packet = encodeSdp(CHROME_OFFER_SDP, false);
-    expect(packet.byteLength).toBe(78);
+  it("produces the expected 88-byte packet for 2 IPv4 candidates with a 9-byte room_id", () => {
+    // 3 (header) + 32 (fp) + 1 + 4 (ufrag) + 1 + 22 (pwd) + 1 + 7 + 7 (candidates)
+    // + 1 (room_id length) + 9 ("test-room") = 88
+    const packet = encodeSdp(CHROME_OFFER_SDP, false, "test-room");
+    expect(packet.byteLength).toBe(88);
   });
 });
 
@@ -215,7 +216,7 @@ describe("candidate filtering", () => {
       "a=candidate:2 1 UDP 1686052607 203.0.113.1 54321 typ srflx raddr 0.0.0.0 rport 0\r\n" +
         "a=candidate:3 1 UDP 100 10.10.10.1 54321 typ relay raddr 0.0.0.0 rport 0",
     );
-    const packet = encodeSdp(sdp_with_relay, false);
+    const packet = encodeSdp(sdp_with_relay, false, "test-room");
     const { sdp } = decodeSdp(packet);
     const candidate_count = (sdp.match(/a=candidate:/g) ?? []).length;
     expect(candidate_count).toBe(2); // host + srflx, no relay
@@ -227,7 +228,7 @@ describe("candidate filtering", () => {
       "a=candidate:1 1 UDP 2122252543 192.168.1.5 54321 typ host\r\n" +
         "a=candidate:3 1 UDP 2122252543 192.168.1.6 54321 typ host",
     );
-    const packet = encodeSdp(sdp_multi, false);
+    const packet = encodeSdp(sdp_multi, false, "test-room");
     const { sdp } = decodeSdp(packet);
     // Only 1 host IPv4 + 1 srflx = 2
     const candidate_count = (sdp.match(/a=candidate:/g) ?? []).length;
@@ -241,16 +242,16 @@ describe("candidate filtering", () => {
 
 describe("decodeSdp error handling", () => {
   it("throws on wrong magic byte", () => {
-    const packet = encodeSdp(CHROME_OFFER_SDP, false);
+    const packet = encodeSdp(CHROME_OFFER_SDP, false, "test-room");
     const tampered = new Uint8Array(packet);
     tampered[0] = 0xff;
     expect(() => decodeSdp(tampered)).toThrow("Invalid magic byte");
   });
 
   it("throws on unsupported version", () => {
-    const packet = encodeSdp(CHROME_OFFER_SDP, false);
+    const packet = encodeSdp(CHROME_OFFER_SDP, false, "test-room");
     const tampered = new Uint8Array(packet);
-    tampered[1] = 0x02;
+    tampered[1] = 0x99;
     expect(() => decodeSdp(tampered)).toThrow("Unsupported packet version");
   });
 });
@@ -261,7 +262,7 @@ describe("decodeSdp error handling", () => {
 
 describe("decoded SDP template", () => {
   it("contains all required SDP sections", () => {
-    const packet = encodeSdp(CHROME_OFFER_SDP, false);
+    const packet = encodeSdp(CHROME_OFFER_SDP, false, "test-room");
     const { sdp } = decodeSdp(packet);
 
     expect(sdp).toContain("v=0");
@@ -271,13 +272,13 @@ describe("decoded SDP template", () => {
   });
 
   it("uses actpass setup for offers", () => {
-    const packet = encodeSdp(CHROME_OFFER_SDP, false);
+    const packet = encodeSdp(CHROME_OFFER_SDP, false, "test-room");
     const { sdp } = decodeSdp(packet);
     expect(sdp).toContain("a=setup:actpass");
   });
 
   it("uses active setup for answers", () => {
-    const packet = encodeSdp(CHROME_ANSWER_SDP, true);
+    const packet = encodeSdp(CHROME_ANSWER_SDP, true, "test-room");
     const { sdp } = decodeSdp(packet);
     expect(sdp).toContain("a=setup:active");
   });

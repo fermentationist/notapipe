@@ -18,12 +18,13 @@
 5. [The editor](#the-editor)
 6. [Focus mode](#focus-mode)
 7. [Importing and exporting text](#importing-and-exporting-text)
-8. [Sharing](#sharing)
-9. [Themes](#themes)
-10. [Settings and persistence](#settings-and-persistence)
-11. [Installing as an app (PWA)](#installing-as-an-app-pwa)
-12. [Clearing data](#clearing-data)
-13. [Troubleshooting](#troubleshooting)
+8. [Sending and receiving files](#sending-and-receiving-files)
+9. [Sharing](#sharing)
+10. [Themes](#themes)
+11. [Settings and persistence](#settings-and-persistence)
+12. [Installing as an app (PWA)](#installing-as-an-app-pwa)
+13. [Clearing data](#clearing-data)
+14. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -48,7 +49,7 @@ The interface has four main regions:
 **Header** (top bar)
 - App name (`notapipe`) on the left
 - Connection status indicator in the centre
-- Utility buttons on the right: import (`↑`), export (`↓`), share (box-with-arrow icon), clear data (`⊗`), settings (`⚙`)
+- Utility buttons on the right: import (`↑`), export (`↓`), send file (paperclip icon), share (box-with-arrow icon), clear data (`⊗`), settings (`⚙`)
 
 **Room bar** (below the header)
 - The current room ID (e.g. `apple-river-moon`)
@@ -177,6 +178,34 @@ Click the `↑` button in the header to load a `.txt` file from your device. The
 ### Export as text file (`↓`)
 
 Click the `↓` button to download the current document as a `.txt` file. The filename is the room ID (e.g. `apple-river-moon.txt`).
+
+---
+
+## Sending and receiving files
+
+You can send any file (up to 100 MB) directly to all connected peers over the same peer-to-peer WebRTC connection — no server involved.
+
+### Sending a file
+
+1. Make sure you are connected to at least one peer (the send button is disabled when disconnected)
+2. Click the **paperclip icon** in the header (between the `↓` export button and the share icon)
+3. Choose a file from the file picker — or drag and drop a file anywhere onto the editor
+
+The file is offered to all connected peers immediately.
+
+### Receiving a file
+
+When a peer sends you a file, a notification strip appears near the bottom of the screen:
+
+- **Incoming: `filename` (size)** — click **Save** to accept and begin receiving, or **Decline** to refuse
+- While the transfer is in progress, a progress bar shows the percentage received
+- When complete, a **Download** link appears — click it to save the file to your device. The notification dismisses automatically
+
+### Notes
+
+- The 100 MB limit is a soft cap to keep transfers practical on the free TURN relay. On a direct LAN connection (no TURN), larger transfers are possible but untested
+- File transfers use a separate WebRTC data channel from the text editor, so large transfers do not interfere with text sync
+- If you are connected to multiple peers, the file is sent to all of them simultaneously
 
 ---
 

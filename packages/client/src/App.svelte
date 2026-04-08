@@ -859,6 +859,27 @@
           title="Save as text file"
           aria-label="Save as text file">↓</button
         >
+        <button
+          class="icon-btn"
+          disabled={!is_connected}
+          title={is_connected ? "Send a file to connected peers" : "Connect to a peer to send files"}
+          aria-label="Send a file"
+          onclick={() => (document.getElementById("file-transfer-input") as HTMLInputElement).click()}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66L9.41 17.41a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+          </svg>
+        </button>
+        <input
+          id="file-transfer-input"
+          type="file"
+          style="display:none"
+          onchange={(e) => {
+            const file = (e.target as HTMLInputElement).files?.[0];
+            if (file) { sendFileToAllPeers(file); }
+            (e.target as HTMLInputElement).value = "";
+          }}
+        />
         <div class="share-wrapper">
           <button
             class="icon-btn"

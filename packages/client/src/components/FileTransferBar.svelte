@@ -25,7 +25,6 @@
     onsendfile,
   }: Props = $props();
 
-  let file_input: HTMLInputElement;
   let drag_over = $state(false);
 
   function formatBytes(bytes: number): string {
@@ -42,15 +41,6 @@
       onsendfile(file);
     }
   }
-
-  function handleFileInput(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (file) {
-      onsendfile(file);
-    }
-    input.value = "";
-  }
 </script>
 
 <!-- Drag overlay — covers the whole editor area, only interactive when connected -->
@@ -66,25 +56,6 @@
     <div class="drop-hint">Drop file to send</div>
   {/if}
 </div>
-
-<!-- Send button (hidden file input trigger) -->
-<button
-  class="send-file-btn"
-  title={connected ? "Send a file" : "Connect to a peer to send files"}
-  aria-label="Send a file"
-  disabled={!connected}
-  onclick={() => file_input.click()}
->
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-    <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66L9.41 17.41a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
-  </svg>
-</button>
-<input
-  bind:this={file_input}
-  type="file"
-  style="display:none"
-  onchange={handleFileInput}
-/>
 
 <!-- Notification strips -->
 {#if incoming_offers.size > 0 || transfer_progress.size > 0 || completed_files.size > 0}
@@ -151,46 +122,6 @@
     font-size: 1.25rem;
     color: var(--color-accent);
     pointer-events: none;
-  }
-
-  .send-file-btn {
-    position: fixed;
-    bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
-    right: calc(1.25rem + (2.5rem + 0.5rem) * 2); /* left of copy-content-btn */
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: 6px;
-    color: var(--color-text-muted);
-    font-size: 1rem;
-    width: 2.5rem;
-    height: 2.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    opacity: 0.55;
-    transition: opacity 0.15s;
-    z-index: 20;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
-  }
-
-  .send-file-btn:hover:not(:disabled) {
-    opacity: 1;
-  }
-
-  .send-file-btn:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-  }
-
-  @media (hover: none) {
-    .send-file-btn {
-      opacity: 0.85;
-    }
-  }
-
-  :global(.focus-mode) .send-file-btn {
-    display: none;
   }
 
   .transfer-strips {
