@@ -385,17 +385,17 @@ Click **⊗** (Clear data) for options to remove stored content:
 
 | Option                | What it clears                                                 |
 | --------------------- | -------------------------------------------------------------- |
-| **Clear current doc** | Empties the shared document and removes it from `localStorage` |
-| **Clear all docs**    | Removes saved documents for all room IDs from `localStorage`   |
+| **Clear current document** | Empties the shared document and removes it from `localStorage` |
+| **Clear all documents**    | Removes saved documents for all room IDs from `localStorage`   |
 | **Clear settings**    | Removes the saved theme and all other settings                 |
 | **Clear everything**  | Clears all of the above                                        |
 
 Each option shows a confirmation dialog before proceeding.
 
-> **Warning — Clear current doc affects connected peers.**
-> Unlike the other options, **Clear current doc** is a collaborative action. Clearing the document deletes its content via Yjs, which immediately propagates to all connected peers — their editors will go blank too. If any connected peer has local persistence enabled, their saved copy for this room will also be overwritten with the empty state right away. Only use this option when all connected peers are aware and in agreement.
+> **Warning — Clear current document affects connected peers.**
+> Unlike the other options, **Clear current document** is a collaborative action. Clearing the document deletes its content via Yjs, which immediately propagates to all connected peers — their editors will go blank too. If any connected peer has local persistence enabled, their saved copy for this room will also be overwritten with the empty state right away. Only use this option when all connected peers are aware and in agreement.
 
-The remaining options (**Clear all docs**, **Clear settings**, **Clear everything**) affect only your local browser storage and do not propagate to other peers.
+The remaining options (**Clear all documents**, **Clear settings**, **Clear everything**) affect only your local browser storage and do not propagate to other peers.
 
 ---
 
