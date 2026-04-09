@@ -48,15 +48,18 @@ export class RTCPeerManager {
   private transport: SignalTransport;
   private callbacks: PeerManagerCallbacks;
   private provided_peer_connection: RTCPeerConnection | null;
+  private ice_servers: RTCIceServer[];
 
   constructor(
     transport: SignalTransport,
     callbacks: PeerManagerCallbacks,
     peer_connection?: RTCPeerConnection,
+    ice_servers?: RTCIceServer[],
   ) {
     this.transport = transport;
     this.callbacks = callbacks;
     this.provided_peer_connection = peer_connection ?? null;
+    this.ice_servers = ice_servers ?? ICE_SERVERS;
   }
 
   /**
@@ -123,7 +126,7 @@ export class RTCPeerManager {
     pc: RTCPeerConnection;
     flush_pending: () => Promise<void>;
   } {
-    const pc = this.provided_peer_connection ?? new RTCPeerConnection({ iceServers: ICE_SERVERS });
+    const pc = this.provided_peer_connection ?? new RTCPeerConnection({ iceServers: this.ice_servers });
     this.peer_connection = pc;
 
     pc.onicecandidate = (event) => {

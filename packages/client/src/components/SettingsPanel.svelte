@@ -2,6 +2,7 @@
   import { get } from "svelte/store";
   import { theme_store } from "../stores/theme.ts";
   import { persistence_store } from "../stores/persistence.ts";
+  import { rtc_config_store } from "../stores/rtc_config.ts";
   import { DEFAULT_LIGHT_THEME, DEFAULT_DARK_THEME } from "$lib/constants/theme.ts";
 
   interface Props {
@@ -233,6 +234,66 @@
         {/if}
       </div>
     </section>
+
+    <section>
+      <h3>Connection</h3>
+      <p class="storage-note">
+        Override the default signalling and TURN servers. Leave fields blank to use the app defaults.
+      </p>
+
+      <label class="field-label" for="signal-url">Signalling server URL</label>
+      <input
+        id="signal-url"
+        class="text-input"
+        type="url"
+        placeholder={
+          (import.meta.env["VITE_SIGNAL_URL"] as string | undefined) ??
+          "(auto — same host as app)"
+        }
+        value={$rtc_config_store.signal_url}
+        oninput={(e) => rtc_config_store.setField("signal_url", (e.target as HTMLInputElement).value.trim())}
+      />
+
+      <label class="field-label" for="turn-url">TURN server URL</label>
+      <input
+        id="turn-url"
+        class="text-input"
+        type="text"
+        placeholder="turn:your-server.example.com:3478"
+        value={$rtc_config_store.turn_url}
+        oninput={(e) => rtc_config_store.setField("turn_url", (e.target as HTMLInputElement).value.trim())}
+      />
+
+      <label class="field-label" for="turn-username">TURN username</label>
+      <input
+        id="turn-username"
+        class="text-input"
+        type="text"
+        placeholder="username"
+        value={$rtc_config_store.turn_username}
+        oninput={(e) => rtc_config_store.setField("turn_username", (e.target as HTMLInputElement).value)}
+      />
+
+      <label class="field-label" for="turn-credential">TURN credential</label>
+      <input
+        id="turn-credential"
+        class="text-input"
+        type="password"
+        placeholder="••••••••"
+        value={$rtc_config_store.turn_credential}
+        oninput={(e) => rtc_config_store.setField("turn_credential", (e.target as HTMLInputElement).value)}
+      />
+
+      <p class="security-note">
+        ⚠ Credentials are stored unencrypted in localStorage. Use rate-limited keys where possible and never enter credentials you use elsewhere.
+      </p>
+
+      {#if $rtc_config_store.signal_url !== "" || $rtc_config_store.turn_url !== "" || $rtc_config_store.turn_username !== "" || $rtc_config_store.turn_credential !== ""}
+        <button class="reset-btn" onclick={() => rtc_config_store.reset()}>
+          Reset to defaults
+        </button>
+      {/if}
+    </section>
   </div>
 </div>
 
@@ -307,6 +368,54 @@
     font-size: 0.75rem;
     color: var(--color-text-muted);
     line-height: 1.4;
+  }
+
+  .field-label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    margin: 0.6rem 0 0.2rem;
+  }
+
+  .text-input {
+    width: 100%;
+    box-sizing: border-box;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    color: var(--color-text);
+    font-family: inherit;
+    font-size: 0.8rem;
+    padding: 0.3rem 0.5rem;
+  }
+
+  .text-input:focus {
+    outline: none;
+    border-color: var(--color-accent);
+  }
+
+  .security-note {
+    margin: 0.6rem 0 0;
+    font-size: 0.72rem;
+    color: var(--color-text-muted);
+    line-height: 1.4;
+  }
+
+  .reset-btn {
+    margin-top: 0.6rem;
+    background: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    color: var(--color-text-muted);
+    font-family: inherit;
+    font-size: 0.78rem;
+    padding: 0.3rem 0.7rem;
+    cursor: pointer;
+  }
+
+  .reset-btn:hover {
+    border-color: var(--color-text-muted);
+    color: var(--color-text);
   }
 
   /* Tabs */

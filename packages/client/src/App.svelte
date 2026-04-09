@@ -18,6 +18,7 @@
     PERSISTENCE_ENABLED_KEY,
   } from "$lib/constants/storage.ts";
   import { ICE_SERVERS, QR_ICE_SERVERS } from "$lib/constants/rtc.ts";
+  import { rtc_config_store } from "./stores/rtc_config.ts";
   import { USER_GUIDE_CONTENT, ABOUT_CONTENT } from "$lib/constants/docs.ts";
   import { IndexeddbPersistence } from "y-indexeddb";
   import { RTCPeerManager, isOfferer } from "./rtc/peer.ts";
@@ -461,7 +462,7 @@
       onError(error) {
         connection_store.setError(error.message);
       },
-    });
+    }, undefined, getEffectiveIceServers());
 
     peer_managers.set(remote_peer_id, manager);
     peer_states.set(remote_peer_id, "connecting");
@@ -531,14 +532,33 @@
     ws_transport.connect();
   }
 
+  function getEffectiveSignalUrl(): string {
+    const user_url = $rtc_config_store.signal_url;
+    if (user_url !== "") {
+      return user_url;
+    }
+    const ws_protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    return (
+      (import.meta.env["VITE_SIGNAL_URL"] as string | undefined) ??
+      `${ws_protocol}://${window.location.host}/ws`
+    );
+  }
+
+  function getEffectiveIceServers(): RTCIceServer[] {
+    const { turn_url, turn_username, turn_credential } = $rtc_config_store;
+    if (turn_url !== "") {
+      return [
+        { urls: "stun:stun.l.google.com:19302" },
+        { urls: turn_url, username: turn_username, credential: turn_credential },
+      ];
+    }
+    return ICE_SERVERS;
+  }
+
   function connectViaSignalling(): void {
     teardown(); // clean up any prior attempt before starting a new one
 
-    const ws_protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    const url =
-      (import.meta.env["VITE_SIGNAL_URL"] as string | undefined) ??
-      `${ws_protocol}://${window.location.host}/ws`;
-
+    const url = getEffectiveSignalUrl();
     signalling_url = url;
     openSignallingSocket(url);
     connection_store.setMode("signalling");
