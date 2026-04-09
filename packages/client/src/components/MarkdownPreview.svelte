@@ -1,16 +1,9 @@
-<script lang="ts">
-  interface Props {
-    content: string;
-  }
+<script module lang="ts">
+  // Module-level flag so marked.use() is called exactly once across all
+  // MarkdownPreview instances, regardless of how many are mounted.
+  let marked_configured = false;
 
-  let { content }: Props = $props();
-
-  let html = $state("");
-  let marked_loaded = false;
-  let preview_el = $state<HTMLDivElement | null>(null);
-
-  // GitHub-compatible heading slug: lowercase, keep alphanumeric+spaces+hyphens,
-  // replace spaces with hyphens. Matches the format used in user-guide.md TOC.
+  // GitHub-compatible heading slug.
   function slugify(text: string): string {
     return text
       .toLowerCase()
@@ -19,44 +12,59 @@
       .replace(/\s+/g, "-");
   }
 
-  async function render(text: string): Promise<void> {
-    if (!marked_loaded) {
-      const { marked } = await import("marked");
-      marked.setOptions({ breaks: true, gfm: true });
-      marked.use({
-        renderer: {
-          heading({ text, depth }: { text: string; depth: number }): string {
-            const id = slugify(text);
-            return `<h${depth} id="${id}">${text}</h${depth}>\n`;
-          },
-          link({ href, text }: { href: string; text: string }): string {
-            if (href.startsWith("#")) {
-              return `<a href="${href}">${text}</a>`;
-            }
-            return `<a href="${href}" target="_blank" rel="noopener noreferrer">${text}</a>`;
-          },
-        },
-      });
-      marked_loaded = true;
+  async function configureMarked(): Promise<void> {
+    if (marked_configured) {
+      return;
     }
+    const { marked } = await import("marked");
+    marked.setOptions({ breaks: true, gfm: true });
+    marked.use({
+      renderer: {
+        heading({ text, depth }: { text: string; depth: number }): string {
+          const id = slugify(text);
+          return `<h${depth} id="${id}">${text}</h${depth}>\n`;
+        },
+        link({ href, text }: { href: string; text: string }): string {
+          if (href.startsWith("#")) {
+            // Strip href entirely — data-scroll-target carries the ID.
+            // An <a> without href cannot trigger hash navigation, so the
+            // room token in window.location.hash is never overwritten.
+            return `<a data-scroll-target="${href.slice(1)}">${text}</a>`;
+          }
+          return `<a href="${href}" target="_blank" rel="noopener noreferrer">${text}</a>`;
+        },
+      },
+    });
+    marked_configured = true;
+  }
+</script>
+
+<script lang="ts">
+  interface Props {
+    content: string;
+  }
+
+  let { content }: Props = $props();
+
+  let html = $state("");
+  let preview_el = $state<HTMLDivElement | null>(null);
+
+  async function render(text: string): Promise<void> {
+    await configureMarked();
     const { marked } = await import("marked");
     html = await marked(text);
   }
 
-  // Intercept anchor-link clicks to scroll within the container without
-  // changing window.location.hash (which would overwrite the room token).
   function handleClick(event: MouseEvent): void {
     const target = event.target as HTMLElement;
-    const anchor = target.closest("a");
+    const anchor = target.closest("a[data-scroll-target]");
     if (anchor === null) {
       return;
     }
-    const href = anchor.getAttribute("href");
-    if (href === null || !href.startsWith("#")) {
+    const id = anchor.getAttribute("data-scroll-target");
+    if (id === null) {
       return;
     }
-    event.preventDefault();
-    const id = href.slice(1);
     const heading = preview_el?.querySelector(`[id="${id}"]`);
     heading?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -122,6 +130,7 @@
   .preview :global(a) {
     color: var(--color-accent);
     text-decoration: underline;
+    cursor: pointer;
   }
 
   .preview :global(code) {
