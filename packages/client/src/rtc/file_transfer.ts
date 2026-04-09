@@ -35,6 +35,8 @@ export interface FileTransferCallbacks {
   onIncomingOffer: (offer: IncomingOffer) => void;
   onProgress: (transfer_id: string, received_chunks: number, total_chunks: number) => void;
   onFileReceived: (transfer_id: string, blob: Blob, filename: string, mime_type: string) => void;
+  onFileSent: (transfer_id: string) => void;
+  onTransferAccepted: (transfer_id: string) => void;
   onTransferCancelled: (transfer_id: string) => void;
   onError: (message: string) => void;
 }
@@ -209,6 +211,7 @@ export class FileTransferManager {
     if (!transfer.cancelled) {
       this.outgoing.delete(transfer_id);
       this.sendControl({ type: "done", transfer_id });
+      this.callbacks.onFileSent(transfer_id);
     }
   }
 
@@ -259,7 +262,8 @@ export class FileTransferManager {
         break;
       }
       case "accept": {
-        // Remote accepted our outgoing offer — start sending chunks
+        // Remote accepted our outgoing offer — notify then start sending chunks
+        this.callbacks.onTransferAccepted(message.transfer_id);
         this.sendChunks(message.transfer_id);
         break;
       }

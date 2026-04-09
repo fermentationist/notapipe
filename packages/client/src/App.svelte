@@ -169,6 +169,11 @@
   let ft_completed = $state(
     new Map<string, { url: string; filename: string }>(),
   );
+  let ft_sent = $state(new Map<string, string>()); // transfer_id → filename
+  let ft_sending = $state(new Map<string, string>()); // transfer_id → filename (accepted, in-flight)
+  // Non-reactive map: tracks filenames for in-flight outgoing transfers so
+  // onTransferAccepted / onFileSent can surface the name without re-querying the file object.
+  const ft_outgoing_names = new Map<string, string>();
 
   function makeFileTransferCallbacks(peer_id: string) {
     return {
@@ -199,6 +204,17 @@
           filename,
         });
       },
+      onTransferAccepted(transfer_id: string) {
+        const filename = ft_outgoing_names.get(transfer_id) ?? "file";
+        ft_sending = new Map(ft_sending).set(transfer_id, filename);
+        void peer_id; // suppress unused warning
+      },
+      onFileSent(transfer_id: string) {
+        ft_sending = (() => { const m = new Map(ft_sending); m.delete(transfer_id); return m; })();
+        const filename = ft_outgoing_names.get(transfer_id) ?? "file";
+        ft_outgoing_names.delete(transfer_id);
+        ft_sent = new Map(ft_sent).set(transfer_id, filename);
+      },
       onTransferCancelled(transfer_id: string) {
         const offers = new Map(ft_incoming_offers);
         offers.delete(transfer_id);
@@ -206,7 +222,8 @@
         const progress = new Map(ft_progress);
         progress.delete(transfer_id);
         ft_progress = progress;
-        void peer_id; // suppress unused warning
+        ft_sending = (() => { const m = new Map(ft_sending); m.delete(transfer_id); return m; })();
+        ft_outgoing_names.delete(transfer_id);
       },
       onError(message: string) {
         connection_store.setError(message);
@@ -253,8 +270,17 @@
 
   function sendFileToAllPeers(file: File): void {
     for (const manager of file_transfer_managers.values()) {
-      manager.sendFile(file);
+      const transfer_id = manager.sendFile(file);
+      if (transfer_id !== null) {
+        ft_outgoing_names.set(transfer_id, file.name);
+      }
     }
+  }
+
+  function dismissSent(transfer_id: string): void {
+    const sent = new Map(ft_sent);
+    sent.delete(transfer_id);
+    ft_sent = sent;
   }
 
   let ws_transport: WebSocketTransport | null = null;
@@ -1153,10 +1179,13 @@ Two people open the same URL — identified by a memorable 3-word phrase — and
       incoming_offers={ft_incoming_offers}
       transfer_progress={ft_progress}
       completed_files={ft_completed}
+      sending_files={ft_sending}
+      sent_files={ft_sent}
       onaccept={acceptTransfer}
       ondecline={declineTransfer}
       oncancel={cancelTransfer}
       ondismiss={dismissCompleted}
+      ondismisssent={dismissSent}
       onsendfile={sendFileToAllPeers}
     />
     <div class="bottom-right-btns">

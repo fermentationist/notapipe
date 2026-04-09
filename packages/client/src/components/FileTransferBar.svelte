@@ -6,10 +6,13 @@
     incoming_offers: Map<string, IncomingOffer>;
     transfer_progress: Map<string, { received: number; total: number }>;
     completed_files: Map<string, { url: string; filename: string }>;
+    sending_files: Map<string, string>; // transfer_id → filename (accepted, sending)
+    sent_files: Map<string, string>;    // transfer_id → filename (fully sent)
     onaccept: (transfer_id: string) => void;
     ondecline: (transfer_id: string) => void;
     oncancel: (transfer_id: string) => void;
     ondismiss: (transfer_id: string) => void;
+    ondismisssent: (transfer_id: string) => void;
     onsendfile: (file: File) => void;
   }
 
@@ -18,14 +21,19 @@
     incoming_offers,
     transfer_progress,
     completed_files,
+    sending_files,
+    sent_files,
     onaccept,
     ondecline,
     oncancel,
     ondismiss,
+    ondismisssent,
     onsendfile,
   }: Props = $props();
 
   let drag_over = $state(false);
+  // Tracks which completed transfers the receiver has clicked "Save" on.
+  let saved_ids = $state(new Set<string>());
 
   function formatBytes(bytes: number): string {
     if (bytes < 1024) { return `${bytes} B`; }
@@ -41,6 +49,23 @@
       onsendfile(file);
     }
   }
+
+  function handleSave(transfer_id: string, url: string, filename: string): void {
+    // Trigger the download programmatically, then mark as saved.
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+    saved_ids = new Set(saved_ids).add(transfer_id);
+  }
+
+  const has_strips = $derived(
+    incoming_offers.size > 0 ||
+    transfer_progress.size > 0 ||
+    completed_files.size > 0 ||
+    sending_files.size > 0 ||
+    sent_files.size > 0,
+  );
 </script>
 
 <!-- Drag overlay — covers the whole editor area, only interactive when connected -->
@@ -58,7 +83,7 @@
 </div>
 
 <!-- Notification strips -->
-{#if incoming_offers.size > 0 || transfer_progress.size > 0 || completed_files.size > 0}
+{#if has_strips}
   <div class="transfer-strips">
 
     {#each [...incoming_offers.entries()] as [transfer_id, offer] (transfer_id)}
@@ -89,11 +114,47 @@
 
     {#each [...completed_files.entries()] as [transfer_id, file] (transfer_id)}
       <div class="strip complete">
+        {#if saved_ids.has(transfer_id)}
+          <span class="strip-label saved-label">✓ <strong>{file.filename}</strong> saved</span>
+          <div class="strip-actions">
+            <a class="strip-btn accept" href={file.url} target="_blank" rel="noopener noreferrer">
+              Open
+            </a>
+            <button class="strip-btn" onclick={() => ondismiss(transfer_id)}>×</button>
+          </div>
+        {:else}
+          <span class="strip-label">
+            Ready: <strong>{file.filename}</strong>
+          </span>
+          <div class="strip-actions">
+            <button
+              class="strip-btn accept"
+              onclick={() => handleSave(transfer_id, file.url, file.filename)}
+            >
+              Save
+            </button>
+            <button class="strip-btn decline" onclick={() => ondismiss(transfer_id)}>Decline</button>
+          </div>
+        {/if}
+      </div>
+    {/each}
+
+    {#each [...sending_files.entries()] as [transfer_id, filename] (transfer_id)}
+      <div class="strip sending">
         <span class="strip-label">
-          Ready: <strong>{file.filename}</strong>
+          Sending: <strong>{filename}</strong>…
         </span>
         <div class="strip-actions">
-          <a class="strip-btn accept" href={file.url} download={file.filename} onclick={() => ondismiss(transfer_id)}>Download</a>
+          <button class="strip-btn decline" onclick={() => oncancel(transfer_id)}>Cancel</button>
+        </div>
+      </div>
+    {/each}
+
+    {#each [...sent_files.entries()] as [transfer_id, filename] (transfer_id)}
+      <div class="strip sent">
+        <span class="strip-label">✓ <strong>{filename}</strong> sent</span>
+        <div class="strip-actions">
+          <button class="strip-btn" onclick={() => ondismisssent(transfer_id)}>×</button>
         </div>
       </div>
     {/each}
@@ -152,6 +213,11 @@
     overflow: hidden;
   }
 
+  .strip.sent,
+  .strip.sending {
+    border-color: color-mix(in srgb, var(--color-accent) 40%, var(--color-border));
+  }
+
   .strip-label {
     flex: 1;
     min-width: 0;
@@ -159,6 +225,10 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     color: var(--color-text);
+  }
+
+  .saved-label {
+    color: var(--color-status-connected);
   }
 
   .strip-actions {
@@ -183,6 +253,11 @@
   .strip-btn.accept {
     border-color: var(--color-accent);
     color: var(--color-accent);
+  }
+
+  .strip-btn.decline {
+    border-color: var(--color-status-error);
+    color: var(--color-status-error);
   }
 
   .strip-btn:hover {
