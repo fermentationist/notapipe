@@ -546,7 +546,7 @@
       return user_url;
     }
     const env_url =
-      (import.meta.env["VITE_SIGNAL_URL"] as string | undefined) || "";
+      import.meta.env.VITE_SIGNAL_URL || "";
     if (env_url !== "") {
       return env_url;
     }

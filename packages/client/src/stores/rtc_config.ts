@@ -19,11 +19,12 @@ export const RTC_CONFIG_DEFAULTS: RTCUserConfig = {
   // Pre-populate with the build-time env var if set (e.g. GitHub Pages → Render signalling).
   // Use || so that an empty-string env var (unset GitHub secret) is treated as missing.
   // Empty string means "same host as the app" (Render self-hosted deployment).
-  signal_url: (import.meta.env["VITE_SIGNAL_URL"] as string | undefined) || "",
+  signal_url: import.meta.env.VITE_SIGNAL_URL || "",
   turn_url: DEFAULT_TURN_URL,
   turn_username: DEFAULT_TURN_USERNAME,
   turn_credential: DEFAULT_TURN_CREDENTIAL,
 };
+
 
 function load(): RTCUserConfig {
   try {
