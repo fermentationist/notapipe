@@ -60,10 +60,8 @@
   let show_settings = $state(false);
   let show_connect_menu = $state(false);
   let show_find_room_menu = $state(false);
-  let show_cleanup_menu = $state(false);
-  let show_share_menu = $state(false);
-  let cleanup_menu_anchor = $state<{ top: number; right: number } | null>(null);
-  let share_menu_anchor = $state<{ top: number; right: number } | null>(null);
+  let show_actions_menu = $state(false);
+  let actions_menu_anchor = $state<{ top: number; right: number } | null>(null);
   let confirm_dialog = $state<{
     message: string;
     onconfirm: () => void;
@@ -646,7 +644,7 @@
   }
 
   async function shareDocument(): Promise<void> {
-    show_share_menu = false;
+    show_actions_menu = false;
     const content = ytext.toString();
     const file = new File([content], `${room_id}.txt`, { type: "text/plain" });
     if (navigator.canShare?.({ files: [file] })) {
@@ -657,7 +655,7 @@
   }
 
   async function shareRoomLink(): Promise<void> {
-    show_share_menu = false;
+    show_actions_menu = false;
     const url = window.location.href;
     if (navigator.share !== void 0) {
       await navigator.share({
@@ -814,11 +812,9 @@
     if (show_find_room_menu && !target.closest(".find-room-wrapper")) {
       show_find_room_menu = false;
     }
-    if (show_cleanup_menu && !target.closest(".cleanup-wrapper")) {
-      show_cleanup_menu = false;
-    }
-    if (show_share_menu && !target.closest(".share-wrapper")) {
-      show_share_menu = false;
+    if (show_actions_menu && !target.closest(".actions-menu-wrapper")) {
+      show_actions_menu = false;
+      actions_menu_anchor = null;
     }
   }
 
@@ -861,38 +857,27 @@
             aria-label="Persistence active">●</span
           >
         {/if}
+        <div class="actions-menu-wrapper">
+          <button
+            class="icon-btn"
+            onclick={(e) => {
+              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+              actions_menu_anchor = { top: rect.bottom + 4, right: window.innerWidth - rect.right };
+              show_actions_menu = !show_actions_menu;
+              if (!show_actions_menu) { actions_menu_anchor = null; }
+            }}
+            title="Actions"
+            aria-label="Actions"
+            aria-haspopup="menu"
+            aria-expanded={show_actions_menu}
+          >···</button>
+        </div>
         <button
           class="icon-btn"
-          onclick={importDocument}
-          title="Load text file"
-          aria-label="Load text file">↑</button
+          onclick={() => { show_settings = !show_settings; }}
+          title="Settings"
+          aria-label="Settings">⚙</button
         >
-        <button
-          class="icon-btn"
-          onclick={exportDocument}
-          title="Save as text file"
-          aria-label="Save as text file">↓</button
-        >
-        <button
-          class="icon-btn"
-          class:active={show_preview}
-          onclick={() => preview_store.toggle()}
-          title={show_preview ? "Hide preview" : "Show markdown preview"}
-          aria-label={show_preview ? "Hide markdown preview" : "Show markdown preview"}
-          aria-pressed={show_preview}
-        >M↓</button
-        >
-        <button
-          class="icon-btn"
-          disabled={!is_connected}
-          title={is_connected ? "Send a file to connected peers" : "Connect to a peer to send files"}
-          aria-label="Send a file"
-          onclick={() => (document.getElementById("file-transfer-input") as HTMLInputElement).click()}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66L9.41 17.41a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
-          </svg>
-        </button>
         <input
           id="file-transfer-input"
           type="file"
@@ -903,74 +888,6 @@
             (e.target as HTMLInputElement).value = "";
           }}
         />
-        <div class="share-wrapper">
-          <button
-            class="icon-btn"
-            onclick={(e) => {
-              const rect = (
-                e.currentTarget as HTMLElement
-              ).getBoundingClientRect();
-              share_menu_anchor = {
-                top: rect.bottom + 4,
-                right: window.innerWidth - rect.right,
-              };
-              show_share_menu = !show_share_menu;
-              if (!show_share_menu) {
-                share_menu_anchor = null;
-              }
-            }}
-            title="Share"
-            aria-label="Share"
-            aria-haspopup="menu"
-            aria-expanded={show_share_menu}
-          >
-            <svg
-              width="14"
-              height="15"
-              viewBox="0 0 14 15"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.8"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <line x1="7" y1="1" x2="7" y2="10"></line>
-              <polyline points="4,4 7,1 10,4"></polyline>
-              <path d="M2 7v7h10V7"></path>
-            </svg>
-          </button>
-        </div>
-        <div class="cleanup-wrapper">
-          <button
-            class="icon-btn"
-            onclick={(e) => {
-              const rect = (
-                e.currentTarget as HTMLElement
-              ).getBoundingClientRect();
-              cleanup_menu_anchor = {
-                top: rect.bottom + 4,
-                right: window.innerWidth - rect.right,
-              };
-              show_cleanup_menu = !show_cleanup_menu;
-              if (!show_cleanup_menu) {
-                cleanup_menu_anchor = null;
-              }
-            }}
-            title="Clear data"
-            aria-label="Clear data"
-            aria-haspopup="menu"
-            aria-expanded={show_cleanup_menu}>⊗</button
-          >
-        </div>
-        <button
-          class="icon-btn"
-          onclick={() => {
-            show_settings = !show_settings;
-          }}
-          title="Settings"
-          aria-label="Settings">⚙</button
-        >
       </div>
     </header>
 
@@ -1174,73 +1091,64 @@
     />
   {/if}
 
-  {#if show_cleanup_menu && cleanup_menu_anchor !== null}
+  {#if show_actions_menu && actions_menu_anchor !== null}
     <div
-      class="connect-menu"
+      class="connect-menu actions-menu"
       role="menu"
-      style="position: fixed; top: {cleanup_menu_anchor.top}px; right: {cleanup_menu_anchor.right}px; z-index: 200; left: auto; bottom: auto; min-width: auto; white-space: nowrap;"
+      style="position: fixed; top: {actions_menu_anchor.top}px; right: {actions_menu_anchor.right}px; z-index: 200;"
     >
+      <button class="menu-item" role="menuitem" onclick={() => { show_actions_menu = false; importDocument(); }}>
+        ↑ Load text file
+      </button>
+      <button class="menu-item" role="menuitem" onclick={() => { show_actions_menu = false; exportDocument(); }}>
+        ↓ Save as text file
+      </button>
+      <button class="menu-item" role="menuitem" onclick={() => { show_actions_menu = false; preview_store.toggle(); }}>
+        M↓ {show_preview ? "Hide preview" : "Markdown preview"}
+        {#if show_preview}<span class="menu-check">✓</span>{/if}
+      </button>
+      <button
+        class="menu-item"
+        class:menu-item-disabled={!is_connected}
+        role="menuitem"
+        onclick={() => {
+          if (!is_connected) { return; }
+          show_actions_menu = false;
+          (document.getElementById("file-transfer-input") as HTMLInputElement).click();
+        }}
+      >
+        ⌂ Send file{!is_connected ? " (not connected)" : ""}
+      </button>
+      <div class="menu-divider" role="separator"></div>
+      <button class="menu-item" role="menuitem" onclick={shareRoomLink}>
+        Share room link
+      </button>
+      {#if can_share}
+        <button class="menu-item" role="menuitem" onclick={shareDocument}>
+          Share document as file
+        </button>
+      {/if}
+      <div class="menu-divider" role="separator"></div>
       <button
         class="menu-item"
         role="menuitem"
-        onclick={() => {
-          show_cleanup_menu = false;
-          showConfirm(
-            "Clear the current document? This cannot be undone.",
-            clearCurrentDoc,
-          );
-        }}>Clear current doc</button
-      >
+        onclick={() => { show_actions_menu = false; showConfirm("Clear the current document? This cannot be undone.", clearCurrentDoc); }}
+      >Clear current doc</button>
       <button
         class="menu-item"
         role="menuitem"
-        onclick={() => {
-          show_cleanup_menu = false;
-          showConfirm(
-            "Clear all saved documents? This cannot be undone.",
-            clearAllDocs,
-          );
-        }}>Clear all docs</button
-      >
+        onclick={() => { show_actions_menu = false; showConfirm("Clear all saved documents? This cannot be undone.", clearAllDocs); }}
+      >Clear all docs</button>
       <button
         class="menu-item"
         role="menuitem"
-        onclick={() => {
-          show_cleanup_menu = false;
-          showConfirm(
-            "Clear all notapipe settings (theme, persistence, geo passphrases)?",
-            clearSettings,
-          );
-        }}>Clear settings</button
-      >
+        onclick={() => { show_actions_menu = false; showConfirm("Clear all notapipe settings (theme, persistence, geo passphrases)?", clearSettings); }}
+      >Clear settings</button>
       <button
         class="menu-item menu-item-danger"
         role="menuitem"
-        onclick={() => {
-          show_cleanup_menu = false;
-          showConfirm(
-            "Clear everything — all documents and settings? This cannot be undone.",
-            clearEverything,
-          );
-        }}>Clear everything</button
-      >
-    </div>
-  {/if}
-
-  {#if show_share_menu && share_menu_anchor !== null}
-    <div
-      class="connect-menu"
-      role="menu"
-      style="position: fixed; top: {share_menu_anchor.top}px; right: {share_menu_anchor.right}px; z-index: 200; left: auto; bottom: auto; min-width: auto; white-space: nowrap;"
-    >
-      <button class="menu-item" role="menuitem" onclick={shareRoomLink}
-        >Share room link</button
-      >
-      {#if can_share}
-        <button class="menu-item" role="menuitem" onclick={shareDocument}
-          >Share document as file</button
-        >
-      {/if}
+        onclick={() => { show_actions_menu = false; showConfirm("Clear everything — all documents and settings? This cannot be undone.", clearEverything); }}
+      >Clear everything</button>
     </div>
   {/if}
 
@@ -1408,8 +1316,34 @@
     align-self: center;
   }
 
-  .cleanup-wrapper {
+  .actions-menu-wrapper {
     position: relative;
+  }
+
+  .actions-menu {
+    min-width: 200px;
+    white-space: nowrap;
+  }
+
+  .menu-divider {
+    height: 1px;
+    background: var(--color-border);
+    margin: 0.25rem 0;
+  }
+
+  .menu-check {
+    margin-left: auto;
+    padding-left: 1rem;
+    color: var(--color-accent);
+  }
+
+  .menu-item-disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .menu-item-disabled:hover {
+    background: none;
   }
 
   .menu-item-danger {
@@ -1517,10 +1451,6 @@
     flex-direction: column;
   }
 
-  /* Active state for M↓ button */
-  .icon-btn.active {
-    color: var(--color-accent);
-  }
 
   .actions {
     display: flex;
@@ -1590,6 +1520,9 @@
     text-align: left;
     cursor: pointer;
     white-space: nowrap;
+    display: flex;
+    align-items: center;
+    width: 100%;
   }
 
   .menu-item:hover {
