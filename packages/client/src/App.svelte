@@ -18,7 +18,7 @@
     PERSISTENCE_ENABLED_KEY,
   } from "$lib/constants/storage.ts";
   import { ICE_SERVERS, QR_ICE_SERVERS } from "$lib/constants/rtc.ts";
-  import { rtc_config_store } from "./stores/rtc_config.ts";
+  import { rtc_config_store, RTC_CONFIG_DEFAULTS } from "./stores/rtc_config.ts";
   import { USER_GUIDE_CONTENT, ABOUT_CONTENT } from "$lib/constants/docs.ts";
   import { IndexeddbPersistence } from "y-indexeddb";
   import { RTCPeerManager, isOfferer } from "./rtc/peer.ts";
@@ -537,19 +537,33 @@
     if (user_url !== "") {
       return user_url;
     }
+    // Use || (not ??) so that an empty-string env var (e.g. unset GitHub secret)
+    // falls through to the same-host fallback instead of returning "".
     const ws_protocol = window.location.protocol === "https:" ? "wss" : "ws";
     return (
-      (import.meta.env["VITE_SIGNAL_URL"] as string | undefined) ??
+      (import.meta.env["VITE_SIGNAL_URL"] as string | undefined) ||
       `${ws_protocol}://${window.location.host}/ws`
     );
   }
 
   function getEffectiveIceServers(): RTCIceServer[] {
     const { turn_url, turn_username, turn_credential } = $rtc_config_store;
-    // Always build from stored values (TURN fields are pre-populated with defaults).
-    // Fall back to the full ICE_SERVERS constant only if turn_url is somehow blank.
-    if (turn_url === "") {
+    // Use the full ICE_SERVERS constant (all three TURN URLs) unless the user has
+    // explicitly changed the TURN config away from the defaults. This preserves
+    // the UDP TURN fallbacks (port 80/443) that are stripped when building a custom
+    // one-URL array from the single DEFAULT_TURN_URL constant.
+    if (
+      turn_url === RTC_CONFIG_DEFAULTS.turn_url &&
+      turn_username === RTC_CONFIG_DEFAULTS.turn_username &&
+      turn_credential === RTC_CONFIG_DEFAULTS.turn_credential
+    ) {
       return ICE_SERVERS;
+    }
+    if (turn_url === "") {
+      return [
+        { urls: "stun:stun.l.google.com:19302" },
+        { urls: "stun:stun1.l.google.com:19302" },
+      ];
     }
     return [
       { urls: "stun:stun.l.google.com:19302" },
