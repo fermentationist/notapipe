@@ -59,6 +59,13 @@ function createThemeStore() {
         return { success: false, error: "Invalid JSON" };
       }
     },
+    /** Reset to the system-preference default without writing to localStorage. */
+    reset(): void {
+      const prefers_dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      const theme = prefers_dark ? { ...DEFAULT_DARK_THEME } : { ...DEFAULT_LIGHT_THEME };
+      applyThemeToRoot(theme);
+      set(theme);
+    },
   };
 }
 

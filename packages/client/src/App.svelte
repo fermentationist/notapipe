@@ -42,6 +42,7 @@
   import FileTransferBar from "./components/FileTransferBar.svelte";
   import { preview_store } from "./stores/preview.ts";
   import { wide_mode_store } from "./stores/wide_mode.ts";
+  import { theme_store } from "./stores/theme.ts";
 
   // ---------------------------------------------------------------------------
   // Yjs document (single shared text type)
@@ -835,6 +836,8 @@
     persistence_store.disable();
     idb_persistence?.destroy();
     idb_persistence = null;
+    theme_store.reset();
+    wide_mode_store.reset();
   }
 
   async function clearEverything(): Promise<void> {

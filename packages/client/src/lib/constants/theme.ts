@@ -12,6 +12,7 @@ export const DEFAULT_LIGHT_THEME = {
   "--color-status-connected": "#4caf50",
   "--color-status-error": "#c0392b",
   "--line-height": "28px",
+  "--editor-font-family": '"IBM Plex Mono", monospace',
   "--color-focus-bg": "#eee9df",
   "--color-focus-text": "#2a2520",
   "--color-focus-rule": "#ccc7bb",
@@ -31,9 +32,10 @@ export const DEFAULT_DARK_THEME = {
   "--color-status-connected": "#4caf50",
   "--color-status-error": "#e05c4a",
   "--line-height": "28px",
+  "--editor-font-family": '"IBM Plex Mono", monospace',
   "--color-focus-bg": "#141412",
   "--color-focus-text": "#d8d3c8",
   "--color-focus-rule": "#242420",
 } as const;
 
-export const THEME_STORAGE_KEY = "notapipe_theme";
+export const THEME_STORAGE_KEY = "notapipe:theme";

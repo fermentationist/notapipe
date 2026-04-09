@@ -104,7 +104,7 @@
     outline: none;
     background: transparent;
     color: var(--color-text);
-    font-family: "IBM Plex Mono", monospace;
+    font-family: var(--editor-font-family, "IBM Plex Mono", monospace);
     font-size: 1rem;
     line-height: var(--line-height);
     padding: 1rem;

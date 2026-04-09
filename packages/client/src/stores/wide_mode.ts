@@ -1,10 +1,10 @@
 import { writable } from "svelte/store";
 
-const WIDE_MODE_KEY = "notapipe_wide_mode";
+const WIDE_MODE_KEY = "notapipe:wide-mode";
 
 function createWideModeStore() {
   const initial = localStorage.getItem(WIDE_MODE_KEY) === "true";
-  const { subscribe, update } = writable<boolean>(initial);
+  const { subscribe, update, set } = writable<boolean>(initial);
 
   return {
     subscribe,
@@ -14,6 +14,10 @@ function createWideModeStore() {
         localStorage.setItem(WIDE_MODE_KEY, String(next));
         return next;
       });
+    },
+    /** Reset to false without writing to localStorage. */
+    reset() {
+      set(false);
     },
   };
 }
