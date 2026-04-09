@@ -18,7 +18,10 @@
     PERSISTENCE_ENABLED_KEY,
   } from "$lib/constants/storage.ts";
   import { ICE_SERVERS, QR_ICE_SERVERS } from "$lib/constants/rtc.ts";
-  import { rtc_config_store, RTC_CONFIG_DEFAULTS } from "./stores/rtc_config.ts";
+  import {
+    rtc_config_store,
+    RTC_CONFIG_DEFAULTS,
+  } from "./stores/rtc_config.ts";
   import { USER_GUIDE_CONTENT, ABOUT_CONTENT } from "$lib/constants/docs.ts";
   import { IndexeddbPersistence } from "y-indexeddb";
   import { RTCPeerManager, isOfferer } from "./rtc/peer.ts";
@@ -426,43 +429,48 @@
     // Track whether this peer ever reached "connected" so we know whether
     // a subsequent "disconnected" is a drop (clean up) or an ICE transient (ignore).
     let was_ever_connected = false;
-    const manager = new RTCPeerManager(channel, {
-      onDataChannel(data_channel) {
-        const provider = new RTCDataChannelProvider(doc, data_channel);
-        yjs_providers.set(remote_peer_id, provider);
+    const manager = new RTCPeerManager(
+      channel,
+      {
+        onDataChannel(data_channel) {
+          const provider = new RTCDataChannelProvider(doc, data_channel);
+          yjs_providers.set(remote_peer_id, provider);
+        },
+        onFileChannel(file_channel) {
+          const ft_manager = new FileTransferManager(
+            file_channel,
+            makeFileTransferCallbacks(remote_peer_id),
+          );
+          file_transfer_managers.set(remote_peer_id, ft_manager);
+        },
+        onStateChange(state) {
+          if (!peer_managers.has(remote_peer_id)) {
+            return; // already being cleaned up
+          }
+          peer_states.set(remote_peer_id, state);
+          if (state === "connected") {
+            was_ever_connected = true;
+            connection_store.addRemotePeer(remote_peer_id);
+          }
+          // Only auto-disconnect on "failed" (terminal ICE failure) or on
+          // "disconnected" after the connection was previously established.
+          // Ignoring "disconnected" during initial negotiation avoids spurious
+          // teardowns caused by transient ICE states.
+          if (
+            state === "failed" ||
+            (state === "disconnected" && was_ever_connected)
+          ) {
+            disconnectPeer(remote_peer_id);
+          }
+          updateAggregateState();
+        },
+        onError(error) {
+          connection_store.setError(error.message);
+        },
       },
-      onFileChannel(file_channel) {
-        const ft_manager = new FileTransferManager(
-          file_channel,
-          makeFileTransferCallbacks(remote_peer_id),
-        );
-        file_transfer_managers.set(remote_peer_id, ft_manager);
-      },
-      onStateChange(state) {
-        if (!peer_managers.has(remote_peer_id)) {
-          return; // already being cleaned up
-        }
-        peer_states.set(remote_peer_id, state);
-        if (state === "connected") {
-          was_ever_connected = true;
-          connection_store.addRemotePeer(remote_peer_id);
-        }
-        // Only auto-disconnect on "failed" (terminal ICE failure) or on
-        // "disconnected" after the connection was previously established.
-        // Ignoring "disconnected" during initial negotiation avoids spurious
-        // teardowns caused by transient ICE states.
-        if (
-          state === "failed" ||
-          (state === "disconnected" && was_ever_connected)
-        ) {
-          disconnectPeer(remote_peer_id);
-        }
-        updateAggregateState();
-      },
-      onError(error) {
-        connection_store.setError(error.message);
-      },
-    }, undefined, getEffectiveIceServers());
+      undefined,
+      getEffectiveIceServers(),
+    );
 
     peer_managers.set(remote_peer_id, manager);
     peer_states.set(remote_peer_id, "connecting");
@@ -537,7 +545,8 @@
     if (user_url !== "") {
       return user_url;
     }
-    const env_url = (import.meta.env["VITE_SIGNAL_URL"] as string | undefined) || "";
+    const env_url =
+      (import.meta.env["VITE_SIGNAL_URL"] as string | undefined) || "";
     if (env_url !== "") {
       return env_url;
     }
@@ -587,6 +596,7 @@
       return;
     }
     signalling_url = url;
+    console.log(`Connecting to signalling server at ${url}...`);
     openSignallingSocket(url);
     connection_store.setMode("signalling");
     connection_store.setPeerState("connecting");
@@ -1378,11 +1388,7 @@
       <button class="menu-item" role="menuitem" onclick={openUserGuide}>
         User Guide
       </button>
-      <button
-        class="menu-item"
-        role="menuitem"
-        onclick={openAbout}
-      >
+      <button class="menu-item" role="menuitem" onclick={openAbout}>
         About
       </button>
     </div>
