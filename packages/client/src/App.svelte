@@ -16,7 +16,7 @@
     GEO_PASSPHRASE_PREFIX,
     PERSISTENCE_ENABLED_KEY,
   } from "$lib/constants/storage.ts";
-  import { ICE_SERVERS } from "$lib/constants/rtc.ts";
+  import { ICE_SERVERS, QR_ICE_SERVERS } from "$lib/constants/rtc.ts";
   import { IndexeddbPersistence } from "y-indexeddb";
   import { RTCPeerManager, isOfferer } from "./rtc/peer.ts";
   import {
@@ -521,7 +521,7 @@
     // share the same instance. QrTransport must monitor ICE gathering on the exact
     // PC that drives the offer/answer exchange — if they were separate objects,
     // localDescription on the QrTransport's PC would always be null.
-    const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+    const pc = new RTCPeerConnection({ iceServers: QR_ICE_SERVERS });
 
     qr_transport = new QrTransport(
       pc,
