@@ -67,7 +67,9 @@
 
   const desktop_mq = window.matchMedia("(min-width: 768px)");
   let is_desktop = $state(desktop_mq.matches);
-  desktop_mq.addEventListener("change", (e) => { is_desktop = e.matches; });
+  desktop_mq.addEventListener("change", (e) => {
+    is_desktop = e.matches;
+  });
 
   let show_qr_overlay = $state(false);
   let show_settings = $state(false);
@@ -619,8 +621,11 @@
     // Extract the room ID and token embedded in the QR packet.
     // The offerer's room ID and token are always authoritative — only adopt them when scanning an offer.
     try {
-      const { room_id: incoming_room_id, room_token: incoming_token, is_answer } =
-        decodePacketMeta(scanned_packet);
+      const {
+        room_id: incoming_room_id,
+        room_token: incoming_token,
+        is_answer,
+      } = decodePacketMeta(scanned_packet);
       if (!is_answer) {
         // Always adopt the offerer's token so the answerer's QR carries the matching secret.
         applyToken(incoming_token);
@@ -694,7 +699,8 @@
       const response = await fetch(USER_GUIDE_URL);
       user_guide_content = await response.text();
     } catch {
-      user_guide_content = "_Failed to load user guide. Check your connection or visit [github.com/fermentationist/notapipe](https://github.com/fermentationist/notapipe) directly._";
+      user_guide_content =
+        "_Failed to load user guide. Check your connection or visit [github.com/fermentationist/notapipe](https://github.com/fermentationist/notapipe) directly._";
     }
   }
 
@@ -958,10 +964,19 @@ Two people open the same URL — identified by a memorable 3-word phrase — and
   const is_connected = $derived($connection_store.peer_state === "connected");
   const show_actions = $derived(!$focus_mode_store && !code_mode);
   // Preview is suppressed in focus mode and code mode
-  const show_preview = $derived($preview_store && !$focus_mode_store && !code_mode);
+  const show_preview = $derived(
+    $preview_store && !$focus_mode_store && !code_mode,
+  );
 </script>
 
-<svelte:window onclick={handleWindowClick} />
+<svelte:window
+  onclick={handleWindowClick}
+  onbeforeunload={(e) => {
+    if (!$persistence_store && ytext.length > 0) {
+      e.preventDefault();
+    }
+  }}
+/>
 
 <div
   class="app"
@@ -1114,7 +1129,13 @@ Two people open the same URL — identified by a memorable 3-word phrase — and
   <main class:preview-split={show_preview}>
     <!-- On narrow screens in preview mode, hide the editor; always show on wide or when preview is off -->
     <div class="editor-pane" class:hidden-narrow={show_preview}>
-      <Editor {doc} {ytext} readonly={false} {code_mode} language={code_language} />
+      <Editor
+        {doc}
+        {ytext}
+        readonly={false}
+        {code_mode}
+        language={code_language}
+      />
     </div>
     {#if show_preview}
       <div class="preview-pane">
@@ -1179,9 +1200,14 @@ Two people open the same URL — identified by a memorable 3-word phrase — and
       {:else}
         <button
           class="corner-btn"
-          onclick={() => { focus_mode_store.toggle(); code_mode = false; }}
+          onclick={() => {
+            focus_mode_store.toggle();
+            code_mode = false;
+          }}
           title={$focus_mode_store ? "Exit focus mode" : "Enter focus mode"}
-          aria-label={$focus_mode_store ? "Exit focus mode" : "Enter focus mode"}
+          aria-label={$focus_mode_store
+            ? "Exit focus mode"
+            : "Enter focus mode"}
         >
           {$focus_mode_store ? "✕" : "⛶"}
         </button>
@@ -1189,7 +1215,12 @@ Two people open the same URL — identified by a memorable 3-word phrase — and
       <button
         class="corner-btn"
         class:active={code_mode}
-        onclick={() => { code_mode = !code_mode; if (code_mode) { focus_mode_store.disable(); } }}
+        onclick={() => {
+          code_mode = !code_mode;
+          if (code_mode) {
+            focus_mode_store.disable();
+          }
+        }}
         title={code_mode ? "Exit code mode" : "Code editor mode"}
         aria-label={code_mode ? "Exit code mode" : "Code editor mode"}
       >
@@ -1348,7 +1379,9 @@ Two people open the same URL — identified by a memorable 3-word phrase — and
           show_actions_menu = false;
           showConfirm(
             "Force reload the page? Any unsynced changes may be lost.",
-            () => { window.location.reload(); },
+            () => {
+              window.location.reload();
+            },
           );
         }}>↺ Force reload</button
       >
@@ -1376,7 +1409,7 @@ Two people open the same URL — identified by a memorable 3-word phrase — and
             "Clear the current document? This cannot be undone.",
             clearCurrentDoc,
           );
-        }}>Clear current doc</button
+        }}>Clear current document</button
       >
       <button
         class="menu-item"
@@ -1387,7 +1420,7 @@ Two people open the same URL — identified by a memorable 3-word phrase — and
             "Clear all saved documents? This cannot be undone.",
             clearAllDocs,
           );
-        }}>Clear all docs</button
+        }}>Clear all documents</button
       >
       <button
         class="menu-item"
@@ -1431,7 +1464,9 @@ Two people open the same URL — identified by a memorable 3-word phrase — and
     <InfoModal
       title="User Guide"
       content={user_guide_content}
-      onclose={() => { show_user_guide = false; }}
+      onclose={() => {
+        show_user_guide = false;
+      }}
     />
   {/if}
 
@@ -1439,7 +1474,9 @@ Two people open the same URL — identified by a memorable 3-word phrase — and
     <InfoModal
       title="About notapipe"
       content={ABOUT_CONTENT}
-      onclose={() => { show_about = false; }}
+      onclose={() => {
+        show_about = false;
+      }}
     />
   {/if}
 </div>
@@ -1459,7 +1496,6 @@ Two people open the same URL — identified by a memorable 3-word phrase — and
       max-width: calc(100vw - 3rem);
     }
   }
-
 
   header {
     display: flex;
