@@ -41,6 +41,7 @@
   import SettingsPanel from "./components/SettingsPanel.svelte";
   import ConfirmDialog from "./components/ConfirmDialog.svelte";
   import FileTransferBar from "./components/FileTransferBar.svelte";
+  import InfoModal from "./components/InfoModal.svelte";
   import { preview_store } from "./stores/preview.ts";
   import { wide_mode_store } from "./stores/wide_mode.ts";
   import { theme_store } from "./stores/theme.ts";
@@ -74,6 +75,9 @@
   let show_find_room_menu = $state(false);
   let show_actions_menu = $state(false);
   let actions_menu_anchor = $state<{ top: number; right: number } | null>(null);
+  let show_user_guide = $state(false);
+  let user_guide_content = $state<string | null>(null);
+  let show_about = $state(false);
   let confirm_dialog = $state<{
     message: string;
     onconfirm: () => void;
@@ -676,6 +680,49 @@
   // ---------------------------------------------------------------------------
   // Export / share
   // ---------------------------------------------------------------------------
+
+  const USER_GUIDE_URL =
+    "https://raw.githubusercontent.com/fermentationist/notapipe/main/docs/user-guide.md";
+
+  async function openUserGuide(): Promise<void> {
+    show_actions_menu = false;
+    show_user_guide = true;
+    if (user_guide_content !== null) {
+      return;
+    }
+    try {
+      const response = await fetch(USER_GUIDE_URL);
+      user_guide_content = await response.text();
+    } catch {
+      user_guide_content = "_Failed to load user guide. Check your connection or visit [github.com/fermentationist/notapipe](https://github.com/fermentationist/notapipe) directly._";
+    }
+  }
+
+  const ABOUT_CONTENT = `## About notapipe
+
+notapipe is an ephemeral, local-first, peer-to-peer text sharing tool.
+
+Two people open the same URL — identified by a memorable 3-word phrase — and their text syncs in real time via [Yjs](https://yjs.dev) CRDTs over a WebRTC data channel. **No user text ever touches a server.** The signalling server only relays WebRTC handshake metadata, and even that is eliminated in QR mode.
+
+### Use it for
+- Quickly sharing a snippet of text, code, or a link between your own devices
+- Collaborating on a note with someone in the same room
+- Transferring a password or secret without it passing through any cloud service
+- Any time you need a zero-friction, zero-trace scratchpad between two people
+
+### Features
+- Real-time sync with no account, no login, no installation
+- QR code pairing — no signalling server at all
+- Markdown preview
+- Syntax-highlighted code editor (14 languages)
+- Works offline once loaded (PWA)
+- Persistent storage is opt-in and local only
+
+[View source on GitHub](https://github.com/fermentationist/notapipe) · [User Guide](https://github.com/fermentationist/notapipe/blob/main/docs/user-guide.md)
+
+---
+
+© ${new Date().getFullYear()} Dennis Hodges. MIT License.`;
 
   function exportDocument(): void {
     const content = ytext.toString();
@@ -1303,6 +1350,20 @@
         }}>↺ Force reload</button
       >
       <div class="menu-divider" role="separator"></div>
+      <button class="menu-item" role="menuitem" onclick={openUserGuide}>
+        User Guide
+      </button>
+      <button
+        class="menu-item"
+        role="menuitem"
+        onclick={() => {
+          show_actions_menu = false;
+          show_about = true;
+        }}
+      >
+        About
+      </button>
+      <div class="menu-divider" role="separator"></div>
       <button
         class="menu-item"
         role="menuitem"
@@ -1360,6 +1421,22 @@
       oncancel={() => {
         confirm_dialog = null;
       }}
+    />
+  {/if}
+
+  {#if show_user_guide}
+    <InfoModal
+      title="User Guide"
+      content={user_guide_content}
+      onclose={() => { show_user_guide = false; }}
+    />
+  {/if}
+
+  {#if show_about}
+    <InfoModal
+      title="About notapipe"
+      content={ABOUT_CONTENT}
+      onclose={() => { show_about = false; }}
     />
   {/if}
 </div>
