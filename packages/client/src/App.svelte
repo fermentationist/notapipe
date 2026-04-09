@@ -9,6 +9,7 @@
     isValidId,
     geoId,
     ensureToken,
+    roomPath,
   } from "./id/generate.ts";
   import { GEO_GRID_PRECISION } from "$lib/constants/id.ts";
   import {
@@ -133,7 +134,7 @@
     const new_id = await geoId(geo_coords);
     room_id = new_id;
     room_token = geo_passphrase;
-    history.replaceState(null, "", `/${new_id}#${geo_passphrase}`);
+    history.replaceState(null, "", `${roomPath(new_id)}#${geo_passphrase}`);
     connection_store.setRoomId(new_id);
     reinitPersistence();
   }
@@ -267,7 +268,7 @@
       room_id = parsed;
     } else {
       room_id = generateId();
-      history.replaceState(null, "", `/${room_id}`);
+      history.replaceState(null, "", roomPath(room_id));
     }
     room_token = ensureToken();
     connection_store.setRoomId(room_id);
@@ -599,7 +600,7 @@
 
   function applyRoomId(new_room_id: string): void {
     room_id = new_room_id;
-    history.replaceState(null, "", `/${new_room_id}#${room_token}`);
+    history.replaceState(null, "", `${roomPath(new_room_id)}#${room_token}`);
     connection_store.setRoomId(new_room_id);
     reinitPersistence();
   }
@@ -761,7 +762,7 @@
     const new_room_id = generateId();
     room_id = new_room_id;
     // Clear the fragment so ensureToken() generates a fresh random token.
-    history.replaceState(null, "", `/${new_room_id}`);
+    history.replaceState(null, "", roomPath(new_room_id));
     room_token = ensureToken();
     connection_store.setRoomId(new_room_id);
     reinitPersistence();

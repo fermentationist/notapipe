@@ -118,17 +118,36 @@ export function ensureToken(): string {
   return token;
 }
 
+// Base path set at build time via VITE_BASE_PATH (e.g. "/notapipe/").
+// Vite always normalises BASE_URL to end with "/".
+const BASE_PATH = import.meta.env.BASE_URL as string;
+
 /**
  * Read the room ID from window.location.pathname.
- * Expects a path like "/apple-river-moon" — returns the ID without the leading slash,
- * or null if the path is empty or root.
+ * Strips the build-time base path prefix so that a deployment at /notapipe/
+ * and one at / both return just "apple-river-moon".
+ * Returns null if the path contains nothing beyond the base.
  */
 export function parseId(): string | null {
-  const raw_path = window.location.pathname.replace(/^\//, "").trim();
-  if (raw_path === "") {
+  const pathname = window.location.pathname;
+  // Strip the base prefix (case-sensitive, already normalised to end with "/")
+  const relative = pathname.startsWith(BASE_PATH)
+    ? pathname.slice(BASE_PATH.length)
+    : pathname.replace(/^\//, "");
+  const trimmed = relative.trim().replace(/^\//, "");
+  if (trimmed === "") {
     return null;
   }
-  return raw_path;
+  return trimmed;
+}
+
+/**
+ * Build a full pathname for a room ID, respecting the deployment base path.
+ * e.g. roomPath("apple-river-moon") → "/notapipe/apple-river-moon"
+ */
+export function roomPath(room_id: string): string {
+  // BASE_PATH ends with "/"; room_id has no leading slash.
+  return `${BASE_PATH}${room_id}`;
 }
 
 /**
