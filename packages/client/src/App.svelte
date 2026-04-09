@@ -77,6 +77,8 @@
   let show_find_room_menu = $state(false);
   let show_actions_menu = $state(false);
   let actions_menu_anchor = $state<{ top: number; right: number } | null>(null);
+  let show_info_menu = $state(false);
+  let info_menu_anchor = $state<{ top: number; right: number } | null>(null);
   let show_user_guide = $state(false);
   let user_guide_content = $state<string | null>(null);
   let show_about = $state(false);
@@ -716,7 +718,8 @@
     "https://raw.githubusercontent.com/fermentationist/notapipe/main/docs/user-guide.md";
 
   async function openUserGuide(): Promise<void> {
-    show_actions_menu = false;
+    show_info_menu = false;
+    info_menu_anchor = null;
     show_user_guide = true;
     if (user_guide_content !== null) {
       return;
@@ -948,6 +951,10 @@ Two people open the same URL — identified by a memorable 3-word phrase — and
       show_actions_menu = false;
       actions_menu_anchor = null;
     }
+    if (show_info_menu && !target.closest(".info-menu-wrapper")) {
+      show_info_menu = false;
+      info_menu_anchor = null;
+    }
   }
 
   // Reactive text content for markdown preview — tracks ytext changes
@@ -1027,6 +1034,34 @@ Two people open the same URL — identified by a memorable 3-word phrase — and
             aria-label="Persistence active">●</span
           >
         {/if}
+        <div class="info-menu-wrapper">
+          <button
+            class="icon-btn"
+            onclick={(e) => {
+              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+              info_menu_anchor = {
+                top: rect.bottom + 4,
+                right: window.innerWidth - rect.right,
+              };
+              show_info_menu = !show_info_menu;
+              if (!show_info_menu) {
+                info_menu_anchor = null;
+              }
+            }}
+            title="Info"
+            aria-label="Info"
+            aria-haspopup="menu"
+            aria-expanded={show_info_menu}>?</button
+          >
+        </div>
+        <button
+          class="icon-btn"
+          onclick={() => {
+            show_settings = !show_settings;
+          }}
+          title="Settings"
+          aria-label="Settings">⚙</button
+        >
         <div class="actions-menu-wrapper">
           <button
             class="icon-btn"
@@ -1049,14 +1084,6 @@ Two people open the same URL — identified by a memorable 3-word phrase — and
             aria-expanded={show_actions_menu}>···</button
           >
         </div>
-        <button
-          class="icon-btn"
-          onclick={() => {
-            show_settings = !show_settings;
-          }}
-          title="Settings"
-          aria-label="Settings">⚙</button
-        >
         <input
           id="file-transfer-input"
           type="file"
@@ -1318,6 +1345,29 @@ Two people open the same URL — identified by a memorable 3-word phrase — and
     />
   {/if}
 
+  {#if show_info_menu && info_menu_anchor !== null}
+    <div
+      class="connect-menu info-menu"
+      role="menu"
+      style="position: fixed; top: {info_menu_anchor.top}px; right: {info_menu_anchor.right}px; z-index: 200;"
+    >
+      <button class="menu-item" role="menuitem" onclick={openUserGuide}>
+        User Guide
+      </button>
+      <button
+        class="menu-item"
+        role="menuitem"
+        onclick={() => {
+          show_info_menu = false;
+          info_menu_anchor = null;
+          show_about = true;
+        }}
+      >
+        About
+      </button>
+    </div>
+  {/if}
+
   {#if show_actions_menu && actions_menu_anchor !== null}
     <div
       class="connect-menu actions-menu"
@@ -1414,20 +1464,6 @@ Two people open the same URL — identified by a memorable 3-word phrase — and
           );
         }}>↺ Force reload</button
       >
-      <div class="menu-divider" role="separator"></div>
-      <button class="menu-item" role="menuitem" onclick={openUserGuide}>
-        User Guide
-      </button>
-      <button
-        class="menu-item"
-        role="menuitem"
-        onclick={() => {
-          show_actions_menu = false;
-          show_about = true;
-        }}
-      >
-        About
-      </button>
       <div class="menu-divider" role="separator"></div>
       <button
         class="menu-item"
