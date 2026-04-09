@@ -56,12 +56,8 @@
     }
   });
 
-  // Answerer: once the answer packet arrives (after scanning the offer), show it.
-  $effect(() => {
-    if (role === "answerer" && packet !== null && view === "scan") {
-      view = "show";
-    }
-  });
+  // Answerer: re-render the QR canvas once the answer packet arrives.
+  // (view transitions to "show" immediately after scanning — see startScanning)
 
   function chooseOfferer(): void {
     role = "offerer";
@@ -100,8 +96,12 @@
         // Do NOT call onclose() here: it would trigger teardown() while the
         // peer connection is still establishing.
         view = "connecting";
+      } else {
+        // Answerer: transition to "show" immediately so the spinner is visible
+        // while the answer packet is being generated. The canvas renders once
+        // packet becomes non-null (handled by the QR render $effect).
+        view = "show";
       }
-      // Answerer: the $effect above transitions view to "show" once `packet` arrives.
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
         return;
@@ -180,7 +180,7 @@
 
         {#if packet === null}
           <div class="hint-container">
-            <div class="hint">Gathering network info...</div>
+            <div class="hint">{role === "answerer" ? "Generating answer…" : "Gathering network info…"}</div>
             <div class="dots">{spinner}</div>
           </div>
         {:else}
