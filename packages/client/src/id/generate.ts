@@ -51,17 +51,20 @@ export function generatePassphrase(): string {
  * hashing so that two nearby devices produce the same ID without exchanging data.
  * Returns a hyphen-separated 3-word string in the same format as generateId().
  *
+ * The passphrase is NOT included in the hash — it is used as the URL fragment
+ * token instead. This keeps room IDs purely location-derived while the passphrase
+ * serves as the shared secret that prevents strangers in the same cell from connecting.
+ *
  * Only call this when the user explicitly requests geo mode — it requires the
  * Geolocation permission and makes no network requests itself.
  */
 export async function geoId(
   coords: { latitude: number; longitude: number },
-  passphrase: string,
 ): Promise<string> {
   const quantized_lat = Math.round(coords.latitude / GEO_GRID_PRECISION);
   const quantized_lon = Math.round(coords.longitude / GEO_GRID_PRECISION);
 
-  const encoded = new TextEncoder().encode(`${quantized_lat},${quantized_lon},${passphrase.toLowerCase()}`);
+  const encoded = new TextEncoder().encode(`${quantized_lat},${quantized_lon}`);
   const hash_buffer = await crypto.subtle.digest("SHA-256", encoded);
   const hash_bytes = new Uint8Array(hash_buffer);
 

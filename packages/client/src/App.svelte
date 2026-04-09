@@ -130,9 +130,10 @@
     if (geo_coords === null) {
       return;
     }
-    const new_id = await geoId(geo_coords, geo_passphrase);
+    const new_id = await geoId(geo_coords);
     room_id = new_id;
-    history.replaceState(null, "", `/${new_id}`);
+    room_token = geo_passphrase;
+    history.replaceState(null, "", `/${new_id}#${geo_passphrase}`);
     connection_store.setRoomId(new_id);
     reinitPersistence();
   }
@@ -755,7 +756,9 @@
     teardown();
     const new_room_id = generateId();
     room_id = new_room_id;
+    // Clear the fragment so ensureToken() generates a fresh random token.
     history.replaceState(null, "", `/${new_room_id}`);
+    room_token = ensureToken();
     connection_store.setRoomId(new_room_id);
     reinitPersistence();
   }
@@ -770,10 +773,14 @@
           longitude: position.coords.longitude,
         };
         geo_coords = coords;
-        geo_passphrase = loadGeoPassphrase(coords) ?? generatePassphrase();
-        saveGeoPassphrase(coords, geo_passphrase);
+        geo_passphrase = loadGeoPassphrase(coords) ?? "";
+        if (geo_passphrase !== "") {
+          saveGeoPassphrase(coords, geo_passphrase);
+        }
         geo_mode = true;
-        applyGeoRoomId();
+        if (geo_passphrase !== "") {
+          applyGeoRoomId();
+        }
       },
       (error) => {
         connection_store.setError(`Location unavailable: ${error.message}`);
@@ -1001,14 +1008,16 @@
         <span class="passphrase-label">📍 passphrase</span>
         <input
           class="passphrase-input"
+          class:passphrase-empty={geo_passphrase === ""}
           type="text"
           value={geo_passphrase}
+          placeholder="enter passphrase"
           oninput={(e) => {
             geo_passphrase = (e.target as HTMLInputElement).value.toLowerCase();
-            if (geo_coords !== null) {
+            if (geo_passphrase !== "" && geo_coords !== null) {
               saveGeoPassphrase(geo_coords, geo_passphrase);
+              applyGeoRoomId();
             }
-            applyGeoRoomId();
           }}
           aria-label="Geo mode passphrase"
           spellcheck="false"
@@ -1414,6 +1423,16 @@
 
   .passphrase-input:focus {
     border-bottom-color: var(--color-accent);
+  }
+
+  .passphrase-input.passphrase-empty {
+    border-bottom-color: var(--color-status-error);
+  }
+
+  .passphrase-input::placeholder {
+    color: var(--color-status-error);
+    font-style: italic;
+    opacity: 0.8;
   }
 
   .passphrase-regen-btn {
