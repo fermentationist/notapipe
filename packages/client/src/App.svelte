@@ -589,7 +589,7 @@
     teardown(); // clean up any prior attempt before starting a new one
 
     const url = getEffectiveSignalUrl();
-    console.log(`Effective signalling URL: ${url}`);
+    console.log(`- Effective signalling URL: ${url}`);
     if (url === "") {
       connection_store.setError(
         "No signalling server URL configured. Open Settings → Connection to set one.",
