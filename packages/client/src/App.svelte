@@ -1325,8 +1325,8 @@
     position: fixed !important;
     bottom: auto !important;
     left: auto !important;
+    min-width: 200px !important;
     z-index: 300 !important;
-    min-width: 200px;
     white-space: nowrap;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
   }
