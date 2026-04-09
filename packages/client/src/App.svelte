@@ -537,13 +537,17 @@
     if (user_url !== "") {
       return user_url;
     }
-    // Use || (not ??) so that an empty-string env var (e.g. unset GitHub secret)
-    // falls through to the same-host fallback instead of returning "".
-    const ws_protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    return (
-      (import.meta.env["VITE_SIGNAL_URL"] as string | undefined) ||
-      `${ws_protocol}://${window.location.host}/ws`
-    );
+    const env_url = (import.meta.env["VITE_SIGNAL_URL"] as string | undefined) || "";
+    if (env_url !== "") {
+      return env_url;
+    }
+    // In local development the Vite proxy forwards /ws → localhost signalling server,
+    // so the same-host URL works. In production, VITE_SIGNAL_URL must always be set.
+    if (import.meta.env.DEV) {
+      const ws_protocol = window.location.protocol === "https:" ? "wss" : "ws";
+      return `${ws_protocol}://${window.location.host}/ws`;
+    }
+    return "";
   }
 
   function getEffectiveIceServers(): RTCIceServer[] {
@@ -576,6 +580,12 @@
     teardown(); // clean up any prior attempt before starting a new one
 
     const url = getEffectiveSignalUrl();
+    if (url === "") {
+      connection_store.setError(
+        "No signalling server URL configured. Open Settings → Connection to set one.",
+      );
+      return;
+    }
     signalling_url = url;
     openSignallingSocket(url);
     connection_store.setMode("signalling");

@@ -281,9 +281,6 @@
           value={$rtc_config_store.signal_url}
           oninput={(e) => rtc_config_store.setField("signal_url", (e.target as HTMLInputElement).value.trim())}
         />
-        {#if RTC_CONFIG_DEFAULTS.signal_url === ""}
-          <p class="field-note">Leave blank to use the signalling server on the same host as this app.</p>
-        {/if}
 
         <label class="field-label" for="turn-url">TURN server URL</label>
         <input

@@ -12,3 +12,7 @@ services:
         value: 22.22.2
       - key: PORT
         value: 10000
+      # Bake the signalling server URL into the client bundle at build time.
+      # Both this deployment and the GitHub Pages deployment point at the same server.
+      - key: VITE_SIGNAL_URL
+        value: wss://notapipe.onrender.com/ws
