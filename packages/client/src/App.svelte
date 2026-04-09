@@ -212,7 +212,11 @@
         void peer_id; // suppress unused warning
       },
       onFileSent(transfer_id: string) {
-        ft_sending = (() => { const m = new Map(ft_sending); m.delete(transfer_id); return m; })();
+        ft_sending = (() => {
+          const m = new Map(ft_sending);
+          m.delete(transfer_id);
+          return m;
+        })();
         const filename = ft_outgoing_names.get(transfer_id) ?? "file";
         ft_outgoing_names.delete(transfer_id);
         ft_sent = new Map(ft_sent).set(transfer_id, filename);
@@ -224,7 +228,11 @@
         const progress = new Map(ft_progress);
         progress.delete(transfer_id);
         ft_progress = progress;
-        ft_sending = (() => { const m = new Map(ft_sending); m.delete(transfer_id); return m; })();
+        ft_sending = (() => {
+          const m = new Map(ft_sending);
+          m.delete(transfer_id);
+          return m;
+        })();
         ft_outgoing_names.delete(transfer_id);
       },
       onError(message: string) {
@@ -735,7 +743,7 @@
 
   const ABOUT_CONTENT = `## About notapipe
 
-notapipe is an ephemeral, local-first, peer-to-peer text sharing tool.
+notapipe is an ephemeral, local-first, peer-to-peer text and file sharing tool.
 
 Two people open the same URL — identified by a memorable 3-word phrase — and their text syncs in real time via [Yjs](https://yjs.dev) CRDTs over a WebRTC data channel. **No user text ever touches a server.** The signalling server only relays WebRTC handshake metadata, and even that is eliminated in QR mode.
 
@@ -1038,7 +1046,9 @@ Two people open the same URL — identified by a memorable 3-word phrase — and
           <button
             class="icon-btn"
             onclick={(e) => {
-              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+              const rect = (
+                e.currentTarget as HTMLElement
+              ).getBoundingClientRect();
               info_menu_anchor = {
                 top: rect.bottom + 4,
                 right: window.innerWidth - rect.right,
@@ -1712,19 +1722,25 @@ Two people open the same URL — identified by a memorable 3-word phrase — and
     align-self: center;
   }
 
-  .actions-menu-wrapper {
+  .actions-menu-wrapper,
+  .info-menu-wrapper {
     position: relative;
   }
 
   /* Overrides the .connect-menu defaults — rendered at app root with fixed positioning */
-  .actions-menu {
+  .actions-menu,
+  .info-menu {
     position: fixed !important;
     bottom: auto !important;
     left: auto !important;
-    min-width: 200px !important;
+    min-width: 160px !important;
     z-index: 300 !important;
     white-space: nowrap;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  }
+
+  .actions-menu {
+    min-width: 200px !important;
   }
 
   .menu-divider {
