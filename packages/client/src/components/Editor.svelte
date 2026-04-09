@@ -120,6 +120,7 @@
     oninput={handleInput}
     onkeydown={handleKeydown}
     onscroll={code_mode ? handleScroll : undefined}
+    wrap={code_mode ? "off" : "soft"}
     {readonly}
     spellcheck="false"
     autocorrect="off"
@@ -177,6 +178,8 @@
 
   .has-line-numbers textarea {
     padding-left: 0.75rem;
+    overflow-x: auto;
+    white-space: pre;
   }
 
   /* Focus mode: lined notebook paper look */
