@@ -33,13 +33,21 @@
 
   let active_tab = $state<ThemeTab>(getInitialTab());
 
-  // Custom tab values — initialized from current theme (preserves any existing custom work)
-  const current_theme = get(theme_store);
-  let custom_values = $state<Record<string, string>>(
-    Object.fromEntries(
-      token_keys.map((k) => [k, current_theme[k] ?? DEFAULT_LIGHT_THEME[k as keyof typeof DEFAULT_LIGHT_THEME] as string])
-    )
-  );
+  // Custom tab values — seeded from an existing custom theme if one is active,
+  // otherwise from the system-preference default (light/dark). This prevents the
+  // custom starting point from changing based on which built-in tab was visited last.
+  function getInitialCustomValues(): Record<string, string> {
+    const theme = get(theme_store);
+    const is_builtin = theme["name"] === "light" || theme["name"] === "dark";
+    const source = is_builtin
+      ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? DEFAULT_DARK_THEME : DEFAULT_LIGHT_THEME)
+      : theme;
+    return Object.fromEntries(
+      token_keys.map((k) => [k, (source as Record<string, string>)[k] ?? DEFAULT_LIGHT_THEME[k as keyof typeof DEFAULT_LIGHT_THEME] as string])
+    );
+  }
+
+  let custom_values = $state<Record<string, string>>(getInitialCustomValues());
 
   function isColorValue(value: string): boolean {
     return value.startsWith("#");
