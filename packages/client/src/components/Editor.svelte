@@ -7,9 +7,30 @@
     ytext: Y.Text;
     readonly?: boolean;
     code_mode?: boolean;
+    language?: string;
   }
 
-  let { doc, ytext, readonly = false, code_mode = false }: Props = $props();
+  let { doc, ytext, readonly = false, code_mode = false, language = "javascript" }: Props = $props();
+
+  async function importLanguage(lang: string): Promise<void> {
+    switch (lang) {
+      case "javascript": await import("prism-code-editor/prism/languages/javascript"); break;
+      case "typescript": await import("prism-code-editor/prism/languages/typescript"); break;
+      case "jsx": await import("prism-code-editor/prism/languages/jsx"); break;
+      case "tsx": await import("prism-code-editor/prism/languages/tsx"); break;
+      case "html": await import("prism-code-editor/languages/html"); break;
+      case "css": await import("prism-code-editor/languages/css"); break;
+      case "json": await import("prism-code-editor/languages/json"); break;
+      case "python": await import("prism-code-editor/languages/python"); break;
+      case "bash": await import("prism-code-editor/languages/bash"); break;
+      case "sql": await import("prism-code-editor/languages/sql"); break;
+      case "yaml": await import("prism-code-editor/languages/yaml"); break;
+      case "rust": await import("prism-code-editor/languages/rust"); break;
+      case "php": await import("prism-code-editor/languages/php"); break;
+      case "ruby": await import("prism-code-editor/languages/ruby"); break;
+      default: break; // plain text — no grammar needed
+    }
+  }
 
   // --- Standard textarea state ---
   let textarea_element: HTMLTextAreaElement;
@@ -129,13 +150,17 @@
       theme_style.textContent = theme_css ?? "";
       document.head.appendChild(theme_style);
 
+      // Load grammar for the initial language
+      await importLanguage(language);
+      if (cleanup_called) return;
+
       // Create the editor
       const initial_value = ytext.toString();
       pce_editor = createEditor(
         code_container,
         {
           value: initial_value,
-          language: "text",
+          language,
           lineNumbers: true,
           tabSize: 2,
           insertSpaces: false,
@@ -171,6 +196,24 @@
       ytext_unobserve = () => {
         ytext.unobserve(ytext_observer);
         remove_update_listener();
+      };
+
+      // Expose the editor so the language-change effect can reach it
+      // (language is a reactive prop — track changes after initial setup)
+      const editor_ref = pce_editor;
+      const lang_unwatch = $effect.root(() => {
+        $effect(() => {
+          const lang = language; // reactive read
+          importLanguage(lang).then(() => {
+            editor_ref.setOptions({ language: lang });
+          });
+        });
+        return () => {};
+      });
+      const original_unobserve = ytext_unobserve;
+      ytext_unobserve = () => {
+        original_unobserve();
+        lang_unwatch();
       };
 
       if (cleanup_called) {
@@ -276,6 +319,8 @@
     --pce-line-number: var(--code-gutter-text, #6b6660);
     --pce-selection: color-mix(in srgb, var(--color-accent, #e05c4a) 30%, transparent);
     --pce-bg-highlight: color-mix(in srgb, var(--color-text, #e8e3d8) 5%, transparent);
+    /* Base text color — overridden per-token by the Prism theme */
+    color: var(--code-text, #e8e3d8);
     font-family: var(--code-font-family, "IBM Plex Mono", monospace);
     font-size: var(--code-font-size, 0.9rem);
     line-height: var(--code-line-height, 22px);

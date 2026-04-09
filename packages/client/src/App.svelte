@@ -887,6 +887,25 @@
     typeof navigator !== "undefined" && "share" in navigator,
   );
   let code_mode = $state(false);
+  let code_language = $state("javascript");
+
+  const CODE_LANGUAGES: { value: string; label: string }[] = [
+    { value: "javascript", label: "JS" },
+    { value: "typescript", label: "TS" },
+    { value: "jsx", label: "JSX" },
+    { value: "tsx", label: "TSX" },
+    { value: "html", label: "HTML" },
+    { value: "css", label: "CSS" },
+    { value: "json", label: "JSON" },
+    { value: "python", label: "Py" },
+    { value: "rust", label: "Rust" },
+    { value: "bash", label: "Bash" },
+    { value: "sql", label: "SQL" },
+    { value: "yaml", label: "YAML" },
+    { value: "php", label: "PHP" },
+    { value: "ruby", label: "Ruby" },
+    { value: "text", label: "Text" },
+  ];
 
   const is_connected = $derived($connection_store.peer_state === "connected");
   const show_actions = $derived(!$focus_mode_store && !code_mode);
@@ -1047,7 +1066,7 @@
   <main class:preview-split={show_preview}>
     <!-- On narrow screens in preview mode, hide the editor; always show on wide or when preview is off -->
     <div class="editor-pane" class:hidden-narrow={show_preview}>
-      <Editor {doc} {ytext} readonly={false} {code_mode} />
+      <Editor {doc} {ytext} readonly={false} {code_mode} language={code_language} />
     </div>
     {#if show_preview}
       <div class="preview-pane">
@@ -1099,7 +1118,17 @@
           </svg>
         {/if}
       </button>
-      {#if !code_mode}
+      {#if code_mode}
+        <select
+          class="lang-select"
+          bind:value={code_language}
+          aria-label="Syntax highlighting language"
+        >
+          {#each CODE_LANGUAGES as lang (lang.value)}
+            <option value={lang.value}>{lang.label}</option>
+          {/each}
+        </select>
+      {:else}
         <button
           class="corner-btn"
           onclick={() => { focus_mode_store.toggle(); code_mode = false; }}
@@ -1760,6 +1789,24 @@
     opacity: 1;
     color: var(--color-accent);
     border-color: var(--color-accent);
+  }
+
+  .lang-select {
+    height: 2.5rem;
+    padding: 0 0.4rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    color: var(--color-text-muted);
+    font-family: inherit;
+    font-size: 0.75rem;
+    cursor: pointer;
+    opacity: 0.7;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  }
+
+  .lang-select:hover {
+    opacity: 1;
   }
 
   @media (hover: none) {
