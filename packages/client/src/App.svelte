@@ -765,6 +765,7 @@
 
   function teardown(): void {
     signalling_url = null; // prevent auto-reconnect if WS close event fires after this
+    console.log("Tearing down connections...");
     active_qr_session_id = null;
     Array.from(peer_managers.keys()).forEach((id) => disconnectPeer(id));
     ws_transport?.close();
