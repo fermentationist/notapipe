@@ -62,15 +62,27 @@
     theme_store.setTheme(custom_values);
   }
 
-  function saveCustom(): void {
-    const json = JSON.stringify(custom_values, null, 2);
+  function exportTheme(values: Record<string, string>, filename: string): void {
+    const json = JSON.stringify(values, null, 2);
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = "notapipe-theme.json";
+    anchor.download = filename;
     anchor.click();
     URL.revokeObjectURL(url);
+  }
+
+  function saveCurrentTab(): void {
+    if (active_tab === "light") {
+      const { name: _name, ...tokens } = DEFAULT_LIGHT_THEME;
+      exportTheme(tokens as Record<string, string>, "notapipe-theme-light.json");
+    } else if (active_tab === "dark") {
+      const { name: _name, ...tokens } = DEFAULT_DARK_THEME;
+      exportTheme(tokens as Record<string, string>, "notapipe-theme-dark.json");
+    } else {
+      exportTheme(custom_values, "notapipe-theme.json");
+    }
   }
 
   function loadCustom(): void {
@@ -160,12 +172,12 @@
           aria-selected={active_tab === "custom"}
           onclick={() => selectTab("custom")}
         >Custom</button>
-        {#if active_tab === "custom"}
-          <div class="tab-actions">
+        <div class="tab-actions">
+          {#if active_tab === "custom"}
             <button class="tab-icon-btn" onclick={loadCustom} title="Load theme from JSON file" aria-label="Load theme">↑</button>
-            <button class="tab-icon-btn" onclick={saveCustom} title="Save theme as JSON file" aria-label="Save theme">↓</button>
-          </div>
-        {/if}
+          {/if}
+          <button class="tab-icon-btn" onclick={saveCurrentTab} title="Export theme as JSON file" aria-label="Export theme">↓</button>
+        </div>
       </div>
 
       <div class="token-list" role="tabpanel">

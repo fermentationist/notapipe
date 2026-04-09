@@ -1,5 +1,10 @@
 import { WORDLIST } from "./wordlist.ts";
-import { ROOM_WORD_COUNT, PASSPHRASE_WORD_COUNT, GEO_GRID_PRECISION, TOKEN_BYTE_LENGTH } from "$lib/constants/id.ts";
+import {
+  ROOM_WORD_COUNT,
+  PASSPHRASE_WORD_COUNT,
+  GEO_GRID_PRECISION,
+  TOKEN_BYTE_LENGTH,
+} from "$lib/constants/id.ts";
 
 const WORDLIST_MASK = WORDLIST.length - 1; // 0x7FF — works because length is 2048 (2^11)
 
@@ -58,9 +63,7 @@ export function generatePassphrase(): string {
  * Only call this when the user explicitly requests geo mode — it requires the
  * Geolocation permission and makes no network requests itself.
  */
-export async function geoId(
-  coords: { latitude: number; longitude: number },
-): Promise<string> {
+export async function geoId(coords: { latitude: number; longitude: number }): Promise<string> {
   const quantized_lat = Math.round(coords.latitude / GEO_GRID_PRECISION);
   const quantized_lon = Math.round(coords.longitude / GEO_GRID_PRECISION);
 
