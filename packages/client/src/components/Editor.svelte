@@ -11,18 +11,17 @@
 
   let { doc, ytext, readonly = false, code_mode = false }: Props = $props();
 
+  // --- Standard textarea state ---
   let textarea_element: HTMLTextAreaElement;
-  let line_numbers_el: HTMLDivElement | undefined = $state();
   let local_value = $state("");
   let is_applying_remote = false;
 
-  const line_count = $derived(local_value.split("\n").length);
-  const line_numbers_text = $derived(
-    Array.from({ length: line_count }, (_, i) => i + 1).join("\n"),
-  );
+  // --- Code mode container ---
+  let code_container: HTMLDivElement | undefined = $state();
 
-  // Sync remote Yjs changes → textarea
+  // Sync remote Yjs changes → textarea (standard mode only)
   $effect(() => {
+    if (code_mode) return;
     const observer = () => {
       if (is_applying_remote) {
         return;
@@ -34,8 +33,6 @@
         const cursor_end = textarea_element?.selectionEnd ?? 0;
         local_value = new_value;
 
-        // Adjust cursor for remote edits rather than blindly restoring the old position.
-        // Without this, a remote insert before the cursor pulls it backward.
         const new_start = adjustCursor(old_value, new_value, cursor_start);
         const new_end = adjustCursor(old_value, new_value, cursor_end);
 
@@ -49,7 +46,6 @@
     };
 
     ytext.observe(observer);
-    // Sync initial state
     local_value = ytext.toString();
 
     return () => {
@@ -92,10 +88,9 @@
       return;
     }
 
-    if (event.key === "Enter" && code_mode) {
+    if (event.key === "Enter") {
       event.preventDefault();
       const start = el.selectionStart;
-      // Find start of current line
       const line_start = local_value.lastIndexOf("\n", start - 1) + 1;
       const current_line = local_value.slice(line_start, start);
       const indent = current_line.match(/^(\s*)/)?.[1] ?? "";
@@ -103,34 +98,122 @@
     }
   }
 
-  function handleScroll(event: Event): void {
-    if (line_numbers_el !== undefined) {
-      line_numbers_el.scrollTop = (event.target as HTMLTextAreaElement).scrollTop;
-    }
-  }
+  // --- Prism code editor (code mode) ---
+  $effect(() => {
+    if (!code_mode || code_container === undefined) return;
+
+    let cleanup_called = false;
+    let pce_editor: { remove: () => void; on: (event: string, cb: (v: string) => void) => () => void; setOptions: (opts: Record<string, unknown>) => void } | null = null;
+    let ytext_unobserve: (() => void) | null = null;
+    let theme_style: HTMLStyleElement | null = null;
+
+    (async () => {
+      const [{ createEditor }, { loadTheme }, { matchBrackets }, { highlightBracketPairs }] = await Promise.all([
+        import("prism-code-editor"),
+        import("prism-code-editor/themes"),
+        import("prism-code-editor/match-brackets"),
+        import("prism-code-editor/highlight-brackets"),
+      ]);
+      await import("prism-code-editor/layout.css");
+
+      if (cleanup_called || code_container === undefined) return;
+
+      // Load theme matching the active color scheme
+      const is_dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      const theme_css = await loadTheme(is_dark ? "github-dark" : "github-light");
+
+      if (cleanup_called || code_container === undefined) return;
+
+      // Inject theme CSS scoped under a unique class
+      theme_style = document.createElement("style");
+      theme_style.textContent = theme_css ?? "";
+      document.head.appendChild(theme_style);
+
+      // Create the editor
+      const initial_value = ytext.toString();
+      pce_editor = createEditor(
+        code_container,
+        {
+          value: initial_value,
+          language: "text",
+          lineNumbers: true,
+          tabSize: 2,
+          insertSpaces: false,
+          readOnly: readonly,
+        },
+        matchBrackets(),
+        highlightBracketPairs(),
+      );
+
+      // Editor → Yjs
+      let old_value = initial_value;
+      let is_local = false;
+
+      const remove_update_listener = pce_editor.on("update", (new_value: string) => {
+        if (is_applying_remote) return;
+        is_local = true;
+        applyTextareaDiff(ytext, doc, old_value, new_value);
+        old_value = new_value;
+        is_local = false;
+      });
+
+      // Yjs → Editor
+      const ytext_observer = () => {
+        if (is_local) return;
+        is_applying_remote = true;
+        const new_value = ytext.toString();
+        pce_editor?.setOptions({ value: new_value });
+        old_value = new_value;
+        is_applying_remote = false;
+      };
+      ytext.observe(ytext_observer);
+
+      ytext_unobserve = () => {
+        ytext.unobserve(ytext_observer);
+        remove_update_listener();
+      };
+
+      if (cleanup_called) {
+        ytext_unobserve();
+        pce_editor.remove();
+        theme_style?.remove();
+      }
+    })();
+
+    return () => {
+      cleanup_called = true;
+      ytext_unobserve?.();
+      pce_editor?.remove();
+      theme_style?.remove();
+    };
+  });
 </script>
 
-<div class="editor-root" class:has-line-numbers={code_mode}>
-  {#if code_mode}
-    <div class="line-numbers" bind:this={line_numbers_el} aria-hidden="true">{line_numbers_text}</div>
-  {/if}
-  <textarea
-    bind:this={textarea_element}
-    value={local_value}
-    oninput={handleInput}
-    onkeydown={handleKeydown}
-    onscroll={code_mode ? handleScroll : undefined}
-    wrap={code_mode ? "off" : "soft"}
-    {readonly}
-    spellcheck="false"
-    autocorrect="off"
-    autocapitalize="off"
-    placeholder={code_mode ? "" : "Start typing…"}
-    aria-label="Shared document"
-  ></textarea>
-</div>
+{#if code_mode}
+  <div
+    class="code-editor-root"
+    bind:this={code_container}
+    aria-label="Code editor"
+  ></div>
+{:else}
+  <div class="editor-root">
+    <textarea
+      bind:this={textarea_element}
+      value={local_value}
+      oninput={handleInput}
+      onkeydown={handleKeydown}
+      {readonly}
+      spellcheck="false"
+      autocorrect="off"
+      autocapitalize="off"
+      placeholder="Start typing…"
+      aria-label="Shared document"
+    ></textarea>
+  </div>
+{/if}
 
 <style>
+  /* --- Standard editor --- */
   .editor-root {
     display: flex;
     width: 100%;
@@ -138,26 +221,6 @@
     overflow: hidden;
   }
 
-  /* --- Line numbers gutter (code mode only) --- */
-  .line-numbers {
-    width: 3.25rem;
-    flex-shrink: 0;
-    overflow: hidden;
-    text-align: right;
-    padding: 1rem 0.6rem 1rem 0;
-    color: var(--code-gutter-text, #b8b2a6);
-    font-family: var(--code-font-family, "IBM Plex Mono", monospace);
-    font-size: var(--code-font-size, 0.9rem);
-    line-height: var(--code-line-height, 22px);
-    border-right: 1px solid var(--code-gutter-border, #d4cfc4);
-    background: var(--code-bg, transparent);
-    user-select: none;
-    box-sizing: border-box;
-    white-space: pre;
-    opacity: 0.45;
-  }
-
-  /* --- Standard editor textarea --- */
   textarea {
     flex: 1;
     min-width: 0;
@@ -179,28 +242,14 @@
     color: var(--color-text-muted);
   }
 
-  /* --- Code mode textarea overrides --- */
-  .has-line-numbers textarea {
-    padding-left: 0.75rem;
-    overflow-x: auto;
-    white-space: pre;
-    background: var(--code-bg, transparent);
-    color: var(--code-text, var(--color-text));
-    font-family: var(--code-font-family, "IBM Plex Mono", monospace);
-    font-size: var(--code-font-size, 0.9rem);
-    line-height: var(--code-line-height, 22px);
-    caret-color: var(--code-caret-color, var(--color-accent));
-  }
-
-  /* --- Focus mode textarea overrides --- */
+  /* Focus mode: lined notebook paper look */
   :global(.focus-mode) textarea {
-    padding: 0.5rem 3rem 4rem 4rem; /* generous left margin like a notebook */
+    padding: 0.5rem 3rem 4rem 4rem;
     font-family: var(--focus-font-family, "IBM Plex Mono", monospace);
     font-size: var(--focus-font-size, 1.05rem);
     line-height: var(--focus-line-height, 28px);
     color: var(--color-focus-text);
     caret-color: var(--color-focus-text);
-    /* Ruled lines aligned to line-height grid */
     background-image: repeating-linear-gradient(
       to bottom,
       transparent, transparent calc(var(--focus-line-height, 28px) - 1px),
@@ -208,12 +257,36 @@
       var(--color-focus-rule) var(--focus-line-height, 28px)
     );
     background-attachment: local;
-    /* Push first line down to align with the first rule */
     padding-top: calc(var(--focus-line-height, 28px) * 2);
   }
 
   :global(.focus-mode) textarea::placeholder {
     font-style: italic;
     color: var(--color-focus-rule);
+  }
+
+  /* --- Prism code editor container --- */
+  .code-editor-root {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    /* Map our code-mode tokens onto prism's CSS variables */
+    --pce-bg: var(--code-bg, #1a1a18);
+    --pce-cursor: var(--code-caret-color, #e05c4a);
+    --pce-line-number: var(--code-gutter-text, #6b6660);
+    --pce-selection: color-mix(in srgb, var(--color-accent, #e05c4a) 30%, transparent);
+    --pce-bg-highlight: color-mix(in srgb, var(--color-text, #e8e3d8) 5%, transparent);
+    font-family: var(--code-font-family, "IBM Plex Mono", monospace);
+    font-size: var(--code-font-size, 0.9rem);
+    line-height: var(--code-line-height, 22px);
+  }
+
+  /* Ensure the prism editor fills the container */
+  .code-editor-root :global(.prism-code-editor) {
+    height: 100%;
+    width: 100%;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
   }
 </style>
