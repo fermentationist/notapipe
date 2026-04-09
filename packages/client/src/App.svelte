@@ -18,6 +18,7 @@
     PERSISTENCE_ENABLED_KEY,
   } from "$lib/constants/storage.ts";
   import { ICE_SERVERS, QR_ICE_SERVERS } from "$lib/constants/rtc.ts";
+  import { USER_GUIDE_URL, README_URL, extractSection } from "$lib/constants/docs.ts";
   import { IndexeddbPersistence } from "y-indexeddb";
   import { RTCPeerManager, isOfferer } from "./rtc/peer.ts";
   import {
@@ -82,6 +83,7 @@
   let show_user_guide = $state(false);
   let user_guide_content = $state<string | null>(null);
   let show_about = $state(false);
+  let about_content = $state<string | null>(null);
   let confirm_dialog = $state<{
     message: string;
     onconfirm: () => void;
@@ -722,9 +724,6 @@
   // Export / share
   // ---------------------------------------------------------------------------
 
-  const USER_GUIDE_URL =
-    "https://raw.githubusercontent.com/fermentationist/notapipe/main/docs/user-guide.md";
-
   async function openUserGuide(): Promise<void> {
     show_info_menu = false;
     info_menu_anchor = null;
@@ -741,31 +740,22 @@
     }
   }
 
-  const ABOUT_CONTENT = `## About notapipe
-
-notapipe is an ephemeral, local-first, peer-to-peer text and file sharing tool.
-
-Two people open the same URL — identified by a memorable 3-word phrase — and their text syncs in real time via [Yjs](https://yjs.dev) CRDTs over a WebRTC data channel. **No user text ever touches a server.** The signalling server only relays WebRTC handshake metadata, and even that is eliminated in QR mode.
-
-### Use it for
-- Quickly sharing a snippet of text, code, or a link between your own devices
-- Collaborating on a note with someone in the same room
-- Transferring a password or secret without it passing through any cloud service
-- Any time you need a zero-friction, zero-trace scratchpad between two people
-
-### Features
-- Real-time sync with no account, no login, no installation
-- QR code pairing — no signalling server at all
-- Markdown preview
-- Syntax-highlighted code editor (14 languages)
-- Works offline once loaded (PWA)
-- Persistent storage is opt-in and local only
-
-[View source on GitHub](https://github.com/fermentationist/notapipe) · [User Guide](https://github.com/fermentationist/notapipe/blob/main/docs/user-guide.md)
-
----
-
-© ${new Date().getFullYear()} Dennis Hodges. MIT License.`;
+  async function openAbout(): Promise<void> {
+    show_info_menu = false;
+    info_menu_anchor = null;
+    show_about = true;
+    if (about_content !== null) {
+      return;
+    }
+    try {
+      const response = await fetch(README_URL);
+      const text = await response.text();
+      about_content = extractSection(text, "About notapipe");
+    } catch {
+      about_content =
+        "_Failed to load. Visit [github.com/fermentationist/notapipe](https://github.com/fermentationist/notapipe) directly._";
+    }
+  }
 
   function exportDocument(): void {
     const content = ytext.toString();
@@ -1367,11 +1357,7 @@ Two people open the same URL — identified by a memorable 3-word phrase — and
       <button
         class="menu-item"
         role="menuitem"
-        onclick={() => {
-          show_info_menu = false;
-          info_menu_anchor = null;
-          show_about = true;
-        }}
+        onclick={openAbout}
       >
         About
       </button>
@@ -1548,7 +1534,7 @@ Two people open the same URL — identified by a memorable 3-word phrase — and
   {#if show_about}
     <InfoModal
       title="About notapipe"
-      content={ABOUT_CONTENT}
+      content={about_content}
       onclose={() => {
         show_about = false;
       }}
