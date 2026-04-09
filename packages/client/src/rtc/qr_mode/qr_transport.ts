@@ -33,6 +33,7 @@ export class QrTransport implements SignalTransport {
   private readonly peer_connection: RTCPeerConnection;
   private readonly callbacks: QrTransportCallbacks;
   private readonly room_id: string;
+  private room_token: string;
 
   private offer_callback: OfferCallback | null = null;
   private answer_callback: AnswerCallback | null = null;
@@ -44,10 +45,17 @@ export class QrTransport implements SignalTransport {
     peer_connection: RTCPeerConnection,
     callbacks: QrTransportCallbacks,
     room_id: string,
+    room_token: string,
   ) {
     this.peer_connection = peer_connection;
     this.callbacks = callbacks;
     this.room_id = room_id;
+    this.room_token = room_token;
+  }
+
+  /** Update the token — called by the answerer after scanning the offerer's QR to adopt their token. */
+  setToken(token: string): void {
+    this.room_token = token;
   }
 
   // ---------------------------------------------------------------------------
@@ -142,7 +150,7 @@ export class QrTransport implements SignalTransport {
       return;
     }
     try {
-      const packet = encodeSdp(local_description.sdp, is_answer, this.room_id);
+      const packet = encodeSdp(local_description.sdp, is_answer, this.room_id, this.room_token);
       this.callbacks.onQrPacketReady(packet);
     } catch (error) {
       this.callbacks.onError(error instanceof Error ? error : new Error(String(error)));

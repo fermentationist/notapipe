@@ -12,8 +12,9 @@ Two or more peers open the same URL — identified by a memorable 3-word phrase 
 
 ## How it works
 
-- Each browser tab generates (or reads from the URL) a **3-word room ID** like `apple-river-moon`
+- Each browser tab generates (or reads from the URL) a **3-word room ID** like `apple-river-moon` plus a random **`#token`** fragment — e.g. `notapipe.app/apple-river-moon#k7mX9qPw`
 - Two or more peers connect either via the **signalling server** (same Wi-Fi or internet) or via **QR code** (fully air-gapped — no server at all)
+- The `#token` is verified during the WebRTC handshake; only peers who share the full URL can connect — the signalling server never sees the token
 - Text is synchronised using **Yjs CRDTs** over a WebRTC data channel — conflicts merge automatically
 - Nothing is stored server-side. Content lives only in the browser tabs that are open (and optionally in `localStorage` for persistence across reloads)
 
@@ -21,11 +22,14 @@ Two or more peers open the same URL — identified by a memorable 3-word phrase 
 
 - **Signalling & QR connection modes** — use whichever fits your security needs
 - **Multi-peer mesh** — connect more than two devices; each pair syncs independently
+- **Markdown preview** — toggle a live rendered view alongside the editor (`M↓`); local-only, does not affect peers
+- **Wide layout** — desktop toggle to expand beyond the default centred column; preference persists across sessions
 - **Focus mode** — distraction-free writing with a ruled-paper aesthetic (`Cmd+F`)
 - **Theming** — built-in light/dark themes plus a fully customisable token editor
 - **Local persistence** — optional `localStorage` save (off by default)
 - **One-tap copy** — copy all editor content to clipboard instantly (the primary cross-device transfer action)
 - **Import / export / share** — load a `.txt` file, save one, or share the room link
+- **File transfer** — send any file (up to 100 MB) directly to all connected peers, no server involved
 - **PWA** — installable on desktop and mobile; works offline after first load
 
 ## Packages

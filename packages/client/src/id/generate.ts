@@ -1,5 +1,5 @@
 import { WORDLIST } from "./wordlist.ts";
-import { ROOM_WORD_COUNT, PASSPHRASE_WORD_COUNT, GEO_GRID_PRECISION } from "$lib/constants/id.ts";
+import { ROOM_WORD_COUNT, PASSPHRASE_WORD_COUNT, GEO_GRID_PRECISION, TOKEN_BYTE_LENGTH } from "$lib/constants/id.ts";
 
 const WORDLIST_MASK = WORDLIST.length - 1; // 0x7FF — works because length is 2048 (2^11)
 
@@ -73,6 +73,43 @@ export async function geoId(
   }
 
   return words.join("-");
+}
+
+// ---------------------------------------------------------------------------
+// Room token — URL fragment secret that prevents accidental room collisions
+// ---------------------------------------------------------------------------
+
+function bytesToToken(bytes: Uint8Array): string {
+  return btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=/g, "");
+}
+
+/**
+ * Generate a random URL-safe token (base64url, 8 bytes / ~11 chars).
+ * Used as the URL fragment (#token) to prevent two strangers who happen to
+ * share the same 3-word room ID from accidentally connecting to each other.
+ */
+export function generateToken(): string {
+  const bytes = new Uint8Array(TOKEN_BYTE_LENGTH);
+  crypto.getRandomValues(bytes);
+  return bytesToToken(bytes);
+}
+
+/**
+ * Read the existing token from window.location.hash.
+ * If none is present, generate a fresh one and write it to the hash.
+ * Always call this once on page load after the room ID is set.
+ */
+export function ensureToken(): string {
+  const existing = window.location.hash.slice(1); // strip leading '#'
+  if (existing !== "") {
+    return existing;
+  }
+  const token = generateToken();
+  history.replaceState(null, "", window.location.pathname + "#" + token);
+  return token;
 }
 
 /**

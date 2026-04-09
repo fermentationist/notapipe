@@ -8,6 +8,7 @@
     parseId,
     isValidId,
     geoId,
+    ensureToken,
   } from "./id/generate.ts";
   import { GEO_GRID_PRECISION } from "$lib/constants/id.ts";
   import {
@@ -25,7 +26,10 @@
   import { QrTransport } from "./rtc/qr_mode/qr_transport.ts";
   import { decodePacketMeta } from "./rtc/qr_mode/sdp_codec.ts";
   import { RTCDataChannelProvider } from "./yjs/provider.ts";
-  import { FileTransferManager, type IncomingOffer } from "./rtc/file_transfer.ts";
+  import {
+    FileTransferManager,
+    type IncomingOffer,
+  } from "./rtc/file_transfer.ts";
   import { connection_store } from "./stores/connection.ts";
   import { focus_mode_store } from "./stores/focus_mode.ts";
   import { persistence_store } from "./stores/persistence.ts";
@@ -37,6 +41,7 @@
   import ConfirmDialog from "./components/ConfirmDialog.svelte";
   import FileTransferBar from "./components/FileTransferBar.svelte";
   import { preview_store } from "./stores/preview.ts";
+  import { wide_mode_store } from "./stores/wide_mode.ts";
 
   // ---------------------------------------------------------------------------
   // Yjs document (single shared text type)
@@ -50,11 +55,16 @@
   // ---------------------------------------------------------------------------
 
   let room_id = $state<string>("");
+  let room_token = $state<string>("");
   let local_peer_id = $state<string>(crypto.randomUUID());
 
   // ---------------------------------------------------------------------------
   // UI state
   // ---------------------------------------------------------------------------
+
+  const desktop_mq = window.matchMedia("(min-width: 768px)");
+  let is_desktop = $state(desktop_mq.matches);
+  desktop_mq.addEventListener("change", (e) => { is_desktop = e.matches; });
 
   let show_qr_overlay = $state(false);
   let show_settings = $state(false);
@@ -144,13 +154,20 @@
   // ---------------------------------------------------------------------------
 
   let ft_incoming_offers = $state(new Map<string, IncomingOffer>());
-  let ft_progress = $state(new Map<string, { received: number; total: number }>());
-  let ft_completed = $state(new Map<string, { url: string; filename: string }>());
+  let ft_progress = $state(
+    new Map<string, { received: number; total: number }>(),
+  );
+  let ft_completed = $state(
+    new Map<string, { url: string; filename: string }>(),
+  );
 
   function makeFileTransferCallbacks(peer_id: string) {
     return {
       onIncomingOffer(offer: IncomingOffer) {
-        ft_incoming_offers = new Map(ft_incoming_offers).set(offer.transfer_id, offer);
+        ft_incoming_offers = new Map(ft_incoming_offers).set(
+          offer.transfer_id,
+          offer,
+        );
       },
       onProgress(transfer_id: string, received: number, total: number) {
         const next = new Map(ft_progress);
@@ -168,7 +185,10 @@
         const progress = new Map(ft_progress);
         progress.delete(transfer_id);
         ft_progress = progress;
-        ft_completed = new Map(ft_completed).set(transfer_id, { url, filename });
+        ft_completed = new Map(ft_completed).set(transfer_id, {
+          url,
+          filename,
+        });
       },
       onTransferCancelled(transfer_id: string) {
         const offers = new Map(ft_incoming_offers);
@@ -247,6 +267,7 @@
       room_id = generateId();
       history.replaceState(null, "", `/${room_id}`);
     }
+    room_token = ensureToken();
     connection_store.setRoomId(room_id);
     reinitPersistence();
 
@@ -288,14 +309,17 @@
 
   function copyEditorContent(): void {
     const text = ytext.toString();
-    navigator.clipboard.writeText(text).then(() => {
-      copy_content_feedback = true;
-      setTimeout(() => {
-        copy_content_feedback = false;
-      }, 1500);
-    }).catch(() => {
-      // Clipboard not available — fail silently
-    });
+    navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        copy_content_feedback = true;
+        setTimeout(() => {
+          copy_content_feedback = false;
+        }, 1500);
+      })
+      .catch(() => {
+        // Clipboard not available — fail silently
+      });
   }
 
   // ---------------------------------------------------------------------------
@@ -358,7 +382,10 @@
         yjs_providers.set(remote_peer_id, provider);
       },
       onFileChannel(file_channel) {
-        const ft_manager = new FileTransferManager(file_channel, makeFileTransferCallbacks(remote_peer_id));
+        const ft_manager = new FileTransferManager(
+          file_channel,
+          makeFileTransferCallbacks(remote_peer_id),
+        );
         file_transfer_managers.set(remote_peer_id, ft_manager);
       },
       onStateChange(state) {
@@ -449,6 +476,7 @@
       url,
       room_id,
       local_peer_id,
+      room_token,
       callbacks,
     );
     ws_transport.connect();
@@ -500,6 +528,7 @@
         },
       },
       room_id,
+      room_token,
     );
 
     const manager = new RTCPeerManager(
@@ -510,7 +539,10 @@
           yjs_providers.set(session_id, provider);
         },
         onFileChannel(file_channel) {
-          const ft_manager = new FileTransferManager(file_channel, makeFileTransferCallbacks(session_id));
+          const ft_manager = new FileTransferManager(
+            file_channel,
+            makeFileTransferCallbacks(session_id),
+          );
           file_transfer_managers.set(session_id, ft_manager);
         },
         onStateChange(state) {
@@ -561,32 +593,38 @@
 
   function applyRoomId(new_room_id: string): void {
     room_id = new_room_id;
-    history.replaceState(null, "", `/${new_room_id}`);
+    history.replaceState(null, "", `/${new_room_id}#${room_token}`);
     connection_store.setRoomId(new_room_id);
     reinitPersistence();
   }
 
+  function applyToken(new_token: string): void {
+    room_token = new_token;
+    history.replaceState(null, "", `${window.location.pathname}#${new_token}`);
+    qr_transport?.setToken(new_token);
+  }
+
   function handleQrScanned(scanned_packet: Uint8Array): void {
-    // Extract the room ID embedded in the QR packet and switch to it if needed.
-    // The offerer's room ID is always authoritative — only adopt it when scanning an offer.
-    // Answer packets also carry a room ID but it should never override the offerer's.
+    // Extract the room ID and token embedded in the QR packet.
+    // The offerer's room ID and token are always authoritative — only adopt them when scanning an offer.
     try {
-      const { room_id: incoming_room_id, is_answer } =
+      const { room_id: incoming_room_id, room_token: incoming_token, is_answer } =
         decodePacketMeta(scanned_packet);
-      if (
-        !is_answer &&
-        incoming_room_id !== "" &&
-        incoming_room_id !== room_id
-      ) {
-        const has_content = ytext.toString().length > 0;
-        const has_persistence = $persistence_store;
-        if (has_content || has_persistence) {
-          showConfirm(
-            `This QR code is for room "${incoming_room_id}". Your room ID will change from "${room_id}". Your current document will merge with theirs.${has_persistence ? " Your saved history for this room will remain under the old ID." : ""}`,
-            () => applyRoomId(incoming_room_id),
-          );
-        } else {
-          applyRoomId(incoming_room_id);
+      if (!is_answer) {
+        // Always adopt the offerer's token so the answerer's QR carries the matching secret.
+        applyToken(incoming_token);
+
+        if (incoming_room_id !== "" && incoming_room_id !== room_id) {
+          const has_content = ytext.toString().length > 0;
+          const has_persistence = $persistence_store;
+          if (has_content || has_persistence) {
+            showConfirm(
+              `This QR code is for room "${incoming_room_id}". Your room ID will change from "${room_id}". Your current document will merge with theirs.${has_persistence ? " Your saved history for this room will remain under the old ID." : ""}`,
+              () => applyRoomId(incoming_room_id),
+            );
+          } else {
+            applyRoomId(incoming_room_id);
+          }
         }
       }
     } catch {
@@ -839,7 +877,11 @@
 
 <svelte:window onclick={handleWindowClick} />
 
-<div class="app" class:focus-mode={$focus_mode_store}>
+<div
+  class="app"
+  class:focus-mode={$focus_mode_store}
+  class:wide={$wide_mode_store}
+>
   <!-- Header (hidden in focus mode) -->
   {#if !$focus_mode_store}
     <header>
@@ -861,20 +903,29 @@
           <button
             class="icon-btn"
             onclick={(e) => {
-              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-              actions_menu_anchor = { top: rect.bottom + 4, right: window.innerWidth - rect.right };
+              const rect = (
+                e.currentTarget as HTMLElement
+              ).getBoundingClientRect();
+              actions_menu_anchor = {
+                top: rect.bottom + 4,
+                right: window.innerWidth - rect.right,
+              };
               show_actions_menu = !show_actions_menu;
-              if (!show_actions_menu) { actions_menu_anchor = null; }
+              if (!show_actions_menu) {
+                actions_menu_anchor = null;
+              }
             }}
             title="Actions"
             aria-label="Actions"
             aria-haspopup="menu"
-            aria-expanded={show_actions_menu}
-          >···</button>
+            aria-expanded={show_actions_menu}>···</button
+          >
         </div>
         <button
           class="icon-btn"
-          onclick={() => { show_settings = !show_settings; }}
+          onclick={() => {
+            show_settings = !show_settings;
+          }}
           title="Settings"
           aria-label="Settings">⚙</button
         >
@@ -884,7 +935,9 @@
           style="display:none"
           onchange={(e) => {
             const file = (e.target as HTMLInputElement).files?.[0];
-            if (file) { sendFileToAllPeers(file); }
+            if (file) {
+              sendFileToAllPeers(file);
+            }
             (e.target as HTMLInputElement).value = "";
           }}
         />
@@ -980,8 +1033,8 @@
         <button
           class="preview-back-btn"
           onclick={() => preview_store.toggle()}
-          aria-label="Back to editor"
-        >← Edit</button>
+          aria-label="Back to editor">← Edit</button
+        >
         <MarkdownPreview content={preview_content} />
       </div>
     {/if}
@@ -1017,7 +1070,9 @@
           aria-hidden="true"
         >
           <rect x="4" y="4" width="8" height="9" rx="1.5"></rect>
-          <path d="M2 10H1.5A1.5 1.5 0 0 1 0 8.5v-7A1.5 1.5 0 0 1 1.5 0h7A1.5 1.5 0 0 1 10 1.5V2"></path>
+          <path
+            d="M2 10H1.5A1.5 1.5 0 0 1 0 8.5v-7A1.5 1.5 0 0 1 1.5 0h7A1.5 1.5 0 0 1 10 1.5V2"
+          ></path>
         </svg>
       {/if}
     </button>
@@ -1097,24 +1152,69 @@
       role="menu"
       style="position: fixed; top: {actions_menu_anchor.top}px; right: {actions_menu_anchor.right}px; z-index: 200;"
     >
-      <button class="menu-item" role="menuitem" onclick={() => { show_actions_menu = false; importDocument(); }}>
+      <button
+        class="menu-item"
+        role="menuitem"
+        onclick={() => {
+          show_actions_menu = false;
+          if (ytext.length > 0) {
+            showConfirm(
+              `Load a file? This will replace the current document${is_connected ? " and sync the change to all connected peers" : ""}.`,
+              importDocument,
+            );
+          } else {
+            importDocument();
+          }
+        }}
+      >
         ↑ Load text file
       </button>
-      <button class="menu-item" role="menuitem" onclick={() => { show_actions_menu = false; exportDocument(); }}>
+      <button
+        class="menu-item"
+        role="menuitem"
+        onclick={() => {
+          show_actions_menu = false;
+          exportDocument();
+        }}
+      >
         ↓ Save as text file
       </button>
-      <button class="menu-item" role="menuitem" onclick={() => { show_actions_menu = false; preview_store.toggle(); }}>
+      <button
+        class="menu-item"
+        role="menuitem"
+        onclick={() => {
+          show_actions_menu = false;
+          preview_store.toggle();
+        }}
+      >
         M↓ {show_preview ? "Hide preview" : "Markdown preview"}
         {#if show_preview}<span class="menu-check">✓</span>{/if}
       </button>
+      {#if is_desktop}
+        <button
+          class="menu-item"
+          role="menuitem"
+          onclick={() => {
+            show_actions_menu = false;
+            wide_mode_store.toggle();
+          }}
+        >
+          ⬌ Wide layout
+          {#if $wide_mode_store}<span class="menu-check">✓</span>{/if}
+        </button>
+      {/if}
       <button
         class="menu-item"
         class:menu-item-disabled={!is_connected}
         role="menuitem"
         onclick={() => {
-          if (!is_connected) { return; }
+          if (!is_connected) {
+            return;
+          }
           show_actions_menu = false;
-          (document.getElementById("file-transfer-input") as HTMLInputElement).click();
+          (
+            document.getElementById("file-transfer-input") as HTMLInputElement
+          ).click();
         }}
       >
         ⌂ Send file{!is_connected ? " (not connected)" : ""}
@@ -1132,23 +1232,56 @@
       <button
         class="menu-item"
         role="menuitem"
-        onclick={() => { show_actions_menu = false; showConfirm("Clear the current document? This cannot be undone.", clearCurrentDoc); }}
-      >Clear current doc</button>
+        onclick={() => {
+          show_actions_menu = false;
+          window.location.reload();
+        }}>↺ Force reload</button
+      >
+      <div class="menu-divider" role="separator"></div>
       <button
         class="menu-item"
         role="menuitem"
-        onclick={() => { show_actions_menu = false; showConfirm("Clear all saved documents? This cannot be undone.", clearAllDocs); }}
-      >Clear all docs</button>
+        onclick={() => {
+          show_actions_menu = false;
+          showConfirm(
+            "Clear the current document? This cannot be undone.",
+            clearCurrentDoc,
+          );
+        }}>Clear current doc</button
+      >
       <button
         class="menu-item"
         role="menuitem"
-        onclick={() => { show_actions_menu = false; showConfirm("Clear all notapipe settings (theme, persistence, geo passphrases)?", clearSettings); }}
-      >Clear settings</button>
+        onclick={() => {
+          show_actions_menu = false;
+          showConfirm(
+            "Clear all saved documents? This cannot be undone.",
+            clearAllDocs,
+          );
+        }}>Clear all docs</button
+      >
+      <button
+        class="menu-item"
+        role="menuitem"
+        onclick={() => {
+          show_actions_menu = false;
+          showConfirm(
+            "Clear all notapipe settings (theme, persistence, geo passphrases)?",
+            clearSettings,
+          );
+        }}>Clear settings</button
+      >
       <button
         class="menu-item menu-item-danger"
         role="menuitem"
-        onclick={() => { show_actions_menu = false; showConfirm("Clear everything — all documents and settings? This cannot be undone.", clearEverything); }}
-      >Clear everything</button>
+        onclick={() => {
+          show_actions_menu = false;
+          showConfirm(
+            "Clear everything — all documents and settings? This cannot be undone.",
+            clearEverything,
+          );
+        }}>Clear everything</button
+      >
     </div>
   {/if}
 
@@ -1175,6 +1308,13 @@
     max-width: 800px;
     margin: 0 auto;
   }
+
+  @media (min-width: 768px) {
+    .app.wide {
+      max-width: calc(100vw - 3rem);
+    }
+  }
+
 
   header {
     display: flex;
@@ -1457,7 +1597,6 @@
     flex-direction: column;
   }
 
-
   .actions {
     display: flex;
     gap: 0.5rem;
@@ -1556,7 +1695,9 @@
     justify-content: center;
     cursor: pointer;
     opacity: 0.55;
-    transition: opacity 0.15s, color 0.15s;
+    transition:
+      opacity 0.15s,
+      color 0.15s;
     z-index: 20;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
   }

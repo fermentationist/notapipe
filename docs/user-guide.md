@@ -16,15 +16,17 @@
    - [Via QR code (air-gapped)](#via-qr-code-air-gapped)
    - [Adding more devices](#adding-more-devices)
 5. [The editor](#the-editor)
-6. [Focus mode](#focus-mode)
-7. [Importing and exporting text](#importing-and-exporting-text)
-8. [Sending and receiving files](#sending-and-receiving-files)
-9. [Sharing](#sharing)
-10. [Themes](#themes)
-11. [Settings and persistence](#settings-and-persistence)
-12. [Installing as an app (PWA)](#installing-as-an-app-pwa)
-13. [Clearing data](#clearing-data)
-14. [Troubleshooting](#troubleshooting)
+6. [Markdown preview](#markdown-preview)
+7. [Wide layout](#wide-layout)
+8. [Focus mode](#focus-mode)
+9. [Importing and exporting text](#importing-and-exporting-text)
+10. [Sending and receiving files](#sending-and-receiving-files)
+11. [Sharing](#sharing)
+12. [Themes](#themes)
+13. [Settings and persistence](#settings-and-persistence)
+14. [Installing as an app (PWA)](#installing-as-an-app-pwa)
+15. [Clearing data](#clearing-data)
+16. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -36,8 +38,9 @@ notapipe is a browser-based tool for sharing text between devices in real time. 
 
 **Key properties:**
 - Nothing you type is stored on any server
-- The signalling server only brokers the initial connection handshake; it never sees document content
+- The signalling server only brokers the initial connection handshake; it never sees document content or the room token
 - In QR mode, no server is involved at all — two devices connect directly
+- The `#token` in the URL prevents two strangers who happen to generate the same 3-word room ID from accidentally connecting to each other
 - Content lives only in the browser tabs that are currently open (unless you turn on local persistence)
 
 ---
@@ -49,7 +52,8 @@ The interface has four main regions:
 **Header** (top bar)
 - App name (`notapipe`) on the left
 - Connection status indicator in the centre
-- Utility buttons on the right: import (`↑`), export (`↓`), send file (paperclip icon), share (box-with-arrow icon), clear data (`⊗`), settings (`⚙`)
+- Two buttons on the right: `···` (actions menu) and `⚙` (settings)
+  - `···` opens a dropdown with all action buttons: import (`↑`), export (`↓`), send file (paperclip), markdown preview (`M↓`), wide layout toggle (desktop only), share, force reload, and clear data options
 
 **Room bar** (below the header)
 - The current room ID (e.g. `apple-river-moon`)
@@ -69,11 +73,16 @@ The interface has four main regions:
 
 ## Rooms and room IDs
 
-Every notapipe session is identified by a **3-word room ID** — a phrase like `marble-cloud-seven` — that appears in the URL (e.g. `https://notapipe.app/marble-cloud-seven`).
+Every notapipe session is identified by a **3-word room ID** — a phrase like `marble-cloud-seven` — that appears in the URL path, plus a short random **room token** in the URL fragment (the `#` part):
 
-- When you open notapipe without a path, a new random room ID is generated for you
-- The room ID is the only thing peers need to agree on before connecting — share the URL and both devices are in the same room
-- Room IDs are not secret by default. Treat them like a short-lived shared link
+```
+https://notapipe.app/marble-cloud-seven#k7mX9qPw
+```
+
+- When you open notapipe without a path, a new random room ID and token are generated for you
+- **Share the full URL** — both the path and the `#token` are required to connect. Two devices that share only the same room ID but have different tokens will not be matched
+- The token is never sent to the signalling server (browsers strip `#` fragments from HTTP requests); it is only exchanged between peers as part of the WebRTC handshake
+- In QR mode the token is embedded in the QR code, so the scanning device adopts it automatically
 
 ### Finding a room
 
@@ -143,12 +152,31 @@ Note that scanning the QR code from any existing peer is sufficient to join the 
 
 ## The editor
 
-The editor is a plain-text `textarea`. There is no markdown rendering in the editor itself (a preview mode is planned for a future release).
+The editor is a plain-text `textarea`.
 
 - **Simultaneous editing** — multiple peers can type at the same time. Conflicts are resolved automatically using Yjs CRDTs. Your cursor position is preserved across remote edits
 - **No formatting** — content is plain text only
 - **Spellcheck, autocorrect, and autocapitalise** are disabled so the editor behaves consistently across devices
 - **Copy button** — the overlapping-pages icon in the bottom-right corner copies the entire editor contents to your clipboard instantly. After syncing text from another device, tap this to grab it without selecting all manually. The icon briefly shows a `✓` to confirm the copy succeeded
+
+---
+
+## Markdown preview
+
+The `M↓` button in the `···` actions menu toggles a rendered markdown view of the editor contents.
+
+- **Wide screens** — the editor and preview are shown side by side. The left pane remains editable; the right pane renders the markdown in real time
+- **Narrow screens (mobile)** — the preview replaces the editor. Tap `M↓` again to switch back to editing
+
+Markdown preview is a **local-only view** — it does not affect what other peers see, and it does not change the underlying plain-text content.
+
+**Focus mode** is edit-only: activating focus mode while the preview is open will hide the preview and show only the editor.
+
+---
+
+## Wide layout
+
+On desktop, `···` → **⬌ Wide layout** expands the app to nearly the full browser width (the default is a narrower centred column). The preference is saved and restored on your next visit. This option is not shown on mobile where the layout is always full-width.
 
 ---
 
@@ -173,11 +201,11 @@ Focus mode is local — it does not affect what other peers see.
 
 ### Import a text file (`↑`)
 
-Click the `↑` button in the header to load a `.txt` file from your device. The file's content replaces the current document. If other peers are connected, they will see the new content immediately.
+Click `···` → `↑` to load a `.txt` file from your device. If the editor is not empty, a confirmation dialog will appear first — the file's content replaces the entire document, and if peers are connected the change syncs to them immediately.
 
 ### Export as text file (`↓`)
 
-Click the `↓` button to download the current document as a `.txt` file. The filename is the room ID (e.g. `apple-river-moon.txt`).
+Click `···` → `↓` to download the current document as a `.txt` file. The filename is the room ID (e.g. `apple-river-moon.txt`).
 
 ---
 
@@ -188,8 +216,8 @@ You can send any file (up to 100 MB) directly to all connected peers over the sa
 ### Sending a file
 
 1. Make sure you are connected to at least one peer (the send button is disabled when disconnected)
-2. Click the **paperclip icon** in the header (between the `↓` export button and the share icon)
-3. Choose a file from the file picker — or drag and drop a file anywhere onto the editor
+2. Click `···` in the header → **paperclip icon** — or drag and drop a file anywhere onto the editor
+3. Choose a file from the file picker if using the button
 
 The file is offered to all connected peers immediately.
 

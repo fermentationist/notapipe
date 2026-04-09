@@ -60,6 +60,25 @@
     is_applying_remote = false;
   }
 
+  function handleKeydown(event: KeyboardEvent): void {
+    if (event.key !== "Tab") {
+      return;
+    }
+    event.preventDefault();
+    const el = event.target as HTMLTextAreaElement;
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const old_value = local_value;
+    const new_value = old_value.slice(0, start) + "\t" + old_value.slice(end);
+    local_value = new_value;
+    is_applying_remote = true;
+    applyTextareaDiff(ytext, doc, old_value, new_value);
+    is_applying_remote = false;
+    requestAnimationFrame(() => {
+      el.selectionStart = start + 1;
+      el.selectionEnd = start + 1;
+    });
+  }
 
 </script>
 
@@ -67,6 +86,7 @@
   bind:this={textarea_element}
   value={local_value}
   oninput={handleInput}
+  onkeydown={handleKeydown}
   {readonly}
   spellcheck="false"
   autocorrect="off"

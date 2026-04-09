@@ -123,6 +123,7 @@ export class WebSocketTransport {
   private readonly server_url: string;
   private readonly room_id: string;
   private readonly peer_id: string;
+  private readonly room_token: string;
   private readonly callbacks: WebSocketTransportCallbacks;
   private readonly peer_channels = new Map<string, PerPeerChannel>();
   private ping_interval_id: ReturnType<typeof setInterval> | null = null;
@@ -131,11 +132,13 @@ export class WebSocketTransport {
     server_url: string,
     room_id: string,
     peer_id: string,
+    room_token: string,
     callbacks: WebSocketTransportCallbacks,
   ) {
     this.server_url = server_url;
     this.room_id = room_id;
     this.peer_id = peer_id;
+    this.room_token = room_token;
     this.callbacks = callbacks;
   }
 
@@ -194,7 +197,7 @@ export class WebSocketTransport {
       roomId: this.room_id,
       from: this.peer_id,
       to: remote_peer_id,
-      payload,
+      payload: { ...payload, roomToken: this.room_token },
     });
   }
 
@@ -250,7 +253,11 @@ export class WebSocketTransport {
       }
 
       case "signal": {
-        // Route each signal to the channel registered for its sender
+        // Verify the room token before routing — drop signals from peers who do not share our URL fragment.
+        const incoming_payload = message.payload as Record<string, unknown> | undefined;
+        if (incoming_payload?.["roomToken"] !== this.room_token) {
+          break;
+        }
         if (message.from !== undefined) {
           const channel = this.peer_channels.get(message.from);
           channel?.handleIncoming(message.payload);

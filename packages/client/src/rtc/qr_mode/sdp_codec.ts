@@ -3,9 +3,9 @@
 // Encodes a WebRTC SDP offer/answer into a compact binary packet (~78 bytes),
 // and decodes it back to a valid SDP string that browsers accept.
 //
-// Binary packet format (version 0x02):
+// Binary packet format (version 0x03):
 //   Byte 0:    Magic (0x4E = 'N' for notapipe)
-//   Byte 1:    Version (0x02)
+//   Byte 1:    Version (0x03)
 //   Byte 2:    Flags — bit 0: is_answer (0=offer, 1=answer)
 //   Bytes 3-34: DTLS SHA-256 fingerprint (32 bytes)
 //   Byte 35:   ufrag length (uint8)
@@ -16,11 +16,13 @@
 //   Bytes M+1: candidate entries (variable)
 //   Byte P:    room_id length (uint8)
 //   Bytes P+1: room_id (ASCII, e.g. "word-word-word")
+//   Bytes Q..Q+7: room_token (8 raw bytes, fixed length, no length prefix)
 //
 // See docs/qr-mode.md for the full format specification.
 
 const PACKET_MAGIC = 0x4e; // 'N'
-const PACKET_VERSION = 0x02;
+const PACKET_VERSION = 0x03;
+const TOKEN_BYTE_LENGTH = 8;
 
 const FLAG_IS_ANSWER = 0b00000001;
 
@@ -47,6 +49,25 @@ interface DecodedPacket {
   pwd: string;
   candidates: DecodedCandidate[];
   room_id: string;
+  room_token: string; // base64url, 8 bytes
+}
+
+// ---------------------------------------------------------------------------
+// Token helpers
+// ---------------------------------------------------------------------------
+
+function tokenToBytes(token: string): Uint8Array {
+  const base64 = token.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
+  const binary_string = atob(padded);
+  return Uint8Array.from(binary_string, (char) => char.charCodeAt(0));
+}
+
+function bytesToToken(bytes: Uint8Array): string {
+  return btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=/g, "");
 }
 
 // ---------------------------------------------------------------------------
@@ -282,7 +303,7 @@ function encodeMdnsCandidate(
 /**
  * Encode an SDP string into a compact binary packet.
  */
-export function encodeSdp(sdp: string, is_answer: boolean, room_id: string): Uint8Array {
+export function encodeSdp(sdp: string, is_answer: boolean, room_id: string, room_token: string): Uint8Array {
   const fingerprint_bytes = extractFingerprint(sdp);
   const ufrag = extractUfrag(sdp);
   const pwd = extractPwd(sdp);
@@ -293,6 +314,7 @@ export function encodeSdp(sdp: string, is_answer: boolean, room_id: string): Uin
   const ufrag_bytes = encoder.encode(ufrag);
   const pwd_bytes = encoder.encode(pwd);
   const room_id_bytes = encoder.encode(room_id);
+  const token_bytes = tokenToBytes(room_token);
 
   // Calculate total byte size
   let total_bytes = 3; // magic + version + flags
@@ -308,6 +330,7 @@ export function encodeSdp(sdp: string, is_answer: boolean, room_id: string): Uin
     }
   });
   total_bytes += 1 + room_id_bytes.length; // room_id length + room_id
+  total_bytes += TOKEN_BYTE_LENGTH; // room_token (fixed 8 bytes)
 
   const buffer = new ArrayBuffer(total_bytes);
   const view = new DataView(buffer);
@@ -344,6 +367,9 @@ export function encodeSdp(sdp: string, is_answer: boolean, room_id: string): Uin
 
   view.setUint8(offset++, room_id_bytes.length);
   bytes.set(room_id_bytes, offset);
+  offset += room_id_bytes.length;
+
+  bytes.set(token_bytes, offset);
 
   return bytes;
 }
@@ -436,8 +462,11 @@ function decodePacket(packet: Uint8Array): DecodedPacket {
 
   const room_id_length = view.getUint8(offset++);
   const room_id = new TextDecoder().decode(packet.subarray(offset, offset + room_id_length));
+  offset += room_id_length;
 
-  return { is_answer, fingerprint_hex, ufrag, pwd, candidates, room_id };
+  const room_token = bytesToToken(packet.subarray(offset, offset + TOKEN_BYTE_LENGTH));
+
+  return { is_answer, fingerprint_hex, ufrag, pwd, candidates, room_id, room_token };
 }
 
 // ---------------------------------------------------------------------------
@@ -481,10 +510,11 @@ export function decodeSdp(packet: Uint8Array): {
   sdp: string;
   type: "offer" | "answer";
   room_id: string;
+  room_token: string;
 } {
   const decoded = decodePacket(packet);
   const sdp = buildSdpFromParts(decoded);
-  return { sdp, type: decoded.is_answer ? "answer" : "offer", room_id: decoded.room_id };
+  return { sdp, type: decoded.is_answer ? "answer" : "offer", room_id: decoded.room_id, room_token: decoded.room_token };
 }
 
 /**
@@ -493,7 +523,7 @@ export function decodeSdp(packet: Uint8Array): {
  * Only offer packets carry an authoritative room ID — answer packets should be ignored
  * for room switching purposes.
  */
-export function decodePacketMeta(packet: Uint8Array): { room_id: string; is_answer: boolean } {
+export function decodePacketMeta(packet: Uint8Array): { room_id: string; room_token: string; is_answer: boolean } {
   const decoded = decodePacket(packet);
-  return { room_id: decoded.room_id, is_answer: decoded.is_answer };
+  return { room_id: decoded.room_id, room_token: decoded.room_token, is_answer: decoded.is_answer };
 }
