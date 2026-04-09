@@ -138,23 +138,26 @@
     overflow: hidden;
   }
 
+  /* --- Line numbers gutter (code mode only) --- */
   .line-numbers {
     width: 3.25rem;
     flex-shrink: 0;
     overflow: hidden;
     text-align: right;
     padding: 1rem 0.6rem 1rem 0;
-    color: var(--color-text-muted);
-    font-family: var(--editor-font-family, "IBM Plex Mono", monospace);
-    font-size: 1rem;
-    line-height: var(--line-height);
-    border-right: 1px solid var(--color-border);
+    color: var(--code-gutter-text, #b8b2a6);
+    font-family: var(--code-font-family, "IBM Plex Mono", monospace);
+    font-size: var(--code-font-size, 0.9rem);
+    line-height: var(--code-line-height, 22px);
+    border-right: 1px solid var(--code-gutter-border, #d4cfc4);
+    background: var(--code-bg, transparent);
     user-select: none;
     box-sizing: border-box;
     white-space: pre;
     opacity: 0.45;
   }
 
+  /* --- Standard editor textarea --- */
   textarea {
     flex: 1;
     min-width: 0;
@@ -164,9 +167,9 @@
     outline: none;
     background: transparent;
     color: var(--color-text);
-    font-family: var(--editor-font-family, "IBM Plex Mono", monospace);
-    font-size: 1rem;
-    line-height: var(--line-height);
+    font-family: var(--standard-font-family, "IBM Plex Mono", monospace);
+    font-size: var(--standard-font-size, 1rem);
+    line-height: var(--standard-line-height, 28px);
     padding: 1rem;
     box-sizing: border-box;
     caret-color: var(--color-accent);
@@ -176,28 +179,37 @@
     color: var(--color-text-muted);
   }
 
+  /* --- Code mode textarea overrides --- */
   .has-line-numbers textarea {
     padding-left: 0.75rem;
     overflow-x: auto;
     white-space: pre;
+    background: var(--code-bg, transparent);
+    color: var(--code-text, var(--color-text));
+    font-family: var(--code-font-family, "IBM Plex Mono", monospace);
+    font-size: var(--code-font-size, 0.9rem);
+    line-height: var(--code-line-height, 22px);
+    caret-color: var(--code-caret-color, var(--color-accent));
   }
 
-  /* Focus mode: lined notebook paper look */
+  /* --- Focus mode textarea overrides --- */
   :global(.focus-mode) textarea {
     padding: 0.5rem 3rem 4rem 4rem; /* generous left margin like a notebook */
-    font-size: 1.05rem;
+    font-family: var(--focus-font-family, "IBM Plex Mono", monospace);
+    font-size: var(--focus-font-size, 1.05rem);
+    line-height: var(--focus-line-height, 28px);
     color: var(--color-focus-text);
     caret-color: var(--color-focus-text);
     /* Ruled lines aligned to line-height grid */
     background-image: repeating-linear-gradient(
       to bottom,
-      transparent, transparent calc(var(--line-height) - 1px),
-      var(--color-focus-rule) calc(var(--line-height) - 1px),
-      var(--color-focus-rule) var(--line-height)
+      transparent, transparent calc(var(--focus-line-height, 28px) - 1px),
+      var(--color-focus-rule) calc(var(--focus-line-height, 28px) - 1px),
+      var(--color-focus-rule) var(--focus-line-height, 28px)
     );
     background-attachment: local;
     /* Push first line down to align with the first rule */
-    padding-top: calc(var(--line-height) * 2);
+    padding-top: calc(var(--focus-line-height, 28px) * 2);
   }
 
   :global(.focus-mode) textarea::placeholder {
