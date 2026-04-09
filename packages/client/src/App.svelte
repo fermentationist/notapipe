@@ -546,13 +546,16 @@
 
   function getEffectiveIceServers(): RTCIceServer[] {
     const { turn_url, turn_username, turn_credential } = $rtc_config_store;
-    if (turn_url !== "") {
-      return [
-        { urls: "stun:stun.l.google.com:19302" },
-        { urls: turn_url, username: turn_username, credential: turn_credential },
-      ];
+    // Always build from stored values (TURN fields are pre-populated with defaults).
+    // Fall back to the full ICE_SERVERS constant only if turn_url is somehow blank.
+    if (turn_url === "") {
+      return ICE_SERVERS;
     }
-    return ICE_SERVERS;
+    return [
+      { urls: "stun:stun.l.google.com:19302" },
+      { urls: "stun:stun1.l.google.com:19302" },
+      { urls: turn_url, username: turn_username, credential: turn_credential },
+    ];
   }
 
   function connectViaSignalling(): void {

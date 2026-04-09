@@ -12,8 +12,11 @@ function extractSection(markdown: string, heading: string): string {
   if (start === -1) {
     return markdown;
   }
-  const end = lines.findIndex((l, i) => i > start && /^## /.test(l));
-  return lines.slice(start, end === -1 ? undefined : end).join("\n").trim();
+  const end = lines.findIndex((l, i) => i > start && l.startsWith("## "));
+  return lines
+    .slice(start, end === -1 ? undefined : end)
+    .join("\n")
+    .trim();
 }
 
 export const USER_GUIDE_CONTENT: string = userGuideRaw;

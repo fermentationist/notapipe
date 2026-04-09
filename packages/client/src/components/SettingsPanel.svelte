@@ -2,7 +2,7 @@
   import { get } from "svelte/store";
   import { theme_store } from "../stores/theme.ts";
   import { persistence_store } from "../stores/persistence.ts";
-  import { rtc_config_store } from "../stores/rtc_config.ts";
+  import { rtc_config_store, RTC_CONFIG_DEFAULTS } from "../stores/rtc_config.ts";
   import { DEFAULT_LIGHT_THEME, DEFAULT_DARK_THEME } from "$lib/constants/theme.ts";
 
   interface Props {
@@ -19,6 +19,7 @@
   const frozen_input_border = root_style.getPropertyValue("--color-border").trim() || "#cccccc";
   const frozen_input_style = `background:${frozen_input_bg};color:${frozen_input_text};border-color:${frozen_input_border};`;
 
+  type SectionTab = "storage" | "theme" | "connection";
   type ThemeTab = "light" | "dark" | "custom";
 
   // All CSS custom property keys (excludes "name")
@@ -32,6 +33,7 @@
     return "custom";
   }
 
+  let active_section = $state<SectionTab>("storage");
   let active_tab = $state<ThemeTab>(getInitialTab());
 
   // Custom tab values — seeded from an existing custom theme if one is active,
@@ -128,6 +130,15 @@
     // Strip leading "--" for display; keep the rest
     return key.slice(2);
   }
+
+  function isConnectionModified(config: typeof $rtc_config_store): boolean {
+    return (
+      config.signal_url !== RTC_CONFIG_DEFAULTS.signal_url ||
+      config.turn_url !== RTC_CONFIG_DEFAULTS.turn_url ||
+      config.turn_username !== RTC_CONFIG_DEFAULTS.turn_username ||
+      config.turn_credential !== RTC_CONFIG_DEFAULTS.turn_credential
+    );
+  }
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -141,159 +152,177 @@
     <button class="close-btn" onclick={onclose} aria-label="Close settings">✕</button>
     <h2>Settings</h2>
 
-    <section>
-      <h3>Storage</h3>
-      <label class="toggle-label">
-        <input
-          type="checkbox"
-          checked={$persistence_store}
-          onchange={() => { $persistence_store ? persistence_store.disable() : persistence_store.enable(); }}
-        />
-        <span>Save to localStorage</span>
-      </label>
-      <p class="storage-note">
-        Stores document content in your browser's local storage — never sent to a server.
-        Off by default.
-      </p>
-    </section>
+    <div class="section-tabs" role="tablist">
+      <button
+        class="section-tab"
+        class:active={active_section === "storage"}
+        role="tab"
+        aria-selected={active_section === "storage"}
+        onclick={() => { active_section = "storage"; }}
+      >Storage</button>
+      <button
+        class="section-tab"
+        class:active={active_section === "theme"}
+        role="tab"
+        aria-selected={active_section === "theme"}
+        onclick={() => { active_section = "theme"; }}
+      >Theme</button>
+      <button
+        class="section-tab"
+        class:active={active_section === "connection"}
+        role="tab"
+        aria-selected={active_section === "connection"}
+        onclick={() => { active_section = "connection"; }}
+      >Connection</button>
+    </div>
 
-    <section>
-      <h3>Theme</h3>
-      <div class="tabs" role="tablist">
-        <button
-          class="tab-btn"
-          class:active={active_tab === "light"}
-          role="tab"
-          aria-selected={active_tab === "light"}
-          onclick={() => selectTab("light")}
-        >Light</button>
-        <button
-          class="tab-btn"
-          class:active={active_tab === "dark"}
-          role="tab"
-          aria-selected={active_tab === "dark"}
-          onclick={() => selectTab("dark")}
-        >Dark</button>
-        <button
-          class="tab-btn"
-          class:active={active_tab === "custom"}
-          role="tab"
-          aria-selected={active_tab === "custom"}
-          onclick={() => selectTab("custom")}
-        >Custom</button>
-        <div class="tab-actions">
-          {#if active_tab === "custom"}
-            <button class="tab-icon-btn" onclick={loadCustom} title="Load theme from JSON file" aria-label="Load theme">↑</button>
-          {/if}
-          <button class="tab-icon-btn" onclick={saveCurrentTab} title="Export theme as JSON file" aria-label="Export theme">↓</button>
+    <div class="section-content">
+      {#if active_section === "storage"}
+        <label class="toggle-label">
+          <input
+            type="checkbox"
+            checked={$persistence_store}
+            onchange={() => { $persistence_store ? persistence_store.disable() : persistence_store.enable(); }}
+          />
+          <span>Save to localStorage</span>
+        </label>
+        <p class="note">
+          Stores document content in your browser's local storage — never sent to a server.
+          Off by default.
+        </p>
+
+      {:else if active_section === "theme"}
+        <div class="tabs" role="tablist">
+          <button
+            class="tab-btn"
+            class:active={active_tab === "light"}
+            role="tab"
+            aria-selected={active_tab === "light"}
+            onclick={() => selectTab("light")}
+          >Light</button>
+          <button
+            class="tab-btn"
+            class:active={active_tab === "dark"}
+            role="tab"
+            aria-selected={active_tab === "dark"}
+            onclick={() => selectTab("dark")}
+          >Dark</button>
+          <button
+            class="tab-btn"
+            class:active={active_tab === "custom"}
+            role="tab"
+            aria-selected={active_tab === "custom"}
+            onclick={() => selectTab("custom")}
+          >Custom</button>
+          <div class="tab-actions">
+            {#if active_tab === "custom"}
+              <button class="tab-icon-btn" onclick={loadCustom} title="Load theme from JSON file" aria-label="Load theme">↑</button>
+            {/if}
+            <button class="tab-icon-btn" onclick={saveCurrentTab} title="Export theme as JSON file" aria-label="Export theme">↓</button>
+          </div>
         </div>
-      </div>
 
-      <div class="token-list" role="tabpanel">
-        {#if active_tab === "light" || active_tab === "dark"}
-          {@const source = active_tab === "light" ? DEFAULT_LIGHT_THEME : DEFAULT_DARK_THEME}
-          {#each token_keys as key (key)}
-            {@const value = source[key as keyof typeof source] as string}
-            <div class="token-row">
-              <span class="token-name">{tokenLabel(key)}</span>
-              <div class="token-value">
-                {#if isColorValue(value)}
-                  <span class="color-swatch" style="background: {value};"></span>
-                {/if}
-                <span class="token-text">{value}</span>
+        <div class="token-list" role="tabpanel">
+          {#if active_tab === "light" || active_tab === "dark"}
+            {@const source = active_tab === "light" ? DEFAULT_LIGHT_THEME : DEFAULT_DARK_THEME}
+            {#each token_keys as key (key)}
+              {@const value = source[key as keyof typeof source] as string}
+              <div class="token-row">
+                <span class="token-name">{tokenLabel(key)}</span>
+                <div class="token-value">
+                  {#if isColorValue(value)}
+                    <span class="color-swatch" style="background: {value};"></span>
+                  {/if}
+                  <span class="token-text">{value}</span>
+                </div>
               </div>
-            </div>
-          {/each}
-        {:else}
-          {#each token_keys as key (key)}
-            {@const value = custom_values[key] ?? ""}
-            <div class="token-row">
-              <span class="token-name">{tokenLabel(key)}</span>
-              <div class="token-value">
-                {#if isColorValue(value)}
+            {/each}
+          {:else}
+            {#each token_keys as key (key)}
+              {@const value = custom_values[key] ?? ""}
+              <div class="token-row">
+                <span class="token-name">{tokenLabel(key)}</span>
+                <div class="token-value">
+                  {#if isColorValue(value)}
+                    <input
+                      type="color"
+                      value={value}
+                      oninput={(e) => handleCustomChange(key, (e.target as HTMLInputElement).value)}
+                      class="color-picker"
+                      aria-label={key}
+                    />
+                  {/if}
                   <input
-                    type="color"
+                    type="text"
                     value={value}
                     oninput={(e) => handleCustomChange(key, (e.target as HTMLInputElement).value)}
-                    class="color-picker"
+                    class="token-input"
+                    style={frozen_input_style}
+                    spellcheck="false"
                     aria-label={key}
                   />
-                {/if}
-                <input
-                  type="text"
-                  value={value}
-                  oninput={(e) => handleCustomChange(key, (e.target as HTMLInputElement).value)}
-                  class="token-input"
-                  style={frozen_input_style}
-                  spellcheck="false"
-                  aria-label={key}
-                />
+                </div>
               </div>
-            </div>
-          {/each}
+            {/each}
+          {/if}
+        </div>
+
+      {:else}
+        <p class="note">
+          Override the default signalling and TURN servers. Changes take effect on next connection attempt.
+        </p>
+
+        <label class="field-label" for="signal-url">Signalling server URL</label>
+        <input
+          id="signal-url"
+          class="text-input"
+          type="url"
+          placeholder="wss://your-signal-server.example.com/ws"
+          value={$rtc_config_store.signal_url}
+          oninput={(e) => rtc_config_store.setField("signal_url", (e.target as HTMLInputElement).value.trim())}
+        />
+        {#if RTC_CONFIG_DEFAULTS.signal_url === ""}
+          <p class="field-note">Leave blank to use the signalling server on the same host as this app.</p>
         {/if}
-      </div>
-    </section>
 
-    <section>
-      <h3>Connection</h3>
-      <p class="storage-note">
-        Override the default signalling and TURN servers. Leave fields blank to use the app defaults.
-      </p>
+        <label class="field-label" for="turn-url">TURN server URL</label>
+        <input
+          id="turn-url"
+          class="text-input"
+          type="text"
+          value={$rtc_config_store.turn_url}
+          oninput={(e) => rtc_config_store.setField("turn_url", (e.target as HTMLInputElement).value.trim())}
+        />
 
-      <label class="field-label" for="signal-url">Signalling server URL</label>
-      <input
-        id="signal-url"
-        class="text-input"
-        type="url"
-        placeholder={
-          (import.meta.env["VITE_SIGNAL_URL"] as string | undefined) ??
-          "(auto — same host as app)"
-        }
-        value={$rtc_config_store.signal_url}
-        oninput={(e) => rtc_config_store.setField("signal_url", (e.target as HTMLInputElement).value.trim())}
-      />
+        <label class="field-label" for="turn-username">TURN username</label>
+        <input
+          id="turn-username"
+          class="text-input"
+          type="text"
+          value={$rtc_config_store.turn_username}
+          oninput={(e) => rtc_config_store.setField("turn_username", (e.target as HTMLInputElement).value)}
+        />
 
-      <label class="field-label" for="turn-url">TURN server URL</label>
-      <input
-        id="turn-url"
-        class="text-input"
-        type="text"
-        placeholder="turn:your-server.example.com:3478"
-        value={$rtc_config_store.turn_url}
-        oninput={(e) => rtc_config_store.setField("turn_url", (e.target as HTMLInputElement).value.trim())}
-      />
+        <label class="field-label" for="turn-credential">TURN credential</label>
+        <input
+          id="turn-credential"
+          class="text-input"
+          type="password"
+          value={$rtc_config_store.turn_credential}
+          oninput={(e) => rtc_config_store.setField("turn_credential", (e.target as HTMLInputElement).value)}
+        />
 
-      <label class="field-label" for="turn-username">TURN username</label>
-      <input
-        id="turn-username"
-        class="text-input"
-        type="text"
-        placeholder="username"
-        value={$rtc_config_store.turn_username}
-        oninput={(e) => rtc_config_store.setField("turn_username", (e.target as HTMLInputElement).value)}
-      />
+        <p class="security-note">
+          ⚠ Credentials are stored unencrypted in localStorage. Use rate-limited keys where possible and never enter credentials you use elsewhere.
+        </p>
 
-      <label class="field-label" for="turn-credential">TURN credential</label>
-      <input
-        id="turn-credential"
-        class="text-input"
-        type="password"
-        placeholder="••••••••"
-        value={$rtc_config_store.turn_credential}
-        oninput={(e) => rtc_config_store.setField("turn_credential", (e.target as HTMLInputElement).value)}
-      />
-
-      <p class="security-note">
-        ⚠ Credentials are stored unencrypted in localStorage. Use rate-limited keys where possible and never enter credentials you use elsewhere.
-      </p>
-
-      {#if $rtc_config_store.signal_url !== "" || $rtc_config_store.turn_url !== "" || $rtc_config_store.turn_username !== "" || $rtc_config_store.turn_credential !== ""}
-        <button class="reset-btn" onclick={() => rtc_config_store.reset()}>
-          Reset to defaults
-        </button>
+        {#if isConnectionModified($rtc_config_store)}
+          <button class="reset-btn" onclick={() => rtc_config_store.reset()}>
+            Reset to defaults
+          </button>
+        {/if}
       {/if}
-    </section>
+    </div>
   </div>
 </div>
 
@@ -318,9 +347,9 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.75rem;
     max-height: calc(100vh - 5rem);
-    overflow-y: auto;
+    overflow: hidden;
   }
 
   .close-btn {
@@ -341,18 +370,50 @@
     font-weight: 500;
   }
 
-  h3 {
-    margin: 0 0 0.5rem;
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--color-text-muted);
+  /* Outer section tabs */
+  .section-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--color-border);
   }
 
-  section {
+  .section-tab {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--color-text-muted);
+    font-family: inherit;
+    font-size: 0.85rem;
+    padding: 0.35rem 0.75rem;
+    cursor: pointer;
+    margin-bottom: -1px;
+    border-radius: 4px 4px 0 0;
+  }
+
+  .section-tab.active {
+    color: var(--color-text);
+    border-bottom-color: var(--color-accent);
+  }
+
+  .section-tab:hover:not(.active) {
+    color: var(--color-text);
+  }
+
+  .section-content {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+    padding-right: 2px;
+  }
+
+  .note {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    line-height: 1.4;
   }
 
   .toggle-label {
@@ -361,13 +422,6 @@
     gap: 0.5rem;
     font-size: 0.85rem;
     cursor: pointer;
-  }
-
-  .storage-note {
-    margin: 0;
-    font-size: 0.75rem;
-    color: var(--color-text-muted);
-    line-height: 1.4;
   }
 
   .field-label {
@@ -392,6 +446,13 @@
   .text-input:focus {
     outline: none;
     border-color: var(--color-accent);
+  }
+
+  .field-note {
+    margin: 0;
+    font-size: 0.72rem;
+    color: var(--color-text-muted);
+    line-height: 1.4;
   }
 
   .security-note {

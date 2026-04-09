@@ -228,15 +228,15 @@ Supported languages: JavaScript, TypeScript, JSX, TSX, HTML, CSS, JSON, Python, 
 
 **Keyboard shortcuts (code mode):**
 
-| Shortcut | Action |
-|---|---|
-| `Alt+↑` / `Alt+↓` | Move line up / down |
-| `Shift+Alt+↑` / `Shift+Alt+↓` | Copy line up / down |
-| `Cmd+]` / `Cmd+[` | Indent / outdent |
-| `Cmd+/` | Toggle line comment |
-| `Shift+Cmd+K` | Delete line |
-| `Cmd+Enter` | Insert blank line below |
-| `Tab` / `Shift+Tab` | Indent / outdent selected lines |
+| Shortcut                      | Action                          |
+| ----------------------------- | ------------------------------- |
+| `Alt+↑` / `Alt+↓`             | Move line up / down             |
+| `Shift+Alt+↑` / `Shift+Alt+↓` | Copy line up / down             |
+| `Cmd+]` / `Cmd+[`             | Indent / outdent                |
+| `Cmd+/`                       | Toggle line comment             |
+| `Shift+Cmd+K`                 | Delete line                     |
+| `Cmd+Enter`                   | Insert blank line below         |
+| `Tab` / `Shift+Tab`           | Indent / outdent selected lines |
 
 Auto-closing of brackets, quotes, and backticks is also enabled.
 
@@ -383,12 +383,12 @@ Chrome will show an **Add to Home Screen** banner automatically, or you can tap 
 
 Click **⊗** (Clear data) for options to remove stored content:
 
-| Option                | What it clears                                                 |
-| --------------------- | -------------------------------------------------------------- |
+| Option                     | What it clears                                                 |
+| -------------------------- | -------------------------------------------------------------- |
 | **Clear current document** | Empties the shared document and removes it from `localStorage` |
 | **Clear all documents**    | Removes saved documents for all room IDs from `localStorage`   |
-| **Clear settings**    | Removes the saved theme and all other settings                 |
-| **Clear everything**  | Clears all of the above                                        |
+| **Clear settings**         | Removes the saved theme and all other settings                 |
+| **Clear everything**       | Clears all of the above                                        |
 
 Each option shows a confirmation dialog before proceeding.
 

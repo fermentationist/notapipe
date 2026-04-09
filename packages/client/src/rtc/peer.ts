@@ -126,7 +126,8 @@ export class RTCPeerManager {
     pc: RTCPeerConnection;
     flush_pending: () => Promise<void>;
   } {
-    const pc = this.provided_peer_connection ?? new RTCPeerConnection({ iceServers: this.ice_servers });
+    const pc =
+      this.provided_peer_connection ?? new RTCPeerConnection({ iceServers: this.ice_servers });
     this.peer_connection = pc;
 
     pc.onicecandidate = (event) => {

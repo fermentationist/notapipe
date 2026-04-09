@@ -2,6 +2,31 @@
 
 > Ephemeral, local-first, peer-to-peer text sharing. No servers ever see your content.
 
+## About notapipe
+
+notapipe is an ephemeral, local-first, peer-to-peer text and file sharing tool.
+
+Two people open the same URL — identified by a memorable 3-word phrase — and their text syncs in real time via [Yjs](https://yjs.dev) CRDTs over a WebRTC data channel. **No user text ever touches a server.** The signalling server only relays WebRTC handshake metadata, and even that is eliminated in QR mode.
+
+### Use it for
+
+- Quickly sharing a snippet of text, code, a link or a file between your own devices
+- Collaborating on a note with someone in the same room
+- Transferring a password or secret without it passing through any cloud service
+- Any time you need a zero-friction, zero-trace scratchpad between two people
+
+### Features
+
+- Real-time sync with no account, no login, no installation
+- QR code pairing — no signalling server at all
+- File transfer (up to 100 MB) directly peer-to-peer
+- Markdown preview
+- Syntax-highlighted code editor (14 languages)
+- Works offline once loaded (PWA)
+- Persistent storage is opt-in and local only
+
+---
+
 The primary use case: you want to move a piece of text from one device to another — phone to laptop, work machine to personal machine — without emailing yourself, opening a chat app, or signing into anything. Open the same room URL on both devices, choose your connection method, wait for the green connection indicator, and the text syncs instantly. Hit the copy button and paste it wherever you need it.
 
 Two or more peers open the same URL — identified by a memorable 3-word phrase — and their text stays in sync via Yjs CRDTs over a WebRTC data channel. The signalling server only brokers the WebRTC handshake and sees no document content. In QR mode, even that middleman is eliminated.

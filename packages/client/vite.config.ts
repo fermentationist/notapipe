@@ -27,7 +27,8 @@ export default defineConfig({
         background_color: "#f5f0e8",
         display: "standalone",
         orientation: "any",
-        start_url: "/",
+        scope: base,
+        start_url: base,
         icons: [
           {
             src: "icons/icon-192x192.png",
@@ -51,7 +52,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,woff2}", "icons/*.png"],
-        navigateFallback: "index.html",
+        navigateFallback: `${base}index.html`,
         navigateFallbackDenylist: [/^\/ws/],
       },
       devOptions: {

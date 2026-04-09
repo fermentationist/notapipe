@@ -2,19 +2,20 @@ export const ICE_GATHERING_TIMEOUT_MS = 15_000;
 export const MAX_ROOM_PEERS = 2;
 export const SIGNAL_PING_INTERVAL_MS = 30_000;
 
+// Default TURN server — Open Relay free community service.
+// Relay candidates have lowest ICE priority so STUN and direct connections
+// are always preferred. Users can override these in Settings → Connection.
+export const DEFAULT_TURN_URL = "turns:openrelay.metered.ca:443";
+export const DEFAULT_TURN_USERNAME = "openrelayproject";
+export const DEFAULT_TURN_CREDENTIAL = "openrelayproject";
+
 export const ICE_SERVERS: RTCIceServer[] = [
   { urls: "stun:stun.l.google.com:19302" },
   { urls: "stun:stun1.l.google.com:19302" },
-  // Open Relay free TURN — relay candidates have lowest ICE priority so
-  // STUN and direct connections are always preferred when they work.
   {
-    urls: [
-      "turn:openrelay.metered.ca:80",
-      "turn:openrelay.metered.ca:443",
-      "turns:openrelay.metered.ca:443",
-    ],
-    username: "openrelayproject",
-    credential: "openrelayproject",
+    urls: ["turn:openrelay.metered.ca:80", "turn:openrelay.metered.ca:443", DEFAULT_TURN_URL],
+    username: DEFAULT_TURN_USERNAME,
+    credential: DEFAULT_TURN_CREDENTIAL,
   },
 ];
 
