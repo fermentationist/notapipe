@@ -129,11 +129,12 @@
     let theme_style: HTMLStyleElement | null = null;
 
     (async () => {
-      const [{ createEditor }, { loadTheme }, { matchBrackets }, { highlightBracketPairs }] = await Promise.all([
+      const [{ createEditor }, { loadTheme }, { matchBrackets }, { highlightBracketPairs }, { defaultCommands }] = await Promise.all([
         import("prism-code-editor"),
         import("prism-code-editor/themes"),
         import("prism-code-editor/match-brackets"),
         import("prism-code-editor/highlight-brackets"),
+        import("prism-code-editor/commands"),
       ]);
       await import("prism-code-editor/layout.css");
 
@@ -168,6 +169,7 @@
         },
         matchBrackets(),
         highlightBracketPairs(),
+        defaultCommands(),
       );
 
       // Editor → Yjs
