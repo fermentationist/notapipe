@@ -281,11 +281,15 @@
     const handle_keydown = (event: KeyboardEvent): void => {
       if (event.key === "f" && (event.metaKey || event.ctrlKey)) {
         event.preventDefault();
+        code_mode = false;
         focus_mode_store.toggle();
         return;
       }
       if (event.key === "Escape" && get(focus_mode_store)) {
         focus_mode_store.disable();
+      }
+      if (event.key === "Escape" && code_mode) {
+        code_mode = false;
       }
     };
     window.addEventListener("keydown", handle_keydown);
@@ -879,10 +883,12 @@
   const can_share = $derived(
     typeof navigator !== "undefined" && "share" in navigator,
   );
+  let code_mode = $state(false);
+
   const is_connected = $derived($connection_store.peer_state === "connected");
-  const show_actions = $derived(!$focus_mode_store);
-  // Preview is suppressed in focus mode
-  const show_preview = $derived($preview_store && !$focus_mode_store);
+  const show_actions = $derived(!$focus_mode_store && !code_mode);
+  // Preview is suppressed in focus mode and code mode
+  const show_preview = $derived($preview_store && !$focus_mode_store && !code_mode);
 </script>
 
 <svelte:window onclick={handleWindowClick} />
@@ -890,6 +896,7 @@
 <div
   class="app"
   class:focus-mode={$focus_mode_store}
+  class:code-mode={code_mode}
   class:wide={$wide_mode_store}
 >
   <!-- Header (hidden in focus mode) -->
@@ -1037,7 +1044,7 @@
   <main class:preview-split={show_preview}>
     <!-- On narrow screens in preview mode, hide the editor; always show on wide or when preview is off -->
     <div class="editor-pane" class:hidden-narrow={show_preview}>
-      <Editor {doc} {ytext} readonly={false} />
+      <Editor {doc} {ytext} readonly={false} {code_mode} />
     </div>
     {#if show_preview}
       <div class="preview-pane">
@@ -1061,41 +1068,54 @@
       ondismiss={dismissCompleted}
       onsendfile={sendFileToAllPeers}
     />
-    <button
-      class="copy-content-btn"
-      onclick={copyEditorContent}
-      title="Copy all text to clipboard"
-      aria-label="Copy editor content to clipboard"
-    >
-      {#if copy_content_feedback}
-        ✓
-      {:else}
-        <svg
-          width="15"
-          height="15"
-          viewBox="0 0 13 14"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.6"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
+    <div class="bottom-right-btns">
+      <button
+        class="corner-btn"
+        onclick={copyEditorContent}
+        title="Copy all text to clipboard"
+        aria-label="Copy editor content to clipboard"
+      >
+        {#if copy_content_feedback}
+          ✓
+        {:else}
+          <svg
+            width="15"
+            height="15"
+            viewBox="0 0 13 14"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <rect x="4" y="4" width="8" height="9" rx="1.5"></rect>
+            <path
+              d="M2 10H1.5A1.5 1.5 0 0 1 0 8.5v-7A1.5 1.5 0 0 1 1.5 0h7A1.5 1.5 0 0 1 10 1.5V2"
+            ></path>
+          </svg>
+        {/if}
+      </button>
+      {#if !code_mode}
+        <button
+          class="corner-btn"
+          onclick={() => { focus_mode_store.toggle(); code_mode = false; }}
+          title={$focus_mode_store ? "Exit focus mode" : "Enter focus mode"}
+          aria-label={$focus_mode_store ? "Exit focus mode" : "Enter focus mode"}
         >
-          <rect x="4" y="4" width="8" height="9" rx="1.5"></rect>
-          <path
-            d="M2 10H1.5A1.5 1.5 0 0 1 0 8.5v-7A1.5 1.5 0 0 1 1.5 0h7A1.5 1.5 0 0 1 10 1.5V2"
-          ></path>
-        </svg>
+          {$focus_mode_store ? "✕" : "⛶"}
+        </button>
       {/if}
-    </button>
-    <button
-      class="focus-toggle-btn"
-      onclick={() => focus_mode_store.toggle()}
-      title={$focus_mode_store ? "Exit focus mode" : "Enter focus mode"}
-      aria-label={$focus_mode_store ? "Exit focus mode" : "Enter focus mode"}
-    >
-      {$focus_mode_store ? "✕" : "⛶"}
-    </button>
+      <button
+        class="corner-btn"
+        class:active={code_mode}
+        onclick={() => { code_mode = !code_mode; if (code_mode) { focus_mode_store.disable(); } }}
+        title={code_mode ? "Exit code mode" : "Code editor mode"}
+        aria-label={code_mode ? "Exit code mode" : "Code editor mode"}
+      >
+        {code_mode ? "✕" : "</>"}
+      </button>
+    </div>
   </main>
 
   <!-- Connection actions (hidden in focus mode) -->
@@ -1701,65 +1721,22 @@
     background-color: var(--color-focus-bg);
   }
 
-  .copy-content-btn {
-    position: fixed;
-    bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
-    right: calc(1.25rem + 2.5rem + 0.5rem); /* left of focus-toggle-btn */
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: 6px;
-    color: var(--color-text-muted);
-    font-size: 1rem;
-    width: 2.5rem;
-    height: 2.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    opacity: 0.55;
-    transition:
-      opacity 0.15s,
-      color 0.15s;
-    z-index: 20;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
-  }
-
-  .copy-content-btn:hover {
-    opacity: 1;
-  }
-
-  @media (hover: none) {
-    .copy-content-btn {
-      opacity: 0.85;
-    }
-  }
-
-  :global(.focus-mode) .copy-content-btn {
-    background: var(--color-focus-bg);
-    border-color: var(--color-focus-rule);
-    color: var(--color-focus-text);
-    opacity: 0.7;
-  }
-
-  :global(.focus-mode) .copy-content-btn:hover {
-    opacity: 1;
-  }
-
-  @media (hover: none) {
-    :global(.focus-mode) .copy-content-btn {
-      opacity: 0.9;
-    }
-  }
-
-  .focus-toggle-btn {
+  .bottom-right-btns {
     position: fixed;
     bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
     right: 1.25rem;
+    display: flex;
+    flex-direction: row;
+    gap: 0.5rem;
+    z-index: 20;
+  }
+
+  .corner-btn {
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: 6px;
     color: var(--color-text-muted);
-    font-size: 1rem;
+    font-size: 0.8rem;
     width: 2.5rem;
     height: 2.5rem;
     display: flex;
@@ -1768,34 +1745,39 @@
     cursor: pointer;
     opacity: 0.55;
     transition: opacity 0.15s;
-    z-index: 20;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+    padding: 0;
   }
 
-  .focus-toggle-btn:hover {
+  .corner-btn:hover {
     opacity: 1;
   }
 
-  /* On touch devices there's no hover — keep the button clearly visible */
+  .corner-btn.active {
+    opacity: 1;
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+
   @media (hover: none) {
-    .focus-toggle-btn {
+    .corner-btn {
       opacity: 0.85;
     }
   }
 
-  :global(.focus-mode) .focus-toggle-btn {
+  :global(.focus-mode) .corner-btn {
     background: var(--color-focus-bg);
     border-color: var(--color-focus-rule);
     color: var(--color-focus-text);
     opacity: 0.7;
   }
 
-  :global(.focus-mode) .focus-toggle-btn:hover {
+  :global(.focus-mode) .corner-btn:hover {
     opacity: 1;
   }
 
   @media (hover: none) {
-    :global(.focus-mode) .focus-toggle-btn {
+    :global(.focus-mode) .corner-btn {
       opacity: 0.9;
     }
   }
