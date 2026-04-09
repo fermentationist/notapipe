@@ -360,6 +360,7 @@
 
   .token-name {
     flex: 1;
+    min-width: 40%;
     font-size: 0.72rem;
     font-family: "IBM Plex Mono", monospace;
     color: var(--color-text-muted);
@@ -373,6 +374,8 @@
     align-items: center;
     gap: 4px;
     flex-shrink: 0;
+    max-width: 58%;
+    overflow: hidden;
   }
 
   .color-swatch {
@@ -388,6 +391,9 @@
     font-size: 0.72rem;
     font-family: "IBM Plex Mono", monospace;
     color: var(--color-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .color-picker {
