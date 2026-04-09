@@ -877,6 +877,9 @@
       preview_content = ytext.toString();
     };
     ytext.observe(observer);
+    // Sync current state in case ytext changed before this effect registered
+    // (e.g. IDB persistence loaded between $state init and $effect first run)
+    preview_content = ytext.toString();
     return () => ytext.unobserve(observer);
   });
 
