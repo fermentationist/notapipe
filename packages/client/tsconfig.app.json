@@ -17,7 +17,7 @@
     "paths": {
       "$lib/*": ["./src/lib/*"]
     },
-    "allowImportingTsExtensions": true,
+    "allowImportingTsExtensions": true
   },
   "include": ["src/**/*.ts", "src/**/*.js", "src/**/*.svelte"]
 }

@@ -163,9 +163,7 @@ export async function scanQr(
  * Attempt a single-frame QR decode from the current video frame.
  * Returns the decoded bytes, or null if no QR code was found.
  */
-export async function detectFrame(
-  video_element: HTMLVideoElement,
-): Promise<Uint8Array | null> {
+export async function detectFrame(video_element: HTMLVideoElement): Promise<Uint8Array | null> {
   if (hasBarcodeDetector()) {
     try {
       const detector = new BarcodeDetector({ formats: ["qr_code"] });
@@ -183,7 +181,9 @@ export async function detectFrame(
   const { readBarcodesFromImageData } = await import("zxing-wasm/reader");
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
-  if (context === null) { return null; }
+  if (context === null) {
+    return null;
+  }
   canvas.width = video_element.videoWidth;
   canvas.height = video_element.videoHeight;
   context.drawImage(video_element, 0, 0);

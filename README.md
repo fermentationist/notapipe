@@ -34,10 +34,10 @@ Two or more peers open the same URL — identified by a memorable 3-word phrase 
 
 ## Packages
 
-| Package | Description |
-|---|---|
-| `packages/client` | Vite + Svelte 5 + TypeScript frontend |
-| `packages/signalling` | Node.js WebSocket signalling server |
+| Package               | Description                           |
+| --------------------- | ------------------------------------- |
+| `packages/client`     | Vite + Svelte 5 + TypeScript frontend |
+| `packages/signalling` | Node.js WebSocket signalling server   |
 
 ## Quick start
 

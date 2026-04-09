@@ -153,6 +153,7 @@ Deploy target: Railway, Fly.io, or Render free tier. Stateless across connection
 ### 3.6 3-Word IDs: Custom wordlist
 
 No external library. A hand-curated list of ~2048 short, unambiguous English words. Each word is:
+
 - Verbally communicable (no homophones with other words in the list)
 - 3–8 characters
 - Unambiguous to spell when heard
@@ -303,6 +304,7 @@ Device A                                    Device B
 #### Word Selection Criteria
 
 The wordlist should contain approximately 2048 words satisfying:
+
 - Common nouns and adjectives only (easier to communicate verbally)
 - 3–8 characters
 - No homophones of other words in the list (e.g., include "sea" but not "see", or neither)
@@ -368,6 +370,7 @@ Server → Client:
 ```
 
 Where:
+
 - `SdpPayload = { sdpType: "offer" | "answer", sdp: string }`
 - `IcePayload = { candidate: string, sdpMid: string | null, sdpMLineIndex: number | null }`
 
@@ -415,6 +418,7 @@ interface SignalTransport {
 ```
 
 Implemented by:
+
 1. `WebSocketTransport` — wraps the WebSocket signalling client
 2. `QrTransport` — wraps the QR encode/decode flow
 
@@ -428,10 +432,7 @@ Both peers generate a random UUID on page load. When both peers are in the same 
 
 ```typescript
 const iceConfig: RTCConfiguration = {
-  iceServers: [
-    { urls: "stun:stun.l.google.com:19302" },
-    { urls: "stun:stun1.l.google.com:19302" },
-  ],
+  iceServers: [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun1.l.google.com:19302" }],
 };
 ```
 
@@ -459,6 +460,7 @@ The answerer receives it via `pc.ondatachannel`. Yjs requires ordered delivery.
 See [qr-mode.md](./qr-mode.md) for the full technical deep-dive.
 
 **Summary**: The SDP offer (~1500–4000 bytes of text) is semantically compressed into a ~78-byte binary packet by:
+
 1. Extracting the DTLS fingerprint (32 bytes), ICE ufrag (4 bytes), and ICE password (22 bytes)
 2. Encoding each IPv4 candidate as 7 bytes (1 flag + 4 IP + 2 port)
 3. Encoding the result as a QR code in binary mode (version 4, error correction L)
@@ -475,20 +477,22 @@ On the receiving side, the packet is decoded and a valid SDP is reconstructed fr
 
 ```typescript
 const doc = new Y.Doc();
-const text = doc.getText("content");  // single shared text type
+const text = doc.getText("content"); // single shared text type
 ```
 
 #### Custom WebRTC Provider
 
 The provider class:
+
 1. Takes a `Y.Doc` and a `RTCDataChannel`
 2. On DataChannel open: sends full initial sync message (state vector)
 3. On incoming messages: applies Yjs updates
 4. On local Yjs changes: sends updates through the DataChannel
 
 Message types (first byte discriminator):
+
 - `0x00` — sync step 1 (state vector)
-- `0x01` — sync step 2 (full state update)  
+- `0x01` — sync step 2 (full state update)
 - `0x02` — incremental update
 
 Uses `y-protocols/sync` directly rather than reimplementing it. `y-protocols` is already a transitive dependency of Yjs.
@@ -508,7 +512,8 @@ function applyTextareaDiff(ytext: Y.Text, oldVal: string, newVal: string) {
     j < oldVal.length - i &&
     j < newVal.length - i &&
     oldVal[oldVal.length - 1 - j] === newVal[newVal.length - 1 - j]
-  ) j++;
+  )
+    j++;
   const deleteCount = oldVal.length - i - j;
   const insertText = newVal.slice(i, newVal.length - j);
   doc.transact(() => {
@@ -565,6 +570,7 @@ Mobile-first. The textarea fills the viewport height minus the header. On deskto
 #### Connection Status Indicator
 
 CSS-only colored dot:
+
 - Gray: disconnected / waiting
 - Yellow (pulsing): connecting / ICE checking
 - Green: connected
@@ -582,7 +588,8 @@ Focus mode adds two visual layers on top of whatever theme is active — these a
   ```css
   background-image: repeating-linear-gradient(
     to bottom,
-    transparent, transparent calc(var(--line-height) - 1px),
+    transparent,
+    transparent calc(var(--line-height) - 1px),
     var(--color-rule) calc(var(--line-height) - 1px),
     var(--color-rule) var(--line-height)
   );
@@ -828,11 +835,11 @@ This reuses the existing wordlist and is ~40 lines of TypeScript using `crypto.s
 
 **Adaptive precision**: The Geolocation API's `coords.accuracy` reports the device's estimated error radius in meters. Cell size is chosen automatically based on this value rather than requiring the user to pick a mode:
 
-| `coords.accuracy` | Decimal places | Cell size | Typical context |
-|---|---|---|---|
-| < 20m | 4 | ~11m | Outdoors, good signal |
-| < 120m | 3 | ~111m | Indoors, urban canyon |
-| ≥ 120m | — | — | Warn user; accuracy too poor to match reliably |
+| `coords.accuracy` | Decimal places | Cell size | Typical context                                |
+| ----------------- | -------------- | --------- | ---------------------------------------------- |
+| < 20m             | 4              | ~11m      | Outdoors, good signal                          |
+| < 120m            | 3              | ~111m     | Indoors, urban canyon                          |
+| ≥ 120m            | —              | —         | Warn user; accuracy too poor to match reliably |
 
 The UI displays the current accuracy reading and active cell size so both parties can confirm they are on the same tier. Two devices that resolve to different precision tiers will not produce matching IDs — the display makes this immediately visible.
 
@@ -898,13 +905,14 @@ The switch between Note and Code modes is synced between peers via a `Y.Map("met
 
 **Bundle strategy:**
 
-| Chunk | Size (gzipped) | When loaded |
-|---|---|---|
-| Main bundle | ~90–110 KB | Always |
-| CodeMirror core (`@codemirror/view` + `@codemirror/state` + `y-codemirror.next`) | ~45 KB | On first switch to code mode |
-| Language pack (e.g. `@codemirror/lang-javascript`) | ~5–20 KB each | On language selection |
+| Chunk                                                                            | Size (gzipped) | When loaded                  |
+| -------------------------------------------------------------------------------- | -------------- | ---------------------------- |
+| Main bundle                                                                      | ~90–110 KB     | Always                       |
+| CodeMirror core (`@codemirror/view` + `@codemirror/state` + `y-codemirror.next`) | ~45 KB         | On first switch to code mode |
+| Language pack (e.g. `@codemirror/lang-javascript`)                               | ~5–20 KB each  | On language selection        |
 
 **Features included:**
+
 - Syntax highlighting
 - Line numbers (toggleable)
 - Bracket matching and auto-close
@@ -912,6 +920,7 @@ The switch between Note and Code modes is synced between peers via a `Y.Map("met
 - Language selector (dropdown of common languages)
 
 **Explicitly excluded** to preserve leanness:
+
 - LSP / autocomplete / intellisense
 - Multi-file / tabs
 - Diff view
@@ -920,10 +929,10 @@ The switch between Note and Code modes is synced between peers via a `Y.Map("met
 
 A read-only rendered view of the `Y.Text("content")` document, activated by switching to **Preview** mode. Lazy-loads a ~31 KB chunk on first use; the main bundle is unaffected.
 
-| Chunk | Size (gzipped) | When loaded |
-|---|---|---|
-| `marked` | ~25 KB | On first switch to Preview mode |
-| `DOMPurify` | ~6 KB | Bundled with `marked` — required for safe `innerHTML` rendering |
+| Chunk       | Size (gzipped) | When loaded                                                     |
+| ----------- | -------------- | --------------------------------------------------------------- |
+| `marked`    | ~25 KB         | On first switch to Preview mode                                 |
+| `DOMPurify` | ~6 KB          | Bundled with `marked` — required for safe `innerHTML` rendering |
 
 Preview re-renders on each Yjs document update. The source is always `Y.Text("content")` — no separate document or additional sync logic.
 
@@ -945,27 +954,27 @@ Add `manifest.json` and a service worker that caches the app shell. Enables "Add
 
 ### `packages/client`
 
-| Package | Purpose | Bundle Impact |
-|---|---|---|
-| `svelte` | UI framework | ~10 KB gzipped runtime (main chunk) |
-| `yjs` | CRDT document | ~20 KB gzipped (main chunk) |
-| `y-protocols` | Yjs sync protocol messages | Transitive dep of yjs |
-| `qrcode` | QR code generation | ~40 KB (main chunk) |
-| `zxing-wasm` | QR scanning fallback | ~500 KB WASM — **lazy, only loaded when `BarcodeDetector` unavailable** |
-| `@codemirror/view` + `@codemirror/state` | Code editor core (v2) | ~40 KB — **lazy, only loaded when code mode activated** |
-| `y-codemirror.next` | Yjs binding for CodeMirror 6 (v2) | ~5 KB — **lazy, bundled with code editor chunk** |
-| `@codemirror/lang-*` | Language packs (v2) | ~5–20 KB each — **lazy, loaded per language selection** |
-| `marked` | Markdown parser (v2) | ~25 KB — **lazy, only loaded when Preview mode activated** |
-| `DOMPurify` | HTML sanitization for markdown output (v2) | ~6 KB — **lazy, bundled with `marked`** |
+| Package                                  | Purpose                                    | Bundle Impact                                                           |
+| ---------------------------------------- | ------------------------------------------ | ----------------------------------------------------------------------- |
+| `svelte`                                 | UI framework                               | ~10 KB gzipped runtime (main chunk)                                     |
+| `yjs`                                    | CRDT document                              | ~20 KB gzipped (main chunk)                                             |
+| `y-protocols`                            | Yjs sync protocol messages                 | Transitive dep of yjs                                                   |
+| `qrcode`                                 | QR code generation                         | ~40 KB (main chunk)                                                     |
+| `zxing-wasm`                             | QR scanning fallback                       | ~500 KB WASM — **lazy, only loaded when `BarcodeDetector` unavailable** |
+| `@codemirror/view` + `@codemirror/state` | Code editor core (v2)                      | ~40 KB — **lazy, only loaded when code mode activated**                 |
+| `y-codemirror.next`                      | Yjs binding for CodeMirror 6 (v2)          | ~5 KB — **lazy, bundled with code editor chunk**                        |
+| `@codemirror/lang-*`                     | Language packs (v2)                        | ~5–20 KB each — **lazy, loaded per language selection**                 |
+| `marked`                                 | Markdown parser (v2)                       | ~25 KB — **lazy, only loaded when Preview mode activated**              |
+| `DOMPurify`                              | HTML sanitization for markdown output (v2) | ~6 KB — **lazy, bundled with `marked`**                                 |
 
 No `simple-peer`. No `y-webrtc`.
 
 ### `packages/signalling`
 
-| Package | Purpose |
-|---|---|
-| `ws` | WebSocket server |
-| `tsx` | Dev-only TS runner (devDependency) |
+| Package | Purpose                            |
+| ------- | ---------------------------------- |
+| `ws`    | WebSocket server                   |
+| `tsx`   | Dev-only TS runner (devDependency) |
 
 ### Target Bundle Size
 

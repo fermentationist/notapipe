@@ -60,9 +60,15 @@ class PerPeerChannel implements SignalTransport {
     });
   }
 
-  onOffer(callback: OfferCallback): void { this.offer_callback = callback; }
-  onAnswer(callback: AnswerCallback): void { this.answer_callback = callback; }
-  onIceCandidate(callback: IceCandidateCallback): void { this.ice_candidate_callback = callback; }
+  onOffer(callback: OfferCallback): void {
+    this.offer_callback = callback;
+  }
+  onAnswer(callback: AnswerCallback): void {
+    this.answer_callback = callback;
+  }
+  onIceCandidate(callback: IceCandidateCallback): void {
+    this.ice_candidate_callback = callback;
+  }
 
   close(): void {
     this.ws.removePeerChannel(this.remote_peer_id);

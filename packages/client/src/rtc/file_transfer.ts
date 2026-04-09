@@ -55,7 +55,14 @@ interface IncomingTransfer {
 }
 
 type ControlMessage =
-  | { type: "offer"; transfer_id: string; filename: string; mime_type: string; total_size: number; chunk_count: number }
+  | {
+      type: "offer";
+      transfer_id: string;
+      filename: string;
+      mime_type: string;
+      total_size: number;
+      chunk_count: number;
+    }
   | { type: "accept"; transfer_id: string }
   | { type: "decline"; transfer_id: string }
   | { type: "done"; transfer_id: string }
@@ -98,7 +105,9 @@ export class FileTransferManager {
       return null;
     }
     if (file.size > MAX_FILE_SIZE_BYTES) {
-      this.callbacks.onError(`File exceeds the 100 MB limit (${(file.size / 1_048_576).toFixed(1)} MB)`);
+      this.callbacks.onError(
+        `File exceeds the 100 MB limit (${(file.size / 1_048_576).toFixed(1)} MB)`,
+      );
       return null;
     }
 
@@ -178,7 +187,11 @@ export class FileTransferManager {
         return;
       }
 
-      const header = JSON.stringify({ type: "chunk", transfer_id, index: transfer.next_chunk_index });
+      const header = JSON.stringify({
+        type: "chunk",
+        transfer_id,
+        index: transfer.next_chunk_index,
+      });
       const header_bytes = new TextEncoder().encode(header);
       const frame = new ArrayBuffer(4 + header_bytes.byteLength + chunk_data.byteLength);
       const view = new DataView(frame);
@@ -299,7 +312,11 @@ export class FileTransferManager {
     transfer.chunks[header.index] = chunk_data;
     transfer.received_count++;
 
-    this.callbacks.onProgress(header.transfer_id, transfer.received_count, transfer.offer.chunk_count);
+    this.callbacks.onProgress(
+      header.transfer_id,
+      transfer.received_count,
+      transfer.offer.chunk_count,
+    );
   }
 
   private assembleFile(transfer_id: string): void {
@@ -310,13 +327,20 @@ export class FileTransferManager {
 
     const valid_chunks = transfer.chunks.filter((c): c is ArrayBuffer => c !== null);
     if (valid_chunks.length !== transfer.offer.chunk_count) {
-      this.callbacks.onError(`Incomplete transfer: received ${valid_chunks.length}/${transfer.offer.chunk_count} chunks`);
+      this.callbacks.onError(
+        `Incomplete transfer: received ${valid_chunks.length}/${transfer.offer.chunk_count} chunks`,
+      );
       this.incoming.delete(transfer_id);
       return;
     }
 
     const blob = new Blob(valid_chunks, { type: transfer.offer.mime_type });
     this.incoming.delete(transfer_id);
-    this.callbacks.onFileReceived(transfer_id, blob, transfer.offer.filename, transfer.offer.mime_type);
+    this.callbacks.onFileReceived(
+      transfer_id,
+      blob,
+      transfer.offer.filename,
+      transfer.offer.mime_type,
+    );
   }
 }

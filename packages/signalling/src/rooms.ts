@@ -25,11 +25,7 @@ function send(socket: WebSocket, message: ServerMessage): void {
  * Returns "joined" if successful, "full" if the room already has MAX_PEERS_PER_ROOM.
  * Sends the appropriate server messages to all affected peers.
  */
-export function joinRoom(
-  room_id: string,
-  peer_id: string,
-  socket: WebSocket,
-): "joined" | "full" {
+export function joinRoom(room_id: string, peer_id: string, socket: WebSocket): "joined" | "full" {
   let room = rooms.get(room_id);
 
   if (room === undefined) {
@@ -128,9 +124,7 @@ export function forwardSignal(
  * Find which room a peer is currently in, if any.
  * Returns { room_id, room } or null.
  */
-export function findPeerRoom(
-  peer_id: string,
-): { room_id: string; room: Room } | null {
+export function findPeerRoom(peer_id: string): { room_id: string; room: Room } | null {
   for (const [room_id, room] of rooms) {
     if (room.peers.has(peer_id)) {
       return { room_id, room };

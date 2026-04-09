@@ -78,10 +78,13 @@ function toBytes(data: ArrayBuffer | ArrayBufferLike | ArrayBufferView): Uint8Ar
 }
 
 /** Parse the JSON header from a binary chunk frame */
-function parseChunkHeader(data: ArrayBuffer | ArrayBufferView): { type: string; transfer_id: string; index: number } {
+function parseChunkHeader(data: ArrayBuffer | ArrayBufferView): {
+  type: string;
+  transfer_id: string;
+  index: number;
+} {
   const bytes = toBytes(data);
-  const header_length =
-    (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
+  const header_length = (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
   const header_bytes = bytes.slice(4, 4 + header_length);
   return JSON.parse(new TextDecoder().decode(header_bytes)) as {
     type: string;
@@ -93,8 +96,7 @@ function parseChunkHeader(data: ArrayBuffer | ArrayBufferView): { type: string; 
 /** Extract the chunk payload from a binary chunk frame */
 function parseChunkData(data: ArrayBuffer | ArrayBufferView): Uint8Array {
   const bytes = toBytes(data);
-  const header_length =
-    (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
+  const header_length = (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
   return bytes.slice(4 + header_length);
 }
 
@@ -146,9 +148,7 @@ describe("FileTransferManager — sending", () => {
     const large_file = new File([new ArrayBuffer(104_857_601)], "huge.bin");
     const result = manager.sendFile(large_file);
     expect(result).toBeNull();
-    expect(noop_callbacks.onError).toHaveBeenCalledWith(
-      expect.stringContaining("100 MB"),
-    );
+    expect(noop_callbacks.onError).toHaveBeenCalledWith(expect.stringContaining("100 MB"));
   });
 
   it("sends an offer message when sendFile is called", () => {
@@ -178,9 +178,14 @@ describe("FileTransferManager — sending", () => {
     channel.dispatchMessage(JSON.stringify({ type: "accept", transfer_id }));
 
     // Wait for async chunk reads — vi.waitFor polls until the callback doesn't throw
-    await vi.waitFor(() => {
-      if (channel.sent.length < 3) { throw new Error("waiting for chunks"); }
-    }, { timeout: 2000 });
+    await vi.waitFor(
+      () => {
+        if (channel.sent.length < 3) {
+          throw new Error("waiting for chunks");
+        }
+      },
+      { timeout: 2000 },
+    );
 
     // Second message: the chunk frame (binary, not a string)
     const chunk_frame = channel.sent[1];
@@ -203,7 +208,14 @@ describe("FileTransferManager — sending", () => {
     const transfer_id = "fake-transfer-id";
     // Simulate an incoming offer so the manager knows about the transfer
     channel.dispatchMessage(
-      JSON.stringify({ type: "offer", transfer_id, filename: "x.bin", mime_type: "application/octet-stream", total_size: 10, chunk_count: 1 }),
+      JSON.stringify({
+        type: "offer",
+        transfer_id,
+        filename: "x.bin",
+        mime_type: "application/octet-stream",
+        total_size: 10,
+        chunk_count: 1,
+      }),
     );
     channel.sent.length = 0; // clear the offer echo if any
 

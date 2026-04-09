@@ -31,8 +31,12 @@ test.describe("Signalling — two-peer connection and text sync", () => {
       await page_b.waitForLoadState("networkidle");
       await connectViaSignalling(page_b);
 
-      await expect(page_a.locator(".status-label")).toContainText("connected", { timeout: CONNECTION_TIMEOUT });
-      await expect(page_b.locator(".status-label")).toContainText("connected", { timeout: CONNECTION_TIMEOUT });
+      await expect(page_a.locator(".status-label")).toContainText("connected", {
+        timeout: CONNECTION_TIMEOUT,
+      });
+      await expect(page_b.locator(".status-label")).toContainText("connected", {
+        timeout: CONNECTION_TIMEOUT,
+      });
     } finally {
       await ctx_a.close();
       await ctx_b.close();
@@ -56,13 +60,19 @@ test.describe("Signalling — two-peer connection and text sync", () => {
       await page_b.waitForLoadState("networkidle");
       await connectViaSignalling(page_b);
 
-      await expect(page_a.locator(".status-label")).toContainText("connected", { timeout: CONNECTION_TIMEOUT });
-      await expect(page_b.locator(".status-label")).toContainText("connected", { timeout: CONNECTION_TIMEOUT });
+      await expect(page_a.locator(".status-label")).toContainText("connected", {
+        timeout: CONNECTION_TIMEOUT,
+      });
+      await expect(page_b.locator(".status-label")).toContainText("connected", {
+        timeout: CONNECTION_TIMEOUT,
+      });
 
       await page_a.locator("textarea").click();
       await page_a.locator("textarea").fill("hello from peer A");
 
-      await expect(page_b.locator("textarea")).toHaveValue("hello from peer A", { timeout: SYNC_TIMEOUT });
+      await expect(page_b.locator("textarea")).toHaveValue("hello from peer A", {
+        timeout: SYNC_TIMEOUT,
+      });
     } finally {
       await ctx_a.close();
       await ctx_b.close();
@@ -86,13 +96,19 @@ test.describe("Signalling — two-peer connection and text sync", () => {
       await page_b.waitForLoadState("networkidle");
       await connectViaSignalling(page_b);
 
-      await expect(page_a.locator(".status-label")).toContainText("connected", { timeout: CONNECTION_TIMEOUT });
-      await expect(page_b.locator(".status-label")).toContainText("connected", { timeout: CONNECTION_TIMEOUT });
+      await expect(page_a.locator(".status-label")).toContainText("connected", {
+        timeout: CONNECTION_TIMEOUT,
+      });
+      await expect(page_b.locator(".status-label")).toContainText("connected", {
+        timeout: CONNECTION_TIMEOUT,
+      });
 
       await page_b.locator("textarea").click();
       await page_b.locator("textarea").fill("hello from peer B");
 
-      await expect(page_a.locator("textarea")).toHaveValue("hello from peer B", { timeout: SYNC_TIMEOUT });
+      await expect(page_a.locator("textarea")).toHaveValue("hello from peer B", {
+        timeout: SYNC_TIMEOUT,
+      });
     } finally {
       await ctx_a.close();
       await ctx_b.close();
@@ -116,8 +132,12 @@ test.describe("Signalling — two-peer connection and text sync", () => {
       await page_b.waitForLoadState("networkidle");
       await connectViaSignalling(page_b);
 
-      await expect(page_a.locator(".status-label")).toContainText("connected", { timeout: CONNECTION_TIMEOUT });
-      await expect(page_b.locator(".status-label")).toContainText("connected", { timeout: CONNECTION_TIMEOUT });
+      await expect(page_a.locator(".status-label")).toContainText("connected", {
+        timeout: CONNECTION_TIMEOUT,
+      });
+      await expect(page_b.locator(".status-label")).toContainText("connected", {
+        timeout: CONNECTION_TIMEOUT,
+      });
 
       // A types a line, wait for B to receive it
       await page_a.locator("textarea").fill("line one");
@@ -125,7 +145,9 @@ test.describe("Signalling — two-peer connection and text sync", () => {
 
       // B appends to it
       await page_b.locator("textarea").fill("line one\nline two");
-      await expect(page_a.locator("textarea")).toHaveValue("line one\nline two", { timeout: SYNC_TIMEOUT });
+      await expect(page_a.locator("textarea")).toHaveValue("line one\nline two", {
+        timeout: SYNC_TIMEOUT,
+      });
     } finally {
       await ctx_a.close();
       await ctx_b.close();
@@ -151,15 +173,21 @@ test.describe("Signalling — two-peer connection and text sync", () => {
       await page_b.goto(room_url);
       await page_b.waitForLoadState("networkidle");
       await connectViaSignalling(page_b);
-      await expect(page_a.locator(".status-label")).toContainText("connected", { timeout: CONNECTION_TIMEOUT });
-      await expect(page_b.locator(".status-label")).toContainText("connected", { timeout: CONNECTION_TIMEOUT });
+      await expect(page_a.locator(".status-label")).toContainText("connected", {
+        timeout: CONNECTION_TIMEOUT,
+      });
+      await expect(page_b.locator(".status-label")).toContainText("connected", {
+        timeout: CONNECTION_TIMEOUT,
+      });
 
       // C joins the established room
       await page_c.goto(room_url);
       await page_c.waitForLoadState("networkidle");
       await connectViaSignalling(page_c);
 
-      await expect(page_c.locator(".status-label")).toContainText("connected", { timeout: CONNECTION_TIMEOUT });
+      await expect(page_c.locator(".status-label")).toContainText("connected", {
+        timeout: CONNECTION_TIMEOUT,
+      });
     } finally {
       await ctx_a.close();
       await ctx_b.close();
@@ -186,19 +214,29 @@ test.describe("Signalling — two-peer connection and text sync", () => {
       await page_b.goto(room_url);
       await page_b.waitForLoadState("networkidle");
       await connectViaSignalling(page_b);
-      await expect(page_a.locator(".status-label")).toContainText("connected", { timeout: CONNECTION_TIMEOUT });
-      await expect(page_b.locator(".status-label")).toContainText("connected", { timeout: CONNECTION_TIMEOUT });
+      await expect(page_a.locator(".status-label")).toContainText("connected", {
+        timeout: CONNECTION_TIMEOUT,
+      });
+      await expect(page_b.locator(".status-label")).toContainText("connected", {
+        timeout: CONNECTION_TIMEOUT,
+      });
 
       // C joins the established room
       await page_c.goto(room_url);
       await page_c.waitForLoadState("networkidle");
       await connectViaSignalling(page_c);
-      await expect(page_c.locator(".status-label")).toContainText("connected", { timeout: CONNECTION_TIMEOUT });
+      await expect(page_c.locator(".status-label")).toContainText("connected", {
+        timeout: CONNECTION_TIMEOUT,
+      });
 
       await page_a.locator("textarea").fill("hello from peer A");
 
-      await expect(page_b.locator("textarea")).toHaveValue("hello from peer A", { timeout: SYNC_TIMEOUT });
-      await expect(page_c.locator("textarea")).toHaveValue("hello from peer A", { timeout: SYNC_TIMEOUT });
+      await expect(page_b.locator("textarea")).toHaveValue("hello from peer A", {
+        timeout: SYNC_TIMEOUT,
+      });
+      await expect(page_c.locator("textarea")).toHaveValue("hello from peer A", {
+        timeout: SYNC_TIMEOUT,
+      });
     } finally {
       await ctx_a.close();
       await ctx_b.close();

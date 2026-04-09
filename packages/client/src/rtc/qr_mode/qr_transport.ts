@@ -113,10 +113,7 @@ export class QrTransport implements SignalTransport {
   // Internal
   // ---------------------------------------------------------------------------
 
-  private waitForIceGatheringAndEncode(
-    sdp: RTCSessionDescriptionInit,
-    is_answer: boolean,
-  ): void {
+  private waitForIceGatheringAndEncode(sdp: RTCSessionDescriptionInit, is_answer: boolean): void {
     const pc = this.peer_connection;
 
     if (pc.iceGatheringState === "complete") {

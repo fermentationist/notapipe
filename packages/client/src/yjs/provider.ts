@@ -129,7 +129,11 @@ export class RTCDataChannelProvider {
  */
 export function adjustCursor(old_text: string, new_text: string, cursor: number): number {
   let prefix = 0;
-  while (prefix < old_text.length && prefix < new_text.length && old_text[prefix] === new_text[prefix]) {
+  while (
+    prefix < old_text.length &&
+    prefix < new_text.length &&
+    old_text[prefix] === new_text[prefix]
+  ) {
     prefix++;
   }
   let suffix = 0;

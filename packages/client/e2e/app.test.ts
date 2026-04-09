@@ -3,7 +3,9 @@ import { test, expect, type Page, type ConsoleMessage } from "@playwright/test";
 async function collectConsoleErrors(page: Page): Promise<string[]> {
   const errors: string[] = [];
   page.on("console", (msg: ConsoleMessage) => {
-    if (msg.type() === "error") { errors.push(msg.text()); }
+    if (msg.type() === "error") {
+      errors.push(msg.text());
+    }
   });
   page.on("pageerror", (err: Error) => {
     errors.push(`[pageerror] ${err.message}`);
@@ -142,7 +144,9 @@ test.describe("Dropdown menus", () => {
     // Verify the canvas has actually been painted (not just blank white pixels)
     const has_content = await qr_canvas.evaluate((canvas: HTMLCanvasElement) => {
       const ctx = canvas.getContext("2d");
-      if (ctx === null) { return false; }
+      if (ctx === null) {
+        return false;
+      }
       const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const first_pixel = data[0];
       return Array.from(data).some((byte) => byte !== first_pixel);
@@ -168,9 +172,7 @@ test.describe("Dropdown menus", () => {
 
     // Either the video element appears (camera granted) or an error message (camera denied)
     // — either way, the scan step rendered without a JS crash.
-    await expect(
-      page.locator(".camera-preview, .error")
-    ).toBeVisible({ timeout: 5000 });
+    await expect(page.locator(".camera-preview, .error")).toBeVisible({ timeout: 5000 });
 
     expect(errors, `JS errors: ${errors.join("\n")}`).toHaveLength(0);
   });
@@ -181,12 +183,7 @@ test.describe("Dropdown menus", () => {
 
     await page.getByRole("button", { name: "Clear data" }).click();
 
-    const items = [
-      "Clear current doc",
-      "Clear all docs",
-      "Clear settings",
-      "Clear everything",
-    ];
+    const items = ["Clear current doc", "Clear all docs", "Clear settings", "Clear everything"];
 
     for (const name of items) {
       await expect(page.getByRole("menuitem", { name })).toBeVisible();

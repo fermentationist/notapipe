@@ -24,12 +24,14 @@ vp check --fix       # auto-fix format/lint issues
 ```
 
 Individual packages:
+
 ```bash
 vp dev --filter packages/client       # Vite dev server only
 vp dev --filter packages/signalling   # signalling server only
 ```
 
 For local mobile testing (camera/QR requires HTTPS on iOS):
+
 ```bash
 # Add --https to vite config or vp dev in packages/client for self-signed cert
 ```
@@ -43,12 +45,14 @@ Bootstrap with `vp create` using the `vite:monorepo` template for the root, then
 Vitest via `vp test`. No separate test runner config needed — Vitest reuses the Vite config.
 
 **Unit tests** (pure logic, no browser APIs needed):
+
 - `src/id/generate.ts` — `generateId`, `parseId`, `isValidId`
 - `src/rtc/qr-mode/sdp-codec.ts` — encode/decode round-trips using captured real SDP strings from Chrome, Firefox, and Safari; verify the reconstructed SDP is accepted by `setRemoteDescription` (this is the most critical test surface)
 - Yjs textarea prefix/suffix diff algorithm in `src/yjs/provider.ts`
 - Signalling server room logic in `packages/signalling/src/rooms.ts`
 
 **Integration tests**:
+
 - Signalling server message routing — spin up a real `ws` server in the test, connect two WebSocket clients, verify the join/signal/leave flow end-to-end
 - SDP codec cross-browser: encode a real SDP offer → decode → verify the reconstructed SDP round-trips without loss of candidate data
 
@@ -67,6 +71,7 @@ Key architectural layers:
 **ID system** (`src/id/`): Two derivation paths, same wordlist. `generateId()` uses `crypto.getRandomValues()` — runs on page load with no permissions. `geoId(coords)` hashes quantized GPS coordinates via `crypto.subtle.digest` — only called when the user explicitly taps "Connect nearby". `parseId()` reads from `window.location.pathname`. No server calls are made on page load regardless of whether the URL contains a room ID — the user must explicitly tap a connection action before any network contact occurs. Vite dev server needs `historyApiFallback: true`; production needs SPA rewrite rule (all paths → `index.html`).
 
 **WebRTC layer** (`src/rtc/`): Built on native `RTCPeerConnection` — no `simple-peer` or `y-webrtc`. The key abstraction is `SignalTransport` (in `peer.ts`), an interface with `sendOffer/sendAnswer/sendIceCandidate/onOffer/onAnswer/onIceCandidate/close`. Two implementations:
+
 - `WebSocketTransport` — wraps the WS signalling client
 - `QrTransport` — wraps the QR encode/decode flow
 
@@ -106,12 +111,12 @@ Message protocol is defined in `src/types.ts` — client→server: `join`, `sign
 
 ## Dependencies (client)
 
-| Package | Notes |
-|---|---|
-| `svelte` | UI framework — compiles away, ~10 KB runtime |
-| `yjs` | CRDT |
+| Package       | Notes                                                  |
+| ------------- | ------------------------------------------------------ |
+| `svelte`      | UI framework — compiles away, ~10 KB runtime           |
+| `yjs`         | CRDT                                                   |
 | `y-protocols` | Transitive dep of yjs — use directly for sync messages |
-| `qrcode` | QR generation to canvas |
-| `zxing-wasm` | QR scan fallback — **lazy only** |
+| `qrcode`      | QR generation to canvas                                |
+| `zxing-wasm`  | QR scan fallback — **lazy only**                       |
 
 No `simple-peer`. No `y-webrtc`.

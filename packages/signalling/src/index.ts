@@ -36,11 +36,7 @@ async function serveStatic(request: IncomingMessage, response: ServerResponse): 
   }
 
   // Try the exact path, then the exact path + /index.html, then SPA fallback
-  const candidates = [
-    candidate,
-    join(candidate, "index.html"),
-    join(CLIENT_DIST, "index.html"),
-  ];
+  const candidates = [candidate, join(candidate, "index.html"), join(CLIENT_DIST, "index.html")];
 
   for (const file_path of candidates) {
     try {
@@ -78,7 +74,9 @@ const http_server = createServer(async (request, response) => {
   // Serve built client static files for all non-WebSocket GET requests
   if (request.method === "GET") {
     const served = await serveStatic(request, response);
-    if (served) { return; }
+    if (served) {
+      return;
+    }
   }
 
   response.writeHead(404);

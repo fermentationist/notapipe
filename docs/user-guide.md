@@ -37,6 +37,7 @@ notapipe is a browser-based tool for sharing text between devices in real time. 
 **The primary use case** is moving text from one machine to another without a cable, cloud account, or chat app. Open the same room URL on both devices, wait for the connection indicator to turn green, and whatever you type on one device instantly appears on the other. Then copy it from the editor with the copy button (bottom-right corner) and paste it wherever you need it.
 
 **Key properties:**
+
 - Nothing you type is stored on any server
 - The signalling server only brokers the initial connection handshake; it never sees document content or the room token
 - In QR mode, no server is involved at all — two devices connect directly
@@ -50,22 +51,26 @@ notapipe is a browser-based tool for sharing text between devices in real time. 
 The interface has four main regions:
 
 **Header** (top bar)
+
 - App name (`notapipe`) on the left
 - Connection status indicator in the centre
 - Two buttons on the right: `···` (actions menu) and `⚙` (settings)
   - `···` opens a dropdown with all action buttons: import (`↑`), export (`↓`), send file (paperclip), markdown preview (`M↓`), wide layout toggle (desktop only), share, force reload, and clear data options
 
 **Room bar** (below the header)
+
 - The current room ID (e.g. `apple-river-moon`)
 - A copy button (two-overlapping-pages icon) to copy the room URL to the clipboard
 - A **Find a room** dropdown with options to navigate to a random room or find nearby devices
 
 **Editor** (main area)
+
 - A plain-text textarea that fills the available space
 - All connected peers see the same content and can edit simultaneously
 - A **copy button** (overlapping-pages icon) in the bottom-right copies all editor text to the clipboard in one tap — useful for transferring the synced content into another app
 
 **Action bar** (bottom)
+
 - When not connected: a **Connect to peer** button that opens a dropdown with connection method options
 - When connected: an **Add peer via QR** button and a **Disconnect** button
 
@@ -102,6 +107,7 @@ notapipe does not connect automatically when you open a URL. You must explicitly
 Best for: devices on the same Wi-Fi network, or over the internet when both peers can reach the signalling server.
 
 **Workflow:**
+
 1. Both devices navigate to the same room URL (share the link, or use **Find a room → Nearby**)
 2. On one device, click **Connect to peer ▾** → **Use signalling server**
 3. The status indicator changes to `waiting for peer…`
@@ -134,6 +140,7 @@ In QR mode, the WebRTC offer and answer are encoded as QR codes and exchanged by
 **Note on room IDs and QR:** When device B scans device A's QR code, it adopts device A's room ID. If device B already has content and the room IDs differ, a confirmation dialog will appear before the switch.
 
 **Camera requirements:**
+
 - iOS requires HTTPS for camera access — the app must be served over `https://`
 - iOS Safari requires iOS 17.4 or later for in-browser QR scanning
 - On older devices, a fallback scanner (`zxing-wasm`) is used automatically
@@ -185,10 +192,12 @@ On desktop, `···` → **⬌ Wide layout** expands the app to nearly the full 
 Focus mode hides the header and action bar and gives the editor a full-screen ruled-paper aesthetic.
 
 **Entering focus mode:**
+
 - Click the `⛶` button in the bottom-right corner of the editor
 - Press `Cmd+F` (Mac) or `Ctrl+F` (Windows/Linux)
 
 **Exiting focus mode:**
+
 - Press `Escape`
 - Press `Cmd+F` / `Ctrl+F` again
 - Tap the `✕` button that appears in the same corner
@@ -336,12 +345,12 @@ Chrome will show an **Add to Home Screen** banner automatically, or you can tap 
 
 Click **⊗** (Clear data) for options to remove stored content:
 
-| Option | What it clears |
-|---|---|
+| Option                | What it clears                                                 |
+| --------------------- | -------------------------------------------------------------- |
 | **Clear current doc** | Empties the shared document and removes it from `localStorage` |
-| **Clear all docs** | Removes saved documents for all room IDs from `localStorage` |
-| **Clear settings** | Removes the saved theme and all other settings |
-| **Clear everything** | Clears all of the above |
+| **Clear all docs**    | Removes saved documents for all room IDs from `localStorage`   |
+| **Clear settings**    | Removes the saved theme and all other settings                 |
+| **Clear everything**  | Clears all of the above                                        |
 
 Each option shows a confirmation dialog before proceeding.
 
@@ -393,4 +402,4 @@ The remaining options (**Clear all docs**, **Clear settings**, **Clear everythin
 
 ---
 
-*notapipe v0.0.1 · April 2026*
+_notapipe v0.0.1 · April 2026_

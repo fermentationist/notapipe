@@ -9,13 +9,13 @@
     "test": "vp test",
     "check": "vp check"
   },
+  "dependencies": {
+    "marked": "^18.0.0"
+  },
   "packageManager": "pnpm@10.33.0",
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild"
     ]
-  },
-  "dependencies": {
-    "marked": "^18.0.0"
   }
 }

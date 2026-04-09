@@ -182,13 +182,25 @@ function filterCandidates(candidates: ParsedCandidate[]): ParsedCandidate[] {
     if (candidate.candidate_type === "relay") {
       continue;
     }
-    if (candidate.candidate_type === "host" && candidate.address_type === "ipv4" && !has_host_ipv4) {
+    if (
+      candidate.candidate_type === "host" &&
+      candidate.address_type === "ipv4" &&
+      !has_host_ipv4
+    ) {
       has_host_ipv4 = true;
       selected.push(candidate);
-    } else if (candidate.candidate_type === "host" && candidate.address_type === "ipv6" && !has_host_ipv6) {
+    } else if (
+      candidate.candidate_type === "host" &&
+      candidate.address_type === "ipv6" &&
+      !has_host_ipv6
+    ) {
       has_host_ipv6 = true;
       selected.push(candidate);
-    } else if (candidate.candidate_type === "srflx" && candidate.address_type === "ipv4" && !has_srflx_ipv4) {
+    } else if (
+      candidate.candidate_type === "srflx" &&
+      candidate.address_type === "ipv4" &&
+      !has_srflx_ipv4
+    ) {
       has_srflx_ipv4 = true;
       selected.push(candidate);
     } else if (candidate.address_type === "mdns" && !has_mdns) {
@@ -203,11 +215,7 @@ function filterCandidates(candidates: ParsedCandidate[]): ParsedCandidate[] {
 /**
  * Encode a single IPv4 candidate into 7 bytes.
  */
-function encodeIpv4Candidate(
-  candidate: ParsedCandidate,
-  view: DataView,
-  offset: number,
-): number {
+function encodeIpv4Candidate(candidate: ParsedCandidate, view: DataView, offset: number): number {
   let flags = ADDR_TYPE_IPV4;
   if (candidate.candidate_type === "srflx") {
     flags |= CAND_TYPE_SRFLX;
@@ -230,11 +238,7 @@ function encodeIpv4Candidate(
 /**
  * Encode a single IPv6 candidate into 19 bytes.
  */
-function encodeIpv6Candidate(
-  candidate: ParsedCandidate,
-  view: DataView,
-  offset: number,
-): number {
+function encodeIpv6Candidate(candidate: ParsedCandidate, view: DataView, offset: number): number {
   let flags = ADDR_TYPE_IPV6;
   if (candidate.candidate_type === "srflx") {
     flags |= CAND_TYPE_SRFLX;
@@ -279,11 +283,7 @@ function expandIpv6(ipv6: string): number[] {
  * The UUID hostname (e.g. "550e8400-e29b-41d4-a716-446655440000.local") is stored
  * as 16 raw bytes.
  */
-function encodeMdnsCandidate(
-  candidate: ParsedCandidate,
-  view: DataView,
-  offset: number,
-): number {
+function encodeMdnsCandidate(candidate: ParsedCandidate, view: DataView, offset: number): number {
   const flags = ADDR_TYPE_MDNS;
   view.setUint8(offset, flags);
   offset++;
@@ -303,7 +303,12 @@ function encodeMdnsCandidate(
 /**
  * Encode an SDP string into a compact binary packet.
  */
-export function encodeSdp(sdp: string, is_answer: boolean, room_id: string, room_token: string): Uint8Array {
+export function encodeSdp(
+  sdp: string,
+  is_answer: boolean,
+  room_id: string,
+  room_token: string,
+): Uint8Array {
   const fingerprint_bytes = extractFingerprint(sdp);
   const ufrag = extractUfrag(sdp);
   const pwd = extractPwd(sdp);
@@ -448,8 +453,7 @@ function decodePacket(packet: Uint8Array): DecodedPacket {
       const uuid_bytes = Array.from(packet.subarray(offset, offset + 16));
       offset += 16;
       const hex_string = uuid_bytes.map((b) => b.toString(16).padStart(2, "0")).join("");
-      ip_address =
-        `${hex_string.slice(0, 8)}-${hex_string.slice(8, 12)}-${hex_string.slice(12, 16)}-${hex_string.slice(16, 20)}-${hex_string.slice(20)}.local`;
+      ip_address = `${hex_string.slice(0, 8)}-${hex_string.slice(8, 12)}-${hex_string.slice(12, 16)}-${hex_string.slice(16, 20)}-${hex_string.slice(20)}.local`;
       port = view.getUint16(offset, false);
       offset += 2;
     }
@@ -478,9 +482,7 @@ function decodePacket(packet: Uint8Array): DecodedPacket {
  */
 function buildSdpFromParts(decoded: DecodedPacket): string {
   const setup = decoded.is_answer ? "active" : "actpass";
-  const candidate_lines = decoded.candidates
-    .map((c) => `a=${c.candidate_line}`)
-    .join("\r\n");
+  const candidate_lines = decoded.candidates.map((c) => `a=${c.candidate_line}`).join("\r\n");
 
   return [
     "v=0",
@@ -514,7 +516,12 @@ export function decodeSdp(packet: Uint8Array): {
 } {
   const decoded = decodePacket(packet);
   const sdp = buildSdpFromParts(decoded);
-  return { sdp, type: decoded.is_answer ? "answer" : "offer", room_id: decoded.room_id, room_token: decoded.room_token };
+  return {
+    sdp,
+    type: decoded.is_answer ? "answer" : "offer",
+    room_id: decoded.room_id,
+    room_token: decoded.room_token,
+  };
 }
 
 /**
@@ -523,7 +530,11 @@ export function decodeSdp(packet: Uint8Array): {
  * Only offer packets carry an authoritative room ID — answer packets should be ignored
  * for room switching purposes.
  */
-export function decodePacketMeta(packet: Uint8Array): { room_id: string; room_token: string; is_answer: boolean } {
+export function decodePacketMeta(packet: Uint8Array): {
+  room_id: string;
+  room_token: string;
+  is_answer: boolean;
+} {
   const decoded = decodePacket(packet);
   return { room_id: decoded.room_id, room_token: decoded.room_token, is_answer: decoded.is_answer };
 }
