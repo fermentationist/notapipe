@@ -7,16 +7,58 @@
 
   let html = $state("");
   let marked_loaded = false;
+  let preview_el = $state<HTMLDivElement | null>(null);
+
+  // GitHub-compatible heading slug: lowercase, keep alphanumeric+spaces+hyphens,
+  // replace spaces with hyphens. Matches the format used in user-guide.md TOC.
+  function slugify(text: string): string {
+    return text
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, "")
+      .trim()
+      .replace(/\s+/g, "-");
+  }
 
   async function render(text: string): Promise<void> {
     if (!marked_loaded) {
       const { marked } = await import("marked");
-      // Configure once
       marked.setOptions({ breaks: true, gfm: true });
+      marked.use({
+        renderer: {
+          heading({ text, depth }: { text: string; depth: number }): string {
+            const id = slugify(text);
+            return `<h${depth} id="${id}">${text}</h${depth}>\n`;
+          },
+          link({ href, text }: { href: string; text: string }): string {
+            if (href.startsWith("#")) {
+              return `<a href="${href}">${text}</a>`;
+            }
+            return `<a href="${href}" target="_blank" rel="noopener noreferrer">${text}</a>`;
+          },
+        },
+      });
       marked_loaded = true;
     }
     const { marked } = await import("marked");
     html = await marked(text);
+  }
+
+  // Intercept anchor-link clicks to scroll within the container without
+  // changing window.location.hash (which would overwrite the room token).
+  function handleClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    const anchor = target.closest("a");
+    if (anchor === null) {
+      return;
+    }
+    const href = anchor.getAttribute("href");
+    if (href === null || !href.startsWith("#")) {
+      return;
+    }
+    event.preventDefault();
+    const id = href.slice(1);
+    const heading = preview_el?.querySelector(`[id="${id}"]`);
+    heading?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   $effect(() => {
@@ -24,7 +66,13 @@
   });
 </script>
 
-<div class="preview" aria-label="Markdown preview">
+<div
+  class="preview"
+  aria-label="Markdown preview"
+  bind:this={preview_el}
+  onclick={handleClick}
+  role="document"
+>
   {#if html}
     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
     {@html html}

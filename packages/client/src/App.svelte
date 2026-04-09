@@ -1346,7 +1346,10 @@ Two people open the same URL — identified by a memorable 3-word phrase — and
         role="menuitem"
         onclick={() => {
           show_actions_menu = false;
-          window.location.reload();
+          showConfirm(
+            "Force reload the page? Any unsynced changes may be lost.",
+            () => { window.location.reload(); },
+          );
         }}>↺ Force reload</button
       >
       <div class="menu-divider" role="separator"></div>
