@@ -19,14 +19,15 @@
 6. [Markdown preview](#markdown-preview)
 7. [Wide layout](#wide-layout)
 8. [Focus mode](#focus-mode)
-9. [Importing and exporting text](#importing-and-exporting-text)
-10. [Sending and receiving files](#sending-and-receiving-files)
-11. [Sharing](#sharing)
-12. [Themes](#themes)
-13. [Settings and persistence](#settings-and-persistence)
-14. [Installing as an app (PWA)](#installing-as-an-app-pwa)
-15. [Clearing data](#clearing-data)
-16. [Troubleshooting](#troubleshooting)
+9. [Code editor mode](#code-editor-mode)
+10. [Importing and exporting text](#importing-and-exporting-text)
+11. [Sending and receiving files](#sending-and-receiving-files)
+12. [Sharing](#sharing)
+13. [Themes](#themes)
+14. [Settings and persistence](#settings-and-persistence)
+15. [Installing as an app (PWA)](#installing-as-an-app-pwa)
+16. [Clearing data](#clearing-data)
+17. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -203,6 +204,43 @@ Focus mode hides the header and action bar and gives the editor a full-screen ru
 - Tap the `✕` button that appears in the same corner
 
 Focus mode is local — it does not affect what other peers see.
+
+---
+
+## Code editor mode
+
+Code editor mode adds syntax highlighting powered by [Prism](https://prismjs.com), bracket matching, and a set of line-editing keyboard shortcuts. Text remains fully synced with peers in real time.
+
+**Entering code editor mode:**
+
+- Click the `</>` button in the bottom-right corner
+
+**Exiting code editor mode:**
+
+- Press `Escape`
+- Tap the `✕` button that replaces `</>` while active
+
+**Selecting a language:**
+
+A language dropdown appears in the bottom-right corner while code mode is active. The selected language controls syntax highlighting only — the underlying document is plain text and peers do not need to be in code mode to receive edits.
+
+Supported languages: JavaScript, TypeScript, JSX, TSX, HTML, CSS, JSON, Python, Rust, Bash, SQL, YAML, PHP, Ruby, and plain Text.
+
+**Keyboard shortcuts (code mode):**
+
+| Shortcut | Action |
+|---|---|
+| `Alt+↑` / `Alt+↓` | Move line up / down |
+| `Shift+Alt+↑` / `Shift+Alt+↓` | Copy line up / down |
+| `Cmd+]` / `Cmd+[` | Indent / outdent |
+| `Cmd+/` | Toggle line comment |
+| `Shift+Cmd+K` | Delete line |
+| `Cmd+Enter` | Insert blank line below |
+| `Tab` / `Shift+Tab` | Indent / outdent selected lines |
+
+Auto-closing of brackets, quotes, and backticks is also enabled.
+
+Code editor mode is local — it does not affect what other peers see, and peers do not need to be in code mode for edits to sync.
 
 ---
 

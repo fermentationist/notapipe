@@ -25,6 +25,7 @@ Two or more peers open the same URL — identified by a memorable 3-word phrase 
 - **Markdown preview** — toggle a live rendered view alongside the editor (`M↓`); local-only, does not affect peers
 - **Wide layout** — desktop toggle to expand beyond the default centred column; preference persists across sessions
 - **Focus mode** — distraction-free writing with a ruled-paper aesthetic (`Cmd+F`)
+- **Code editor mode** — syntax highlighting for 14 languages, bracket matching, and line commands (`</>` button)
 - **Theming** — built-in light/dark themes plus a fully customisable token editor
 - **Local persistence** — optional `localStorage` save (off by default)
 - **One-tap copy** — copy all editor content to clipboard instantly (the primary cross-device transfer action)
