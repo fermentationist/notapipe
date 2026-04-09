@@ -30,7 +30,6 @@ export const DEFAULT_LIGHT_THEME = {
   "--code-bg": "#edeae2",
   "--code-text": "#1a1a18",
   "--code-gutter-text": "#b8b2a6",
-  "--code-gutter-border": "#d4cfc4",
   "--code-caret-color": "#c0392b",
 } as const;
 
@@ -66,7 +65,6 @@ export const DEFAULT_DARK_THEME = {
   "--code-bg": "#141412",
   "--code-text": "#e8e3d8",
   "--code-gutter-text": "#6b6660",
-  "--code-gutter-border": "#2e2e2a",
   "--code-caret-color": "#e05c4a",
 } as const;
 
