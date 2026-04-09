@@ -18,7 +18,7 @@
     PERSISTENCE_ENABLED_KEY,
   } from "$lib/constants/storage.ts";
   import { ICE_SERVERS, QR_ICE_SERVERS } from "$lib/constants/rtc.ts";
-  import { USER_GUIDE_URL, README_URL, extractSection } from "$lib/constants/docs.ts";
+  import { USER_GUIDE_CONTENT, ABOUT_CONTENT } from "$lib/constants/docs.ts";
   import { IndexeddbPersistence } from "y-indexeddb";
   import { RTCPeerManager, isOfferer } from "./rtc/peer.ts";
   import {
@@ -81,9 +81,7 @@
   let show_info_menu = $state(false);
   let info_menu_anchor = $state<{ top: number; right: number } | null>(null);
   let show_user_guide = $state(false);
-  let user_guide_content = $state<string | null>(null);
   let show_about = $state(false);
-  let about_content = $state<string | null>(null);
   let confirm_dialog = $state<{
     message: string;
     onconfirm: () => void;
@@ -724,37 +722,16 @@
   // Export / share
   // ---------------------------------------------------------------------------
 
-  async function openUserGuide(): Promise<void> {
+  function openUserGuide(): void {
     show_info_menu = false;
     info_menu_anchor = null;
     show_user_guide = true;
-    if (user_guide_content !== null) {
-      return;
-    }
-    try {
-      const response = await fetch(USER_GUIDE_URL);
-      user_guide_content = await response.text();
-    } catch {
-      user_guide_content =
-        "_Failed to load user guide. Check your connection or visit [github.com/fermentationist/notapipe](https://github.com/fermentationist/notapipe) directly._";
-    }
   }
 
-  async function openAbout(): Promise<void> {
+  function openAbout(): void {
     show_info_menu = false;
     info_menu_anchor = null;
     show_about = true;
-    if (about_content !== null) {
-      return;
-    }
-    try {
-      const response = await fetch(README_URL);
-      const text = await response.text();
-      about_content = extractSection(text, "About notapipe");
-    } catch {
-      about_content =
-        "_Failed to load. Visit [github.com/fermentationist/notapipe](https://github.com/fermentationist/notapipe) directly._";
-    }
   }
 
   function exportDocument(): void {
@@ -1524,7 +1501,7 @@
   {#if show_user_guide}
     <InfoModal
       title="User Guide"
-      content={user_guide_content}
+      content={USER_GUIDE_CONTENT}
       onclose={() => {
         show_user_guide = false;
       }}
@@ -1534,7 +1511,7 @@
   {#if show_about}
     <InfoModal
       title="About notapipe"
-      content={about_content}
+      content={ABOUT_CONTENT}
       onclose={() => {
         show_about = false;
       }}
