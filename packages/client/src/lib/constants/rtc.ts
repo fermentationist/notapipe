@@ -2,7 +2,7 @@ export const ICE_GATHERING_TIMEOUT_MS = 15_000;
 // QR mode uses a shorter timeout — STUN typically completes in <2 s, and
 // waiting longer just delays QR code generation without adding useful candidates.
 export const QR_ICE_GATHERING_TIMEOUT_MS = 5_000;
-export const MAX_ROOM_PEERS = 2;
+export const MAX_ROOM_PEERS = 7;
 export const SIGNAL_PING_INTERVAL_MS = 30_000;
 
 // Default TURN server — freestun.net free community service.

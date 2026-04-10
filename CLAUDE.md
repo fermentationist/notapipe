@@ -85,7 +85,7 @@ Offerer/answerer role is determined locally by lexicographic UUID comparison (la
 
 ### `packages/signalling` — Node.js WebSocket server (`ws`)
 
-Stateless in-memory rooms. Max 2 peers per room — third peer receives `room-full` and is closed. Rooms are `Map<string, { peers: Map<string, WebSocket> }>`. On disconnect: broadcast `peer-left`, clean empty rooms. HTTP GET `/` returns `{ status: "ok" }` for health checks. Configured via `VITE_SIGNAL_URL` env var on the client.
+Stateless in-memory rooms. Max 7 peers per room — the 8th peer receives `room-full` and is closed. Rooms are `Map<string, { peers: Map<string, WebSocket> }>`. On disconnect: broadcast `peer-left`, clean empty rooms. HTTP GET `/` returns `{ status: "ok" }` for health checks. Configured via `VITE_SIGNAL_URL` env var on the client.
 
 Message protocol is defined in `src/types.ts` — client→server: `join`, `signal`, `leave`, `ping`; server→client: `joined`, `peer-joined`, `peer-left`, `signal`, `room-full`, `pong`.
 

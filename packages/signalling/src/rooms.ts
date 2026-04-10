@@ -10,6 +10,8 @@ export interface Room {
   peers: Map<string, RoomPeer>; // keyed by peer_id
 }
 
+const MAX_PEERS_PER_ROOM = 7;
+
 const rooms = new Map<string, Room>();
 
 const WS_OPEN = 1; // WebSocket.OPEN — using the numeric constant avoids importing the class
@@ -31,6 +33,11 @@ export function joinRoom(room_id: string, peer_id: string, socket: WebSocket): "
   if (room === undefined) {
     room = { peers: new Map() };
     rooms.set(room_id, room);
+  }
+
+  if (room.peers.size >= MAX_PEERS_PER_ROOM) {
+    send(socket, { type: "room-full", roomId: room_id });
+    return "full";
   }
 
   const existing_peer_ids = Array.from(room.peers.keys());
