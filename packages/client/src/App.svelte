@@ -317,6 +317,8 @@
   let qr_packet = $state<Uint8Array | null>(null);
   let active_qr_session_id = $state<string | null>(null);
   let qr_connection_error = $state<string | null>(null);
+  // Room ID from a scanned QR offer — applied only after the connection is confirmed.
+  let pending_qr_room_id: string | null = null;
 
   // ---------------------------------------------------------------------------
   // Initialise room ID on mount
@@ -625,6 +627,7 @@
     active_qr_session_id = session_id;
     qr_packet = null;
     qr_connection_error = null;
+    pending_qr_room_id = null;
 
     // Create the RTCPeerConnection up-front so both QrTransport and RTCPeerManager
     // share the same instance. QrTransport must monitor ICE gathering on the exact
@@ -666,13 +669,19 @@
           }
           peer_states.set(session_id, state);
           if (state === "connected") {
+            if (pending_qr_room_id !== null) {
+              applyRoomId(pending_qr_room_id);
+              pending_qr_room_id = null;
+            }
             connection_store.addRemotePeer(session_id);
             show_qr_overlay = false;
           }
           if (state === "failed") {
+            pending_qr_room_id = null;
             qr_connection_error = "Connection failed";
             disconnectPeer(session_id);
           } else if (state === "disconnected") {
+            pending_qr_room_id = null;
             disconnectPeer(session_id);
           }
           updateAggregateState();
@@ -739,12 +748,14 @@
           const has_content = ytext.toString().length > 0;
           const has_persistence = $persistence_store;
           if (has_content || has_persistence) {
+            // Ask for consent now, but defer the actual room change until the
+            // connection is confirmed so a failed attempt doesn't change the room.
             showConfirm(
-              `This QR code is for room "${incoming_room_id}". Your room ID will change from "${room_id}". Your current document will merge with theirs.${has_persistence ? " Your saved history for this room will remain under the old ID." : ""}`,
-              () => applyRoomId(incoming_room_id),
+              `This QR code is for room "${incoming_room_id}". Your room ID will change from "${room_id}" once connected. Your current document will merge with theirs.${has_persistence ? " Your saved history for this room will remain under the old ID." : ""}`,
+              () => { pending_qr_room_id = incoming_room_id; },
             );
           } else {
-            applyRoomId(incoming_room_id);
+            pending_qr_room_id = incoming_room_id;
           }
         }
       }
@@ -762,6 +773,7 @@
     show_qr_overlay = false;
     qr_packet = null;
     qr_connection_error = null;
+    pending_qr_room_id = null;
     const session_id = active_qr_session_id;
     active_qr_session_id = null;
     qr_transport = null;
