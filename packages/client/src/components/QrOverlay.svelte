@@ -5,13 +5,14 @@
 
   interface Props {
     packet: Uint8Array | null;
+    connection_error?: string | null;
     onscanned: (packet: Uint8Array) => void;
     onclose: () => void;
     onstartofferer?: () => void;
     onstartanswerer?: () => void;
   }
 
-  let { packet, onscanned, onclose, onstartofferer, onstartanswerer }: Props =
+  let { packet, connection_error = null, onscanned, onclose, onstartofferer, onstartanswerer }: Props =
     $props();
 
   let qr_canvas: HTMLCanvasElement = $state() as HTMLCanvasElement;
@@ -40,8 +41,8 @@
     return () => clearInterval(interval);
   });
 
-  // Timeout for the "connecting" view — if ICE never reaches "failed" the overlay
-  // would hang forever. Show an error after 30 s so the user knows to retry.
+  // Timeout for the "connecting" view — mobile browsers (iOS Safari) often never
+  // fire connectionState="failed", so show an error after 15 s as a fallback.
   $effect(() => {
     if (view !== "connecting") {
       return;
@@ -49,7 +50,7 @@
     connect_timed_out = false;
     const timeout_id = setTimeout(() => {
       connect_timed_out = true;
-    }, 30_000);
+    }, 15_000);
     return () => clearTimeout(timeout_id);
   });
 
@@ -175,7 +176,12 @@
       aria-label="Close QR overlay">✕</button
     >
 
-    {#if view === "choose"}
+    {#if connection_error !== null}
+      <div class="step">
+        <p class="error">{connection_error}</p>
+        <button class="action-btn secondary" onclick={handleClose}>Close</button>
+      </div>
+    {:else if view === "choose"}
       <div class="step">
         <p class="step-label">Air-gapped QR connection</p>
         <p class="hint">

@@ -316,6 +316,7 @@
   let qr_transport: QrTransport | null = null;
   let qr_packet = $state<Uint8Array | null>(null);
   let active_qr_session_id = $state<string | null>(null);
+  let qr_connection_error = $state<string | null>(null);
 
   // ---------------------------------------------------------------------------
   // Initialise room ID on mount
@@ -623,6 +624,7 @@
     const session_id = `qr-${crypto.randomUUID()}`;
     active_qr_session_id = session_id;
     qr_packet = null;
+    qr_connection_error = null;
 
     // Create the RTCPeerConnection up-front so both QrTransport and RTCPeerManager
     // share the same instance. QrTransport must monitor ICE gathering on the exact
@@ -668,8 +670,7 @@
             show_qr_overlay = false;
           }
           if (state === "failed") {
-            connection_store.setError("QR connection failed — check that both devices are on the same room and try again");
-            show_qr_overlay = false;
+            qr_connection_error = "Connection failed — make sure both devices are on the same room and try again";
             disconnectPeer(session_id);
           } else if (state === "disconnected") {
             disconnectPeer(session_id);
@@ -760,6 +761,7 @@
   function closeQrOverlay(): void {
     show_qr_overlay = false;
     qr_packet = null;
+    qr_connection_error = null;
     const session_id = active_qr_session_id;
     active_qr_session_id = null;
     qr_transport = null;
@@ -1405,6 +1407,7 @@
   {#if show_qr_overlay}
     <QrOverlay
       packet={qr_packet}
+      connection_error={qr_connection_error}
       onscanned={handleQrScanned}
       onclose={closeQrOverlay}
       onstartofferer={startQrAsOfferer}

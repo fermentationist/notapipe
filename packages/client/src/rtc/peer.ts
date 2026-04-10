@@ -165,6 +165,11 @@ export class RTCPeerManager {
 
     pc.oniceconnectionstatechange = () => {
       console.log("[QR ICE] iceConnectionState:", pc.iceConnectionState, "iceGatheringState:", pc.iceGatheringState);
+      // Some mobile browsers (iOS Safari) never fire connectionState="failed" —
+      // iceConnectionState is more reliable for detecting terminal failures.
+      if (pc.iceConnectionState === "failed") {
+        this.callbacks.onStateChange("failed");
+      }
     };
 
     pc.onconnectionstatechange = () => {
