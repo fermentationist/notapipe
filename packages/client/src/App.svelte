@@ -179,6 +179,7 @@
   );
   let ft_sent = $state(new Map<string, string>()); // transfer_id → filename
   let ft_sending = $state(new Map<string, string>()); // transfer_id → filename (accepted, in-flight)
+  let ft_pending_sent = $state(new Map<string, string>()); // transfer_id → filename (offered, awaiting acceptance)
   // Non-reactive map: tracks filenames for in-flight outgoing transfers so
   // onTransferAccepted / onFileSent can surface the name without re-querying the file object.
   const ft_outgoing_names = new Map<string, string>();
@@ -214,6 +215,9 @@
       },
       onTransferAccepted(transfer_id: string) {
         const filename = ft_outgoing_names.get(transfer_id) ?? "file";
+        const pending = new Map(ft_pending_sent);
+        pending.delete(transfer_id);
+        ft_pending_sent = pending;
         ft_sending = new Map(ft_sending).set(transfer_id, filename);
         void peer_id; // suppress unused warning
       },
@@ -239,6 +243,9 @@
           m.delete(transfer_id);
           return m;
         })();
+        const pending = new Map(ft_pending_sent);
+        pending.delete(transfer_id);
+        ft_pending_sent = pending;
         ft_outgoing_names.delete(transfer_id);
       },
       onError(message: string) {
@@ -289,6 +296,7 @@
       const transfer_id = manager.sendFile(file);
       if (transfer_id !== null) {
         ft_outgoing_names.set(transfer_id, file.name);
+        ft_pending_sent = new Map(ft_pending_sent).set(transfer_id, file.name);
       }
     }
   }
@@ -1267,6 +1275,7 @@
       completed_files={ft_completed}
       sending_files={ft_sending}
       sent_files={ft_sent}
+      pending_sent={ft_pending_sent}
       onaccept={acceptTransfer}
       ondecline={declineTransfer}
       oncancel={cancelTransfer}

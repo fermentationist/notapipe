@@ -8,6 +8,7 @@
     completed_files: Map<string, { url: string; filename: string }>;
     sending_files: Map<string, string>; // transfer_id → filename (accepted, sending)
     sent_files: Map<string, string>;    // transfer_id → filename (fully sent)
+    pending_sent: Map<string, string>;  // transfer_id → filename (offered, awaiting acceptance)
     onaccept: (transfer_id: string) => void;
     ondecline: (transfer_id: string) => void;
     oncancel: (transfer_id: string) => void;
@@ -23,6 +24,7 @@
     completed_files,
     sending_files,
     sent_files,
+    pending_sent,
     onaccept,
     ondecline,
     oncancel,
@@ -67,7 +69,8 @@
     transfer_progress.size > 0 ||
     completed_files.size > 0 ||
     sending_files.size > 0 ||
-    sent_files.size > 0,
+    sent_files.size > 0 ||
+    pending_sent.size > 0,
   );
 </script>
 
@@ -123,6 +126,17 @@
             Open
           </a>
           <button class="strip-btn" onclick={() => ondismiss(transfer_id)}>×</button>
+        </div>
+      </div>
+    {/each}
+
+    {#each [...pending_sent.entries()] as [transfer_id, filename] (transfer_id)}
+      <div class="strip pending">
+        <span class="strip-label">
+          <strong>{filename}</strong> — waiting for recipient…
+        </span>
+        <div class="strip-actions">
+          <button class="strip-btn decline" onclick={() => oncancel(transfer_id)}>Cancel</button>
         </div>
       </div>
     {/each}
