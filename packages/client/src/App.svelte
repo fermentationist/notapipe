@@ -1508,11 +1508,28 @@
   {#if show_actions}
     <div class="actions">
       {#if is_connected}
-        <button class="action-btn" onclick={connectViaQr}>
-          Add peer via QR
+        <button class="action-btn" onclick={connectViaQr} title="Add peer via QR">
+          <svg class="btn-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="1" y="1" width="4" height="4" rx="0.5"></rect>
+            <rect x="9" y="1" width="4" height="4" rx="0.5"></rect>
+            <rect x="1" y="9" width="4" height="4" rx="0.5"></rect>
+            <rect x="2.5" y="2.5" width="1" height="1" fill="currentColor" stroke="none"></rect>
+            <rect x="10.5" y="2.5" width="1" height="1" fill="currentColor" stroke="none"></rect>
+            <rect x="2.5" y="10.5" width="1" height="1" fill="currentColor" stroke="none"></rect>
+            <path d="M9 9h1.5v1.5"></path>
+            <path d="M12 9v1.5H13"></path>
+            <path d="M9 12h1.5v1"></path>
+            <path d="M12 12.5h1"></path>
+          </svg>
+          <span class="btn-text">Add peer via QR</span>
         </button>
-        <button class="action-btn" onclick={handleDisconnect}>
-          Disconnect
+        <button class="action-btn" onclick={handleDisconnect} title="Disconnect">
+          <svg class="btn-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M6 10L10 6"></path>
+            <path d="M4.5 12.5 A4.5 4.5 0 0 1 4.5 5.5 L6 7"></path>
+            <path d="M11.5 3.5 A4.5 4.5 0 0 1 11.5 10.5 L10 9"></path>
+          </svg>
+          <span class="btn-text">Disconnect</span>
         </button>
       {:else}
         <div class="connect-wrapper">
@@ -2094,6 +2111,23 @@
     cursor: pointer;
     min-height: 44px;
     white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .btn-icon {
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 599px) {
+    .btn-text {
+      display: none;
+    }
+
+    .action-btn {
+      padding: 0.5rem 0.75rem;
+    }
   }
 
   .action-btn.primary {
