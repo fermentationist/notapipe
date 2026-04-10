@@ -667,7 +667,11 @@
             connection_store.addRemotePeer(session_id);
             show_qr_overlay = false;
           }
-          if (state === "disconnected" || state === "failed") {
+          if (state === "failed") {
+            connection_store.setError("QR connection failed — check that both devices are on the same room and try again");
+            show_qr_overlay = false;
+            disconnectPeer(session_id);
+          } else if (state === "disconnected") {
             disconnectPeer(session_id);
           }
           updateAggregateState();

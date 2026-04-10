@@ -25,6 +25,7 @@
   let camera_stream: MediaStream | null = null;
   let scan_abort_controller: AbortController | null = null;
   let camera_error = $state<string | null>(null);
+  let connect_timed_out = $state(false);
   let spinner_index = $state(0);
   const spinner_states = [..."◴◷◶◵"];
   const spinner = $derived(spinner_states[spinner_index]);
@@ -37,6 +38,19 @@
       spinner_index = (spinner_index + 1) % 4;
     }, 500);
     return () => clearInterval(interval);
+  });
+
+  // Timeout for the "connecting" view — if ICE never reaches "failed" the overlay
+  // would hang forever. Show an error after 30 s so the user knows to retry.
+  $effect(() => {
+    if (view !== "connecting") {
+      return;
+    }
+    connect_timed_out = false;
+    const timeout_id = setTimeout(() => {
+      connect_timed_out = true;
+    }, 30_000);
+    return () => clearTimeout(timeout_id);
   });
 
   // Render QR code whenever the canvas element is bound and packet is ready.
@@ -223,7 +237,13 @@
       </div>
     {:else}
       <div class="step">
-        <p class="hint">Connecting…</p>
+        {#if connect_timed_out}
+          <p class="error">Connection timed out. Make sure both devices are on the same room and try again.</p>
+          <button class="action-btn secondary" onclick={handleClose}>Close</button>
+        {:else}
+          <p class="hint">Connecting…</p>
+          <div class="dots">{spinner}</div>
+        {/if}
       </div>
     {/if}
   </div>
