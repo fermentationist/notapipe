@@ -45,7 +45,11 @@ export class RTCDataChannelProvider {
       channel.addEventListener("open", () => this.initialize(), { once: true });
     }
 
-    channel.addEventListener("message", (event: MessageEvent<ArrayBuffer>) => {
+    channel.addEventListener("message", (event: MessageEvent<ArrayBuffer | string>) => {
+      // Identity messages arrive as JSON strings — skip them here.
+      if (!(event.data instanceof ArrayBuffer)) {
+        return;
+      }
       this.handleMessage(new Uint8Array(event.data));
     });
 

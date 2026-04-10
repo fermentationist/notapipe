@@ -46,8 +46,12 @@
   import SettingsPanel from "./components/SettingsPanel.svelte";
   import ConfirmDialog from "./components/ConfirmDialog.svelte";
   import FileTransferBar from "./components/FileTransferBar.svelte";
+  import HandleWidget from "./components/HandleWidget.svelte";
+  import PeerList from "./components/PeerList.svelte";
+  import PeerToastBar, { type PeerToast } from "./components/PeerToastBar.svelte";
   import InfoModal from "./components/InfoModal.svelte";
   import UrlQrModal from "./components/UrlQrModal.svelte";
+  import { loadHandle, saveHandle } from "$lib/handle.ts";
   import { preview_store } from "./stores/preview.ts";
   import { wide_mode_store } from "./stores/wide_mode.ts";
   import { theme_store } from "./stores/theme.ts";
@@ -161,10 +165,20 @@
   const peer_managers = new Map<string, RTCPeerManager>();
   const yjs_providers = new Map<string, RTCDataChannelProvider>();
   const file_transfer_managers = new Map<string, FileTransferManager>();
+  const data_channels = new Map<string, RTCDataChannel>();
   const peer_states = new Map<
     string,
     import("./rtc/peer.ts").PeerManagerState
   >();
+
+  // ---------------------------------------------------------------------------
+  // Handle (username) state
+  // ---------------------------------------------------------------------------
+
+  let local_handle = $state("");
+  // Reactive map: remote_peer_id → handle string. Drives the peer list UI.
+  let remote_handles = $state(new Map<string, string>());
+  let peer_toasts = $state<PeerToast[]>([]);
 
   // ---------------------------------------------------------------------------
   // File transfer UI state (reactive so the bar re-renders)
@@ -328,6 +342,8 @@
   // ---------------------------------------------------------------------------
 
   onMount(() => {
+    local_handle = loadHandle();
+
     const parsed = parseId();
     if (parsed !== null && isValidId(parsed)) {
       room_id = parsed;
@@ -415,6 +431,71 @@
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // Handle management
+  // ---------------------------------------------------------------------------
+
+  function changeHandle(new_handle: string): void {
+    local_handle = new_handle;
+    saveHandle(new_handle);
+    broadcastIdentity();
+  }
+
+  function broadcastIdentity(): void {
+    const msg = JSON.stringify({ type: "identity", handle: local_handle });
+    data_channels.forEach((channel) => {
+      if (channel.readyState === "open") {
+        channel.send(msg);
+      }
+    });
+  }
+
+  function registerDataChannel(remote_peer_id: string, channel: RTCDataChannel): void {
+    data_channels.set(remote_peer_id, channel);
+
+    const send_identity = (): void => {
+      channel.send(JSON.stringify({ type: "identity", handle: local_handle }));
+    };
+
+    if (channel.readyState === "open") {
+      send_identity();
+    } else {
+      channel.addEventListener("open", send_identity, { once: true });
+    }
+
+    channel.addEventListener("message", (event: MessageEvent<ArrayBuffer | string>) => {
+      if (typeof event.data !== "string") {
+        return;
+      }
+      try {
+        const msg = JSON.parse(event.data) as { type?: string; handle?: string };
+        if (msg.type === "identity" && typeof msg.handle === "string") {
+          const is_new = !remote_handles.has(remote_peer_id);
+          remote_handles.set(remote_peer_id, msg.handle);
+          if (is_new) {
+            addPeerToast(`${msg.handle} joined`);
+          }
+        }
+      } catch {
+        // Ignore malformed messages
+      }
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Peer toast notifications
+  // ---------------------------------------------------------------------------
+
+  function addPeerToast(message: string): void {
+    const id = crypto.randomUUID();
+    peer_toasts = [...peer_toasts, { id, message }];
+    setTimeout(() => dismissPeerToast(id), 4000);
+  }
+
+  function dismissPeerToast(id: string): void {
+    peer_toasts = peer_toasts.filter((t) => t.id !== id);
+  }
+
   /**
    * Disconnect and clean up a single peer. Safe to call when already disconnected
    * (guards against re-entry via onStateChange callbacks).
@@ -431,8 +512,14 @@
     yjs_providers.delete(remote_peer_id);
     file_transfer_managers.get(remote_peer_id)?.destroy();
     file_transfer_managers.delete(remote_peer_id);
+    const departed_handle = remote_handles.get(remote_peer_id);
+    data_channels.delete(remote_peer_id);
+    remote_handles.delete(remote_peer_id);
     connection_store.removeRemotePeer(remote_peer_id);
     manager.close();
+    if (departed_handle !== undefined) {
+      addPeerToast(`${departed_handle} left`);
+    }
     updateAggregateState();
   }
 
@@ -452,6 +539,7 @@
       channel,
       {
         onDataChannel(data_channel) {
+          registerDataChannel(remote_peer_id, data_channel);
           const provider = new RTCDataChannelProvider(doc, data_channel);
           yjs_providers.set(remote_peer_id, provider);
         },
@@ -661,6 +749,7 @@
       qr_transport,
       {
         onDataChannel(data_channel) {
+          registerDataChannel(session_id, data_channel);
           const provider = new RTCDataChannelProvider(doc, data_channel);
           yjs_providers.set(session_id, provider);
         },
@@ -1248,6 +1337,10 @@
           <path d="M12 12.5h1"></path>
         </svg>
       </button>
+      <HandleWidget handle={local_handle} onchange={changeHandle} />
+      <PeerList
+        peers={Array.from(remote_handles.entries()).map(([id, handle]) => ({ id, handle }))}
+      />
       <div class="find-room-wrapper">
         <button
           class="find-room-btn"
@@ -1325,6 +1418,7 @@
         <MarkdownPreview content={preview_content} />
       </div>
     {/if}
+    <PeerToastBar toasts={peer_toasts} ondismiss={dismissPeerToast} />
     <FileTransferBar
       connected={is_connected}
       incoming_offers={ft_incoming_offers}
