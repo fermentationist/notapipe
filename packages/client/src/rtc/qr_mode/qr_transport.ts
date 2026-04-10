@@ -17,7 +17,7 @@
 
 import type { SignalTransport } from "../peer.ts";
 import { encodeSdp, decodeSdp } from "./sdp_codec.ts";
-import { ICE_GATHERING_TIMEOUT_MS } from "$lib/constants/rtc.ts";
+import { QR_ICE_GATHERING_TIMEOUT_MS } from "$lib/constants/rtc.ts";
 
 type OfferCallback = (sdp: RTCSessionDescriptionInit) => void;
 type AnswerCallback = (sdp: RTCSessionDescriptionInit) => void;
@@ -129,7 +129,7 @@ export class QrTransport implements SignalTransport {
         done = true;
         this.encodeCurrentSdp(is_answer);
       }
-    }, ICE_GATHERING_TIMEOUT_MS);
+    }, QR_ICE_GATHERING_TIMEOUT_MS);
 
     const on_state_change = (): void => {
       if (!done && pc.iceGatheringState === "complete") {
