@@ -29,10 +29,15 @@
 
 <style>
   .toast-bar {
+    position: fixed;
+    bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    left: 1rem;
     display: flex;
     flex-direction: column;
     gap: 4px;
-    padding: 0 0.75rem 0.5rem;
+    z-index: 50;
+    max-width: min(320px, calc(100vw - 2rem));
+    pointer-events: none;
   }
 
   .toast {
@@ -47,12 +52,14 @@
     font-size: 0.8rem;
     color: var(--color-text-muted);
     animation: slide-in 0.15s ease-out;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    pointer-events: auto;
   }
 
   @keyframes slide-in {
     from {
       opacity: 0;
-      transform: translateY(-4px);
+      transform: translateY(4px);
     }
     to {
       opacity: 1;
