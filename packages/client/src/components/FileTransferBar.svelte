@@ -32,10 +32,8 @@
   }: Props = $props();
 
   let drag_over = $state(false);
-  // Tracks which completed transfers the receiver has clicked "Save" on.
-  let saved_ids = $state(new Set<string>());
-  // Tracks saves in progress (button disabled until save completes).
-  let saving_ids = $state(new Set<string>());
+  // Tracks which completed transfers have already been auto-downloaded.
+  const downloaded_ids = new Set<string>();
 
   function formatBytes(bytes: number): string {
     if (bytes < 1024) { return `${bytes} B`; }
@@ -52,16 +50,17 @@
     }
   }
 
-  function handleSave(transfer_id: string, url: string, filename: string): void {
-    saving_ids = new Set(saving_ids).add(transfer_id);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = filename;
-    anchor.click();
-    saved_ids = new Set(saved_ids).add(transfer_id);
-    saving_ids.delete(transfer_id);
-    saving_ids = new Set(saving_ids);
-  }
+  // Auto-download each file as soon as the transfer completes.
+  $effect(() => {
+    completed_files.forEach(({ url, filename }, transfer_id) => {
+      if (downloaded_ids.has(transfer_id)) { return; }
+      downloaded_ids.add(transfer_id);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      anchor.click();
+    });
+  });
 
   const has_strips = $derived(
     incoming_offers.size > 0 ||
@@ -118,29 +117,13 @@
 
     {#each [...completed_files.entries()] as [transfer_id, file] (transfer_id)}
       <div class="strip complete">
-        {#if saved_ids.has(transfer_id)}
-          <span class="strip-label saved-label">✓ <strong>{file.filename}</strong> saved</span>
-          <div class="strip-actions">
-            <a class="strip-btn accept" href={file.url} target="_blank" rel="noopener noreferrer">
-              Open
-            </a>
-            <button class="strip-btn" onclick={() => ondismiss(transfer_id)}>×</button>
-          </div>
-        {:else}
-          <span class="strip-label">
-            Ready: <strong>{file.filename}</strong>
-          </span>
-          <div class="strip-actions">
-            <button
-              class="strip-btn accept"
-              onclick={() => handleSave(transfer_id, file.url, file.filename)}
-              disabled={saving_ids.has(transfer_id)}
-            >
-              Save
-            </button>
-            <button class="strip-btn decline" onclick={() => ondismiss(transfer_id)}>Decline</button>
-          </div>
-        {/if}
+        <span class="strip-label saved-label">✓ <strong>{file.filename}</strong> saved</span>
+        <div class="strip-actions">
+          <a class="strip-btn accept" href={file.url} target="_blank" rel="noopener noreferrer">
+            Open
+          </a>
+          <button class="strip-btn" onclick={() => ondismiss(transfer_id)}>×</button>
+        </div>
       </div>
     {/each}
 
