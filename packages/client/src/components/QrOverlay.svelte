@@ -244,7 +244,7 @@
     {:else}
       <div class="step">
         {#if connect_timed_out}
-          <p class="error">Connection timed out. Make sure both devices are on the same room and try again.</p>
+          <p class="error">Connection timed out.</p>
           <button class="action-btn secondary" onclick={handleClose}>Close</button>
         {:else}
           <p class="hint">Connecting…</p>

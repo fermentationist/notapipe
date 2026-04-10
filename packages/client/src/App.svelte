@@ -17,7 +17,7 @@
     GEO_PASSPHRASE_PREFIX,
     PERSISTENCE_ENABLED_KEY,
   } from "$lib/constants/storage.ts";
-  import { ICE_SERVERS, QR_ICE_SERVERS } from "$lib/constants/rtc.ts";
+  import { ICE_SERVERS } from "$lib/constants/rtc.ts";
   import {
     rtc_config_store,
     RTC_CONFIG_DEFAULTS,
@@ -630,7 +630,7 @@
     // share the same instance. QrTransport must monitor ICE gathering on the exact
     // PC that drives the offer/answer exchange — if they were separate objects,
     // localDescription on the QrTransport's PC would always be null.
-    const pc = new RTCPeerConnection({ iceServers: QR_ICE_SERVERS });
+    const pc = new RTCPeerConnection({ iceServers: getEffectiveIceServers() });
 
     qr_transport = new QrTransport(
       pc,
@@ -670,7 +670,7 @@
             show_qr_overlay = false;
           }
           if (state === "failed") {
-            qr_connection_error = "Connection failed — make sure both devices are on the same room and try again";
+            qr_connection_error = "Connection failed";
             disconnectPeer(session_id);
           } else if (state === "disconnected") {
             disconnectPeer(session_id);
