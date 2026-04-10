@@ -562,15 +562,11 @@
 
   function getEffectiveIceServers(): RTCIceServer[] {
     const { turn_url, turn_username, turn_credential } = $rtc_config_store;
-    // Use the full ICE_SERVERS constant (all three TURN URLs) unless the user has
-    // explicitly changed the TURN config away from the defaults. This preserves
-    // the UDP TURN fallbacks (port 80/443) that are stripped when building a custom
-    // one-URL array from the single DEFAULT_TURN_URL constant.
-    if (
+    const using_default_turn =
       turn_url === RTC_CONFIG_DEFAULTS.turn_url &&
       turn_username === RTC_CONFIG_DEFAULTS.turn_username &&
-      turn_credential === RTC_CONFIG_DEFAULTS.turn_credential
-    ) {
+      turn_credential === RTC_CONFIG_DEFAULTS.turn_credential;
+    if (using_default_turn) {
       return ICE_SERVERS;
     }
     if (turn_url === "") {

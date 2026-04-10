@@ -60,7 +60,7 @@ async function serveStatic(request: IncomingMessage, response: ServerResponse): 
 }
 
 // ---------------------------------------------------------------------------
-// HTTP server (health check endpoint)
+// HTTP server
 // ---------------------------------------------------------------------------
 
 const http_server = createServer(async (request, response) => {

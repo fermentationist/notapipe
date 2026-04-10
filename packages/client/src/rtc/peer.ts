@@ -126,24 +126,14 @@ export class RTCPeerManager {
     pc: RTCPeerConnection;
     flush_pending: () => Promise<void>;
   } {
-    console.log("[ICE] ice_servers config:", JSON.stringify(this.ice_servers));
     const pc =
       this.provided_peer_connection ?? new RTCPeerConnection({ iceServers: this.ice_servers });
     this.peer_connection = pc;
 
     pc.onicecandidate = (event) => {
       if (event.candidate !== null) {
-        console.log("[ICE] local candidate:", event.candidate.type, event.candidate.candidate);
         this.transport.sendIceCandidate(event.candidate);
       }
-    };
-
-    pc.onicegatheringstatechange = () => {
-      console.log("[ICE] gathering state:", pc.iceGatheringState);
-    };
-
-    pc.oniceconnectionstatechange = () => {
-      console.log("[ICE] connection state:", pc.iceConnectionState);
     };
 
     // Buffer remote candidates that arrive before setRemoteDescription.
@@ -153,7 +143,6 @@ export class RTCPeerManager {
     const pending_candidates: RTCIceCandidateInit[] = [];
 
     this.transport.onIceCandidate(async (candidate) => {
-      console.log("[ICE] remote candidate:", candidate.type, candidate.candidate);
       if (pc.remoteDescription === null) {
         pending_candidates.push(candidate.toJSON());
         return;
