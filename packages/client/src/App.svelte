@@ -319,6 +319,9 @@
   let qr_connection_error = $state<string | null>(null);
   // Room ID from a scanned QR offer — applied only after the connection is confirmed.
   let pending_qr_room_id: string | null = null;
+  // Auto-reconnect state for QR connections that temporarily drop.
+  let was_qr_connected = false;
+  let qr_reconnect_timeout_id: ReturnType<typeof setTimeout> | null = null;
 
   // ---------------------------------------------------------------------------
   // Initialise room ID on mount
@@ -628,6 +631,11 @@
     qr_packet = null;
     qr_connection_error = null;
     pending_qr_room_id = null;
+    was_qr_connected = false;
+    if (qr_reconnect_timeout_id !== null) {
+      clearTimeout(qr_reconnect_timeout_id);
+      qr_reconnect_timeout_id = null;
+    }
 
     // Create the RTCPeerConnection up-front so both QrTransport and RTCPeerManager
     // share the same instance. QrTransport must monitor ICE gathering on the exact
@@ -669,6 +677,11 @@
           }
           peer_states.set(session_id, state);
           if (state === "connected") {
+            was_qr_connected = true;
+            if (qr_reconnect_timeout_id !== null) {
+              clearTimeout(qr_reconnect_timeout_id);
+              qr_reconnect_timeout_id = null;
+            }
             if (pending_qr_room_id !== null) {
               applyRoomId(pending_qr_room_id);
               pending_qr_room_id = null;
@@ -678,11 +691,29 @@
           }
           if (state === "failed") {
             pending_qr_room_id = null;
+            if (qr_reconnect_timeout_id !== null) {
+              clearTimeout(qr_reconnect_timeout_id);
+              qr_reconnect_timeout_id = null;
+            }
             qr_connection_error = "Connection failed";
             disconnectPeer(session_id);
           } else if (state === "disconnected") {
-            pending_qr_room_id = null;
-            disconnectPeer(session_id);
+            if (was_qr_connected) {
+              // Give the browser's native ICE recovery a chance to reconnect before
+              // tearing down. WebRTC will keep doing ICE checks while the peer
+              // connection is open; only clean up if it hasn't recovered after 30 s.
+              if (qr_reconnect_timeout_id === null) {
+                qr_reconnect_timeout_id = setTimeout(() => {
+                  qr_reconnect_timeout_id = null;
+                  if (peer_managers.has(session_id)) {
+                    disconnectPeer(session_id);
+                  }
+                }, 30_000);
+              }
+            } else {
+              pending_qr_room_id = null;
+              disconnectPeer(session_id);
+            }
           }
           updateAggregateState();
         },
@@ -774,6 +805,11 @@
     qr_packet = null;
     qr_connection_error = null;
     pending_qr_room_id = null;
+    was_qr_connected = false;
+    if (qr_reconnect_timeout_id !== null) {
+      clearTimeout(qr_reconnect_timeout_id);
+      qr_reconnect_timeout_id = null;
+    }
     const session_id = active_qr_session_id;
     active_qr_session_id = null;
     qr_transport = null;

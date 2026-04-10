@@ -16,14 +16,10 @@ export const ICE_SERVERS: RTCIceServer[] = [
   { urls: "stun:stun.l.google.com:19302" },
   { urls: "stun:stun1.l.google.com:19302" },
   {
-    urls: [
-      "turn:freestun.net:3479",
-      "turns:freestun.net:5350",
-    ],
+    urls: ["turn:freestun.net:3479", "turns:freestun.net:5350"],
     username: DEFAULT_TURN_USERNAME,
     credential: DEFAULT_TURN_CREDENTIAL,
   },
 ];
-
 
 export const DATA_CHANNEL_LABEL = "yjs";

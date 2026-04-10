@@ -25,7 +25,6 @@ export const RTC_CONFIG_DEFAULTS: RTCUserConfig = {
   turn_credential: DEFAULT_TURN_CREDENTIAL,
 };
 
-
 function load(): RTCUserConfig {
   try {
     const raw = localStorage.getItem(RTC_CONFIG_KEY);
@@ -38,7 +37,11 @@ function load(): RTCUserConfig {
     // pre-populate the fields, "" is interpreted as "disable TURN" (STUN-only), which
     // breaks cross-network connections for anyone who visited before the migration.
     // Treat all-empty TURN fields as "use current defaults" so TURN stays enabled.
-    if (stored.turn_url === "" && (stored.turn_username ?? "") === "" && (stored.turn_credential ?? "") === "") {
+    if (
+      stored.turn_url === "" &&
+      (stored.turn_username ?? "") === "" &&
+      (stored.turn_credential ?? "") === ""
+    ) {
       delete stored.turn_url;
       delete stored.turn_username;
       delete stored.turn_credential;
