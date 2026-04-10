@@ -43,6 +43,19 @@ function load(): RTCUserConfig {
       delete stored.turn_username;
       delete stored.turn_credential;
     }
+    // Migrate stale openrelay.metered.ca credentials: these were the app defaults before
+    // being replaced by freestun.net. Anyone who saved Settings after that point (which
+    // persists the full config) would have the dead openrelay server locked in.
+    // Reset their TURN fields to the current defaults automatically.
+    if (
+      stored.turn_url === "turns:openrelay.metered.ca:443" &&
+      stored.turn_username === "openrelayproject" &&
+      stored.turn_credential === "openrelayproject"
+    ) {
+      delete stored.turn_url;
+      delete stored.turn_username;
+      delete stored.turn_credential;
+    }
     return { ...RTC_CONFIG_DEFAULTS, ...stored };
   } catch {
     return { ...RTC_CONFIG_DEFAULTS };
