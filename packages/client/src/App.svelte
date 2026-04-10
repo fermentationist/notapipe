@@ -545,8 +545,7 @@
     if (user_url !== "") {
       return user_url;
     }
-    const env_url =
-      import.meta.env.VITE_SIGNAL_URL || "";
+    const env_url = import.meta.env.VITE_SIGNAL_URL || "";
     if (env_url !== "") {
       return env_url;
     }
@@ -589,6 +588,7 @@
     teardown(); // clean up any prior attempt before starting a new one
 
     const url = getEffectiveSignalUrl();
+    console.log({ url });
     if (url === "") {
       connection_store.setError(
         "No signalling server URL configured. Open Settings → Connection to set one.",
