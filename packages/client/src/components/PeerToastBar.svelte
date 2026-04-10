@@ -30,7 +30,7 @@
 <style>
   .toast-bar {
     position: fixed;
-    bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
     left: 1rem;
     display: flex;
     flex-direction: column;
