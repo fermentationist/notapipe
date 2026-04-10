@@ -132,8 +132,17 @@ export class RTCPeerManager {
 
     pc.onicecandidate = (event) => {
       if (event.candidate !== null) {
+        console.log("[ICE] local candidate:", event.candidate.type, event.candidate.candidate);
         this.transport.sendIceCandidate(event.candidate);
       }
+    };
+
+    pc.onicegatheringstatechange = () => {
+      console.log("[ICE] gathering state:", pc.iceGatheringState);
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      console.log("[ICE] connection state:", pc.iceConnectionState);
     };
 
     // Buffer remote candidates that arrive before setRemoteDescription.
@@ -143,6 +152,7 @@ export class RTCPeerManager {
     const pending_candidates: RTCIceCandidateInit[] = [];
 
     this.transport.onIceCandidate(async (candidate) => {
+      console.log("[ICE] remote candidate:", candidate.type, candidate.candidate);
       if (pc.remoteDescription === null) {
         pending_candidates.push(candidate.toJSON());
         return;

@@ -32,7 +32,18 @@ function load(): RTCUserConfig {
     if (raw === null) {
       return { ...RTC_CONFIG_DEFAULTS };
     }
-    return { ...RTC_CONFIG_DEFAULTS, ...(JSON.parse(raw) as Partial<RTCUserConfig>) };
+    const stored = JSON.parse(raw) as Partial<RTCUserConfig>;
+    // Migrate pre-population format: turn_url was stored as "" when the user had never
+    // changed the TURN settings (the old "use built-in defaults" sentinel). Now that we
+    // pre-populate the fields, "" is interpreted as "disable TURN" (STUN-only), which
+    // breaks cross-network connections for anyone who visited before the migration.
+    // Treat all-empty TURN fields as "use current defaults" so TURN stays enabled.
+    if (stored.turn_url === "" && (stored.turn_username ?? "") === "" && (stored.turn_credential ?? "") === "") {
+      delete stored.turn_url;
+      delete stored.turn_username;
+      delete stored.turn_credential;
+    }
+    return { ...RTC_CONFIG_DEFAULTS, ...stored };
   } catch {
     return { ...RTC_CONFIG_DEFAULTS };
   }

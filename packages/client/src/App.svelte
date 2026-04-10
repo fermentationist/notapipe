@@ -47,6 +47,7 @@
   import ConfirmDialog from "./components/ConfirmDialog.svelte";
   import FileTransferBar from "./components/FileTransferBar.svelte";
   import InfoModal from "./components/InfoModal.svelte";
+  import UrlQrModal from "./components/UrlQrModal.svelte";
   import { preview_store } from "./stores/preview.ts";
   import { wide_mode_store } from "./stores/wide_mode.ts";
   import { theme_store } from "./stores/theme.ts";
@@ -81,6 +82,7 @@
   let show_connect_menu = $state(false);
   let show_find_room_menu = $state(false);
   let show_actions_menu = $state(false);
+  let show_url_qr = $state(false);
   let actions_menu_anchor = $state<{ top: number; right: number } | null>(null);
   let show_info_menu = $state(false);
   let info_menu_anchor = $state<{ top: number; right: number } | null>(null);
@@ -588,7 +590,6 @@
     teardown(); // clean up any prior attempt before starting a new one
 
     const url = getEffectiveSignalUrl();
-    console.log({ url });
     if (url === "") {
       connection_store.setError(
         "No signalling server URL configured. Open Settings → Connection to set one.",
@@ -1157,6 +1158,35 @@
           ></path>
         </svg>
       </button>
+      <button
+        class="copy-btn"
+        onclick={() => { show_url_qr = true; }}
+        title="Display current URL as QR code"
+        aria-label="Display current URL as QR code"
+      >
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 14 14"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <rect x="1" y="1" width="4" height="4" rx="0.5"></rect>
+          <rect x="9" y="1" width="4" height="4" rx="0.5"></rect>
+          <rect x="1" y="9" width="4" height="4" rx="0.5"></rect>
+          <rect x="2.5" y="2.5" width="1" height="1" fill="currentColor" stroke="none"></rect>
+          <rect x="10.5" y="2.5" width="1" height="1" fill="currentColor" stroke="none"></rect>
+          <rect x="2.5" y="10.5" width="1" height="1" fill="currentColor" stroke="none"></rect>
+          <path d="M9 9h1.5v1.5"></path>
+          <path d="M12 9v1.5H13"></path>
+          <path d="M9 12h1.5v1"></path>
+          <path d="M12 12.5h1"></path>
+        </svg>
+      </button>
       <div class="find-room-wrapper">
         <button
           class="find-room-btn"
@@ -1568,6 +1598,10 @@
         show_about = false;
       }}
     />
+  {/if}
+
+  {#if show_url_qr}
+    <UrlQrModal onclose={() => { show_url_qr = false; }} />
   {/if}
 </div>
 
