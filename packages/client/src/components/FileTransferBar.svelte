@@ -34,6 +34,8 @@
   let drag_over = $state(false);
   // Tracks which completed transfers the receiver has clicked "Save" on.
   let saved_ids = $state(new Set<string>());
+  // Tracks saves in progress (button disabled until save completes).
+  let saving_ids = $state(new Set<string>());
 
   function formatBytes(bytes: number): string {
     if (bytes < 1024) { return `${bytes} B`; }
@@ -51,12 +53,14 @@
   }
 
   function handleSave(transfer_id: string, url: string, filename: string): void {
-    // Trigger the download programmatically, then mark as saved.
+    saving_ids = new Set(saving_ids).add(transfer_id);
     const anchor = document.createElement("a");
     anchor.href = url;
     anchor.download = filename;
     anchor.click();
     saved_ids = new Set(saved_ids).add(transfer_id);
+    saving_ids.delete(transfer_id);
+    saving_ids = new Set(saving_ids);
   }
 
   const has_strips = $derived(
@@ -130,6 +134,7 @@
             <button
               class="strip-btn accept"
               onclick={() => handleSave(transfer_id, file.url, file.filename)}
+              disabled={saving_ids.has(transfer_id)}
             >
               Save
             </button>
@@ -262,6 +267,11 @@
 
   .strip-btn:hover {
     opacity: 0.8;
+  }
+
+  .strip-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
   }
 
   .progress-bar {
