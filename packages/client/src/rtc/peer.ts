@@ -126,6 +126,7 @@ export class RTCPeerManager {
     pc: RTCPeerConnection;
     flush_pending: () => Promise<void>;
   } {
+    console.log("[ICE] ice_servers config:", JSON.stringify(this.ice_servers));
     const pc =
       this.provided_peer_connection ?? new RTCPeerConnection({ iceServers: this.ice_servers });
     this.peer_connection = pc;
