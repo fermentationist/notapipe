@@ -3,14 +3,11 @@ import { resolve } from "path";
 
 export default defineConfig({
   test: {
-    environment: "jsdom",
-    globals: false,
-    include: ["tests/**/*.test.ts"],
-    exclude: ["e2e/**"],
+    exclude: ["**/e2e/**", "**/node_modules/**"],
   },
   resolve: {
     alias: {
-      $lib: resolve(__dirname, "src/lib"),
+      $lib: resolve(__dirname, "packages/client/src/lib"),
     },
   },
 });

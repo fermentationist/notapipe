@@ -24,4 +24,4 @@ export const ABOUT_CONTENT: string =
   extractSection(readmeRaw, "About notapipe") +
   "\n\n---\n\n" +
   "[View source on GitHub](https://github.com/fermentationist/notapipe)\n\n" +
-  "&copy; 2025 [Dennis Hodges](https://dennis-hodges.com). MIT License.";
+  "&copy; 2026 [Dennis Hodges](https://dennis-hodges.com). MIT License.";
