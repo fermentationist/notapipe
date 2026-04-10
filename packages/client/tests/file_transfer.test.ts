@@ -124,6 +124,8 @@ describe("FileTransferManager — sending", () => {
     onProgress: vi.fn(),
     onFileReceived: vi.fn(),
     onTransferCancelled: vi.fn(),
+    onTransferAccepted: vi.fn(),
+    onFileSent: vi.fn(),
     onError: vi.fn(),
   };
 
@@ -257,6 +259,8 @@ describe("FileTransferManager — receiving", () => {
       onProgress: on_progress,
       onFileReceived: on_file_received,
       onTransferCancelled: on_cancelled,
+      onTransferAccepted: vi.fn(),
+      onFileSent: vi.fn(),
       onError: on_error,
     });
   });
