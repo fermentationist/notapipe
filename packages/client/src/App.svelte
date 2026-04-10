@@ -292,11 +292,14 @@
   }
 
   function sendFileToAllPeers(file: File): void {
+    console.log("[sendFileToAllPeers] managers:", file_transfer_managers.size, "file:", file.name);
     for (const manager of file_transfer_managers.values()) {
       const transfer_id = manager.sendFile(file);
+      console.log("[sendFileToAllPeers] transfer_id:", transfer_id);
       if (transfer_id !== null) {
         ft_outgoing_names.set(transfer_id, file.name);
         ft_pending_sent = new Map(ft_pending_sent).set(transfer_id, file.name);
+        console.log("[sendFileToAllPeers] ft_pending_sent size:", ft_pending_sent.size);
       }
     }
   }
