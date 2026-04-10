@@ -98,6 +98,7 @@ export class QrTransport implements SignalTransport {
   receiveScannedPacket(packet: Uint8Array): void {
     try {
       const { sdp, type } = decodeSdp(packet);
+      console.log(`[QR scan] decoded ${type}, candidates:\n`, sdp.match(/a=candidate:[^\r\n]+/g)?.join("\n") ?? "(none)");
       const sdp_init: RTCSessionDescriptionInit = { type, sdp };
       if (type === "offer") {
         this.offer_callback?.(sdp_init);
@@ -105,6 +106,7 @@ export class QrTransport implements SignalTransport {
         this.answer_callback?.(sdp_init);
       }
     } catch (error) {
+      console.error("[QR scan] decode error:", error);
       this.callbacks.onError(error instanceof Error ? error : new Error(String(error)));
     }
   }

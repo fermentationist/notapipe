@@ -81,11 +81,18 @@ export class RTCPeerManager {
     this.transport.sendOffer({ type: offer.type, sdp: offer.sdp ?? "" });
 
     this.transport.onAnswer(async (answer_sdp) => {
+      console.log("[QR offerer] onAnswer fired, signalingState:", pc.signalingState, "sdp length:", answer_sdp.sdp?.length);
       if (pc.signalingState !== "have-local-offer") {
+        console.warn("[QR offerer] unexpected signalingState — ignoring answer");
         return;
       }
-      await pc.setRemoteDescription(new RTCSessionDescription(answer_sdp));
-      await flush_pending();
+      try {
+        await pc.setRemoteDescription(new RTCSessionDescription(answer_sdp));
+        console.log("[QR offerer] setRemoteDescription OK, iceConnectionState:", pc.iceConnectionState);
+        await flush_pending();
+      } catch (err) {
+        console.error("[QR offerer] setRemoteDescription failed:", err);
+      }
     });
   }
 
@@ -156,7 +163,12 @@ export class RTCPeerManager {
       }
     };
 
+    pc.oniceconnectionstatechange = () => {
+      console.log("[QR ICE] iceConnectionState:", pc.iceConnectionState, "iceGatheringState:", pc.iceGatheringState);
+    };
+
     pc.onconnectionstatechange = () => {
+      console.log("[QR peer] connectionState:", pc.connectionState);
       const state_map: Record<RTCPeerConnectionState, PeerManagerState> = {
         new: "idle",
         connecting: "connecting",
