@@ -32,7 +32,7 @@
   const spinner = $derived(spinner_states[spinner_index]);
 
   $effect(() => {
-    if (packet !== null) {
+    if (packet !== null && view !== "connecting") {
       return;
     }
     const interval = setInterval(() => {
