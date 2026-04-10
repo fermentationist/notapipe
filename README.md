@@ -35,12 +35,6 @@ Two or more peers open the same URL — identified by a memorable 3-word phrase 
 
 ---
 
-[View source on GitHub](https://github.com/fermentationist/notapipe)
-
-&copy; 2025 [Dennis Hodges](https://dennis-hodges.com). MIT License.
-
----
-
 ## How it works
 
 - Each browser tab generates (or reads from the URL) a **3-word room ID** like `apple-river-moon` plus a random **`#token`** fragment — e.g. `notapipe.app/apple-river-moon#k7mX9qPw`

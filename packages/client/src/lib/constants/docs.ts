@@ -20,4 +20,8 @@ function extractSection(markdown: string, heading: string): string {
 }
 
 export const USER_GUIDE_CONTENT: string = userGuideRaw;
-export const ABOUT_CONTENT: string = extractSection(readmeRaw, "About notapipe");
+export const ABOUT_CONTENT: string =
+  extractSection(readmeRaw, "About notapipe") +
+  "\n\n---\n\n" +
+  "[View source on GitHub](https://github.com/fermentationist/notapipe)\n\n" +
+  "&copy; 2025 [Dennis Hodges](https://dennis-hodges.com). MIT License.";
