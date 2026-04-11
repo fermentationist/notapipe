@@ -31,7 +31,7 @@
   .toast-bar {
     position: fixed;
     bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
-    left: 1rem;
+    left: 1.5rem;
     display: flex;
     flex-direction: column;
     gap: 4px;
