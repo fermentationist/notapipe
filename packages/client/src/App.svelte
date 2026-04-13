@@ -204,6 +204,8 @@
   // Tracks peers where the answerer's mic has been added via beforeAnswer,
   // to prevent duplicate addTrack calls on subsequent renegotiations.
   const answerer_voice_added = new Set<string>();
+  // Reactive: remote peers who currently have voice active (peer_id → handle).
+  let remote_voice_active = $state(new Map<string, string>());
 
   // ---------------------------------------------------------------------------
   // File transfer UI state (reactive so the bar re-renders)
@@ -479,14 +481,18 @@
   function registerDataChannel(remote_peer_id: string, channel: RTCDataChannel): void {
     data_channels.set(remote_peer_id, channel);
 
-    const send_identity = (): void => {
+    const send_initial_state = (): void => {
       channel.send(JSON.stringify({ type: "identity", handle: local_handle }));
+      // Let the new peer know our current voice state immediately.
+      if (voice_active) {
+        channel.send(JSON.stringify({ type: "voice-start", handle: local_handle }));
+      }
     };
 
     if (channel.readyState === "open") {
-      send_identity();
+      send_initial_state();
     } else {
-      channel.addEventListener("open", send_identity, { once: true });
+      channel.addEventListener("open", send_initial_state, { once: true });
     }
 
     channel.addEventListener("message", (event: MessageEvent<ArrayBuffer | string>) => {
@@ -501,6 +507,16 @@
           if (is_new) {
             addPeerToast(`Connected to ${msg.handle}`);
           }
+        } else if (msg.type === "voice-start" && typeof msg.handle === "string") {
+          const was_anyone_calling = remote_voice_active.size > 0;
+          remote_voice_active = new Map(remote_voice_active).set(remote_peer_id, msg.handle);
+          if (!was_anyone_calling && !voice_active) {
+            addPeerToast(`${msg.handle} started a voice call`);
+          }
+        } else if (msg.type === "voice-stop") {
+          const updated = new Map(remote_voice_active);
+          updated.delete(remote_peer_id);
+          remote_voice_active = updated;
         } else if (
           msg.type === "chat" &&
           typeof msg.text === "string" &&
@@ -601,6 +617,13 @@
       return;
     }
     voice_active = true;
+    // Notify all connected peers that we're starting a voice call.
+    const voice_start_msg = JSON.stringify({ type: "voice-start", handle: local_handle });
+    data_channels.forEach((channel) => {
+      if (channel.readyState === "open") {
+        channel.send(voice_start_msg);
+      }
+    });
     // Add mic track to each connected peer where we are the offerer —
     // adding a track triggers onnegotiationneeded, which creates a new offer.
     // Answerer peers get their own mic added via the beforeAnswer hook.
@@ -617,6 +640,13 @@
 
   function stopVoice(): void {
     voice_active = false;
+    // Notify all connected peers that we're ending the voice call.
+    const voice_stop_msg = JSON.stringify({ type: "voice-stop" });
+    data_channels.forEach((channel) => {
+      if (channel.readyState === "open") {
+        channel.send(voice_stop_msg);
+      }
+    });
     // Remove our audio senders from each peer connection.
     for (const [peer_id, senders] of voice_senders) {
       const manager = peer_managers.get(peer_id);
@@ -709,6 +739,11 @@
     // Clean up voice resources for this peer.
     voice_senders.delete(remote_peer_id);
     answerer_voice_added.delete(remote_peer_id);
+    if (remote_voice_active.has(remote_peer_id)) {
+      const updated = new Map(remote_voice_active);
+      updated.delete(remote_peer_id);
+      remote_voice_active = updated;
+    }
     const audio_el = remote_audio_nodes.get(remote_peer_id);
     if (audio_el !== undefined) {
       audio_el.srcObject = null;
@@ -1406,6 +1441,8 @@
   ];
 
   const is_connected = $derived($connection_store.peer_state === "connected");
+  // True when a remote peer has started a voice call but we haven't joined yet.
+  const incoming_voice_call = $derived(remote_voice_active.size > 0 && !voice_active);
   const show_actions = $derived(!$focus_mode_store && !code_mode);
   // Preview is suppressed in focus mode and code mode
   const show_preview = $derived(
@@ -1591,10 +1628,11 @@
       <button
         class="copy-btn"
         class:voice-active={voice_active}
+        class:voice-ringing={incoming_voice_call}
         onclick={toggleVoice}
         disabled={!is_connected && !voice_active}
-        title={voice_active ? "End voice call" : "Start voice call"}
-        aria-label={voice_active ? "End voice call" : "Start voice call"}
+        title={voice_active ? "End voice call" : incoming_voice_call ? "Join voice call" : "Start voice call"}
+        aria-label={voice_active ? "End voice call" : incoming_voice_call ? "Join voice call" : "Start voice call"}
         aria-pressed={voice_active}
       >
         {#if voice_active}
@@ -2171,6 +2209,15 @@
 
   .copy-btn.voice-active:hover {
     color: #16a34a;
+  }
+
+  @keyframes voice-ring {
+    0%, 100% { color: #22c55e; transform: scale(1); }
+    50% { color: #16a34a; transform: scale(1.2); }
+  }
+
+  .copy-btn.voice-ringing {
+    animation: voice-ring 1s ease-in-out infinite;
   }
 
   .copy-btn:disabled {
