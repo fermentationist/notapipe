@@ -102,6 +102,7 @@
       <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
         <path d="M1 1l14 7-14 7V9.5l10-1.5-10-1.5V1z"/>
       </svg>
+      <span class="send-label">Send</span>
     </button>
   </div>
 </div>
@@ -252,13 +253,19 @@
     border-radius: 6px;
     color: #fff;
     cursor: pointer;
-    padding: 0.45rem 0.6rem;
+    padding: 0.45rem 0.75rem;
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 0.35rem;
     flex-shrink: 0;
     min-height: 36px;
-    min-width: 36px;
+    font-family: inherit;
+    font-size: 0.85rem;
+  }
+
+  .send-label {
+    font-size: 0.8rem;
   }
 
   .send-btn:disabled {
