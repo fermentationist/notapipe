@@ -29,14 +29,14 @@
 
 <style>
   .toast-bar {
-    position: fixed;
-    bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+    position: absolute;
+    bottom: 1.5rem;
     left: 1.5rem;
     display: flex;
     flex-direction: column;
     gap: 4px;
     z-index: 50;
-    max-width: min(320px, calc(100vw - 2rem));
+    max-width: min(320px, calc(100% - 3rem));
     pointer-events: none;
   }
 

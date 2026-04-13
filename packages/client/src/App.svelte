@@ -473,7 +473,7 @@
           const is_new = !remote_handles.has(remote_peer_id);
           remote_handles = new Map(remote_handles).set(remote_peer_id, msg.handle);
           if (is_new) {
-            addPeerToast(`${msg.handle} joined`);
+            addPeerToast(`Connected to ${msg.handle}`);
           }
         }
       } catch {
@@ -520,7 +520,7 @@
     connection_store.removeRemotePeer(remote_peer_id);
     manager.close();
     if (departed_handle !== undefined) {
-      addPeerToast(`${departed_handle} left`);
+      addPeerToast(`Disconnected from ${departed_handle}`);
     }
     updateAggregateState();
   }
@@ -1408,6 +1408,7 @@
         {code_mode}
         language={code_language}
       />
+      <PeerToastBar toasts={peer_toasts} ondismiss={dismissPeerToast} />
     </div>
     {#if show_preview}
       <div class="preview-pane">
@@ -1420,7 +1421,6 @@
         <MarkdownPreview content={preview_content} />
       </div>
     {/if}
-    <PeerToastBar toasts={peer_toasts} ondismiss={dismissPeerToast} />
     <FileTransferBar
       connected={is_connected}
       incoming_offers={ft_incoming_offers}
@@ -2092,6 +2092,7 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    position: relative;
   }
 
   .actions {
