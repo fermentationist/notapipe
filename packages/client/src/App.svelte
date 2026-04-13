@@ -498,7 +498,13 @@
         return;
       }
       try {
-        const msg = JSON.parse(event.data) as { type?: string; handle?: string };
+        const msg = JSON.parse(event.data) as {
+          type?: string;
+          handle?: string;
+          id?: string;
+          text?: string;
+          timestamp?: number;
+        };
         if (msg.type === "identity" && typeof msg.handle === "string") {
           const is_new = !remote_handles.has(remote_peer_id);
           remote_handles = new Map(remote_handles).set(remote_peer_id, msg.handle);
@@ -508,6 +514,8 @@
         } else if (msg.type === "voice-start" && typeof msg.handle === "string") {
           const was_anyone_calling = remote_voice_active.size > 0;
           remote_voice_active = new Map(remote_voice_active).set(remote_peer_id, msg.handle);
+          // Reset so beforeAnswer can add our mic again on the next renegotiation.
+          answerer_voice_added.delete(remote_peer_id);
           if (!was_anyone_calling && !voice_active) {
             addPeerToast(`${msg.handle} started a voice call`);
           }
@@ -515,6 +523,16 @@
           const updated = new Map(remote_voice_active);
           updated.delete(remote_peer_id);
           remote_voice_active = updated;
+          // Reset so the next call cycle can add our mic cleanly.
+          answerer_voice_added.delete(remote_peer_id);
+          // If we are the offerer for this peer, trigger a renegotiation to remove
+          // the answerer's audio from the SDP. Without this, the answerer's removeTrack()
+          // fires onnegotiationneeded on their side where there is no handler, leaving
+          // the SDP out of sync.
+          const manager = peer_managers.get(remote_peer_id);
+          if (manager?.getIsOfferer() === true) {
+            manager.removeAudioTracks();
+          }
         } else if (
           msg.type === "chat" &&
           typeof msg.text === "string" &&
@@ -683,7 +701,18 @@
   }
 
   async function beforeAnswerAddVoice(peer_id: string, pc: RTCPeerConnection): Promise<void> {
-    if (!voice_active || local_voice_stream === null || answerer_voice_added.has(peer_id)) {
+    // Only add our mic when:
+    // 1. We have voice active (user clicked the phone button)
+    // 2. The remote peer also has voice active (they sent voice-start)
+    //    — this prevents auto-adding during a hang-up renegotiation where the
+    //    offerer removed their tracks but voice-stop already cleared remote_voice_active
+    // 3. We haven't already added our mic for this peer in the current call cycle
+    if (
+      !voice_active ||
+      local_voice_stream === null ||
+      !remote_voice_active.has(peer_id) ||
+      answerer_voice_added.has(peer_id)
+    ) {
       return;
     }
     for (const track of local_voice_stream.getTracks()) {
