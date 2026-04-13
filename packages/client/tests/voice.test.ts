@@ -152,17 +152,37 @@ function makeMockTransport(): MockTransport {
     closed: false,
     asTransport() {
       return {
-        sendOffer(sdp) { t.offers_sent.push(sdp); },
-        sendAnswer(sdp) { t.answers_sent.push(sdp); },
+        sendOffer(sdp) {
+          t.offers_sent.push(sdp);
+        },
+        sendAnswer(sdp) {
+          t.answers_sent.push(sdp);
+        },
         sendIceCandidate() {},
-        onOffer(cb) { t.offer_callback = cb; },
-        onAnswer(cb) { t.answer_callback = cb; },
-        onIceCandidate(cb) { t.ice_callback = cb; },
-        close() { t.closed = true; },
+        onOffer(cb) {
+          t.offer_callback = cb;
+        },
+        onAnswer(cb) {
+          t.answer_callback = cb;
+        },
+        onIceCandidate(cb) {
+          t.ice_callback = cb;
+        },
+        close() {
+          t.closed = true;
+        },
       };
     },
-    async deliverOffer(sdp) { if (t.offer_callback) { await t.offer_callback(sdp); } },
-    async deliverAnswer(sdp) { if (t.answer_callback) { await t.answer_callback(sdp); } },
+    async deliverOffer(sdp) {
+      if (t.offer_callback) {
+        await t.offer_callback(sdp);
+      }
+    },
+    async deliverAnswer(sdp) {
+      if (t.answer_callback) {
+        await t.answer_callback(sdp);
+      }
+    },
   };
   return t;
 }

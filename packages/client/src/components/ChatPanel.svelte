@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { tick } from "svelte";
+  import { tick, onMount } from "svelte";
 
   export interface ChatMessage {
     id: string;
@@ -57,6 +57,27 @@
         scroll_el.scrollTop = scroll_el.scrollHeight;
       }
     });
+  });
+
+  // On mobile, when the virtual keyboard appears the visual viewport shrinks.
+  // Scroll the message list to the bottom so the latest messages remain visible
+  // in the reduced space above the keyboard.
+  onMount(() => {
+    const vv = window.visualViewport;
+    if (!vv) {
+      return;
+    }
+    const on_viewport_resize = () => {
+      tick().then(() => {
+        if (scroll_el) {
+          scroll_el.scrollTop = scroll_el.scrollHeight;
+        }
+      });
+    };
+    vv.addEventListener("resize", on_viewport_resize);
+    return () => {
+      vv.removeEventListener("resize", on_viewport_resize);
+    };
   });
 </script>
 

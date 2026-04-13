@@ -16,6 +16,10 @@ body {
   margin: 0;
   padding: 0;
   height: 100%;
+  /* Prevent the page from scrolling when the virtual keyboard opens on mobile.
+     Without this, focusing the chat input causes the browser to auto-scroll the
+     page upward, pushing the app header/messages off the visible area. */
+  overflow: hidden;
   font-family: "IBM Plex Mono", monospace;
   background-color: var(--color-bg);
   color: var(--color-text);
