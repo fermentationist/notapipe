@@ -80,14 +80,18 @@ export class RTCPeerManager {
     this.callbacks.onFileChannel(file_channel);
 
     // Handle renegotiation (e.g. when audio tracks are added/removed later).
-    // The initial offer is created explicitly below, so we skip when not stable.
+    // Skip the initial trigger caused by createDataChannel: at that point
+    // localDescription is still null (setLocalDescription hasn't been called),
+    // and signalingState is "stable" — the same value it has during renegotiation.
+    // Gating on localDescription !== null ensures we only renegotiate after the
+    // first offer/answer exchange has fully completed.
     pc.onnegotiationneeded = async () => {
-      if (pc.signalingState !== "stable") {
+      if (pc.localDescription === null || pc.signalingState !== "stable") {
         return;
       }
       try {
         const offer = await pc.createOffer();
-        // Re-check state after the async createOffer — another event may have fired.
+        // Re-check after the async gap — state may have changed.
         if (pc.signalingState !== "stable") {
           return;
         }

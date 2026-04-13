@@ -1592,20 +1592,21 @@
         class="copy-btn"
         class:voice-active={voice_active}
         onclick={toggleVoice}
+        disabled={!is_connected && !voice_active}
         title={voice_active ? "End voice call" : "Start voice call"}
         aria-label={voice_active ? "End voice call" : "Start voice call"}
         aria-pressed={voice_active}
       >
         {#if voice_active}
-          <!-- Handset with slash = end call -->
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M3.5 1.5C3 3 3 5 4.5 6.5L6 8C4.5 9.5 3.5 11 3.5 12c0 .6.4 1 1 1l2-.5c.4-.1.7-.5.7-.9V10c0-.4-.3-.8-.7-.9L5.5 9c.5-1 1.2-1.8 2-2.5"/>
-            <line x1="2" y1="2" x2="14" y2="14"/>
+          <!-- phone-off (Lucide) -->
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/>
+            <line x1="23" y1="1" x2="1" y2="23"/>
           </svg>
         {:else}
-          <!-- Phone handset -->
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M3.5 1.5C3 3 3 5 4.5 6.5L6 8C4.5 9.5 3.5 11 3.5 12c0 .6.4 1 1 1l2-.5c.4-.1.7-.5.7-.9V10c0-.4-.3-.8-.7-.9L5.5 9C7 7.5 8.5 7 10 7l1 1.5c.2.4.5.6.9.7L13.5 9c.5 0 .9-.3 1-.7L15 7c0-.6-.4-1-1-1C13 5.5 11 5 9.5 3.5 8 2 6 2 4.5 1.5c-.4-.1-.8.1-1 .5z"/>
+          <!-- phone (Lucide) -->
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.35 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6 6l.92-.92a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
           </svg>
         {/if}
       </button>
@@ -2170,6 +2171,11 @@
 
   .copy-btn.voice-active:hover {
     color: #16a34a;
+  }
+
+  .copy-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
   }
 
   .passphrase-bar {
