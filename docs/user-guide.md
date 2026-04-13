@@ -1,6 +1,6 @@
 # notapipe — User Guide
 
-**Version 0.0.1 · April 2026**
+**Version 0.0.2 · April 2026**
 
 > Screenshots are intentionally omitted from this version of the guide — the UI is still evolving and static images go stale quickly. All UI elements are described by their visible label or icon.
 
@@ -16,18 +16,20 @@
    - [Via QR code (air-gapped)](#via-qr-code-air-gapped)
    - [Adding more devices](#adding-more-devices)
 5. [The editor](#the-editor)
-6. [Markdown preview](#markdown-preview)
-7. [Wide layout](#wide-layout)
-8. [Focus mode](#focus-mode)
-9. [Code editor mode](#code-editor-mode)
-10. [Importing and exporting text](#importing-and-exporting-text)
-11. [Sending and receiving files](#sending-and-receiving-files)
-12. [Sharing](#sharing)
-13. [Themes](#themes)
-14. [Settings and persistence](#settings-and-persistence)
-15. [Installing as an app (PWA)](#installing-as-an-app-pwa)
-16. [Clearing data](#clearing-data)
-17. [Troubleshooting](#troubleshooting)
+6. [Chat](#chat)
+7. [Voice calls](#voice-calls)
+8. [Markdown preview](#markdown-preview)
+9. [Wide layout](#wide-layout)
+10. [Focus mode](#focus-mode)
+11. [Code editor mode](#code-editor-mode)
+12. [Importing and exporting text](#importing-and-exporting-text)
+13. [Sending and receiving files](#sending-and-receiving-files)
+14. [Sharing](#sharing)
+15. [Themes](#themes)
+16. [Settings and persistence](#settings-and-persistence)
+17. [Installing as an app (PWA)](#installing-as-an-app-pwa)
+18. [Clearing data](#clearing-data)
+19. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -62,6 +64,10 @@ The interface has four main regions:
 
 - The current room ID (e.g. `apple-river-moon`)
 - A copy button (two-overlapping-pages icon) to copy the room URL to the clipboard
+- Your display **handle** (click to rename yourself — the new name is shown to all connected peers)
+- A **peer list** showing the handles of all connected peers
+- A **chat button** (speech-bubble icon) — opens the chat panel; shows a numbered badge for unread messages
+- A **voice button** (phone icon) — starts or ends a voice call with all connected peers
 - A **Find a room** dropdown with options to navigate to a random room or find nearby devices
 
 **Editor** (main area)
@@ -166,6 +172,65 @@ The editor is a plain-text `textarea`.
 - **No formatting** — content is plain text only
 - **Spellcheck, autocorrect, and autocapitalise** are disabled so the editor behaves consistently across devices
 - **Copy button** — the overlapping-pages icon in the bottom-right corner copies the entire editor contents to your clipboard instantly. After syncing text from another device, tap this to grab it without selecting all manually. The icon briefly shows a `✓` to confirm the copy succeeded
+
+---
+
+## Chat
+
+The chat panel provides a real-time text chat channel between all connected peers. Chat messages are separate from the shared document — they do not affect the editor contents.
+
+**Opening chat:**
+
+- Click the speech-bubble icon in the room bar
+- The icon turns green when the panel is open
+- An unread-message badge appears on the icon when new messages arrive while the panel is closed
+
+**Sending a message:**
+
+- Type in the input field at the bottom of the chat panel and press **Enter** (or click the send button)
+
+**Identity:** Your messages are labelled with your display handle. To change your handle, click it in the room bar before or during the conversation.
+
+**Chat and other panels:** Chat and markdown preview cannot be open at the same time. Opening one will close the other.
+
+**Chat in focus mode / code mode:** The chat panel is not available while focus mode or code editor mode is active.
+
+### Chat persistence (off by default)
+
+Chat messages are ephemeral by default — they are not saved and will be lost when you close or reload the tab. To keep a chat log across reloads, enable **Save chat log** in Settings (⚙). When enabled, messages are saved to `localStorage` under the current room ID and restored on your next visit.
+
+**Note:** Chat messages are only saved on your own device — they are not pushed to other peers when you reconnect.
+
+---
+
+## Voice calls
+
+Voice calls let you speak with all connected peers over the same peer-to-peer WebRTC connection used for text sync — no server handles your audio.
+
+**Starting a voice call:**
+
+1. Make sure you are connected to at least one peer (the phone icon is disabled when disconnected)
+2. Click the phone icon in the room bar — the browser will prompt for microphone permission
+3. Once permission is granted, the icon turns **green** to indicate an active call
+4. Connected peers receive a notification: _"[handle] started a voice call"_
+5. Each peer clicks their own phone icon to join the call
+
+**Ending a voice call:**
+
+- Click the green phone icon again — your microphone is released and the audio channel is torn down
+- The icon returns to its default state
+
+**Incoming call:**
+
+When a peer starts a voice call while you are connected, the phone icon begins **pulsing** and the title tooltip changes to "Join voice call". Click it to join.
+
+### Notes
+
+- Each peer must individually click the phone icon to join. Voice does not auto-connect.
+- If a peer hangs up and calls again, you will see the pulsing notification again — you do not automatically rejoin.
+- Reloading the page ends your participation in any active call. Other peers remain connected to each other; you will need to click the phone icon again after reconnecting.
+- Voice uses your browser's `getUserMedia` API. **HTTPS is required** — on iOS, camera/microphone access is not available over plain HTTP.
+- notapipe v0.0.2 does not include a TURN server. On networks with strict symmetric NAT, voice (like text sync) may fail to establish a peer-to-peer path.
 
 ---
 
@@ -346,13 +411,17 @@ A theme is a plain JSON object mapping CSS custom property names to values:
 
 Click **⚙** to open the Settings panel.
 
-### Local persistence (off by default)
+### Document persistence (off by default)
 
 When **Save to localStorage** is enabled, the current document is saved to your browser's local storage under the current room ID. It is restored automatically when you return to the same room URL.
 
 **Important:** This data never leaves your device. It is stored in your browser's local storage, not on any server.
 
 Persistence is per-room: each room ID has its own saved content. If you navigate to a different room, that room's saved content (if any) is loaded.
+
+### Chat log persistence (off by default)
+
+When **Save chat log** is enabled, chat messages for each room are saved to `localStorage` and restored when you return to that room URL. Like document persistence, chat logs are stored locally only — they are not synced to other peers on reconnect.
 
 ---
 
@@ -432,6 +501,27 @@ The remaining options (**Clear all documents**, **Clear settings**, **Clear ever
 - This is expected behaviour for the built-in Light/Dark tabs — clicking them applies the theme immediately
 - The Custom tab's text input backgrounds are frozen to the theme values from when you opened Settings. Close and reopen Settings to refresh them to the current theme
 
+### Voice call: phone icon is disabled / greyed out
+
+- The voice button is disabled when you have no connected peers. Connect via the signalling server or QR code first.
+
+### Voice call: microphone permission denied
+
+- Check your browser's site permissions (address bar → lock icon → microphone) and grant access to the site
+- On iOS, go to Settings → Safari → Microphone and make sure notapipe is allowed
+- HTTPS is required for `getUserMedia` — the phone icon will remain non-functional if the site is served over plain HTTP
+
+### Voice call: other peer does not hear me (or I don't hear them)
+
+- Both peers must click the phone icon to join the call — hearing audio is not automatic
+- Check that your device's audio output is not muted or routed to a device without a speaker
+- On networks with symmetric NAT (some corporate Wi-Fi and mobile networks), WebRTC audio may fail to connect. Try on a different network or Wi-Fi
+
+### Chat messages not persisting across reloads
+
+- Enable **Save chat log** in Settings (⚙)
+- Private/incognito mode blocks `localStorage` in most browsers
+
 ### Persistence not restoring content
 
 - Check that **Save to localStorage** is enabled in Settings
@@ -440,4 +530,4 @@ The remaining options (**Clear all documents**, **Clear settings**, **Clear ever
 
 ---
 
-_notapipe v0.0.1 · April 2026_
+_notapipe v0.0.2 · April 2026_

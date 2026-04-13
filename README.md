@@ -12,6 +12,7 @@ Two people open the same URL — identified by a memorable 3-word phrase — and
 
 - Quickly sharing a snippet of text, code, a link or a file between your own devices
 - Collaborating on a note with someone in the same room
+- Chatting and talking with a peer without any account or cloud service
 - Transferring a password or secret without it passing through any cloud service
 - Any time you need a zero-friction, zero-trace scratchpad between two people
 
@@ -20,6 +21,8 @@ Two people open the same URL — identified by a memorable 3-word phrase — and
 - Real-time sync with no account, no login, no installation
 - QR code pairing — no signalling server at all
 - File transfer (up to 100 MB) directly peer-to-peer
+- **Chat** — real-time text chat between peers, separate from the shared document
+- **Voice calls** — peer-to-peer audio using the same WebRTC connection
 - Markdown preview
 - Syntax-highlighted code editor (14 languages)
 - Works offline once loaded (PWA)
@@ -47,12 +50,14 @@ Two or more peers open the same URL — identified by a memorable 3-word phrase 
 
 - **Signalling & QR connection modes** — use whichever fits your security needs
 - **Multi-peer mesh** — connect more than two devices; each pair syncs independently
+- **Chat** — real-time text chat panel between all connected peers; separate from the shared document; optional per-room chat log persistence
+- **Voice calls** — peer-to-peer audio using the same WebRTC connection; no server handles your audio
 - **Markdown preview** — toggle a live rendered view alongside the editor (`M↓`); local-only, does not affect peers
 - **Wide layout** — desktop toggle to expand beyond the default centred column; preference persists across sessions
 - **Focus mode** — distraction-free writing with a ruled-paper aesthetic (`Cmd+F`)
 - **Code editor mode** — syntax highlighting for 14 languages, bracket matching, and line commands (`</>` button)
 - **Theming** — built-in light/dark themes plus a fully customisable token editor
-- **Local persistence** — optional `localStorage` save (off by default)
+- **Local persistence** — optional `localStorage` save for documents and chat logs (off by default)
 - **One-tap copy** — copy all editor content to clipboard instantly (the primary cross-device transfer action)
 - **Import / export / share** — load a `.txt` file, save one, or share the room link
 - **File transfer** — send any file (up to 100 MB) directly to all connected peers, no server involved
