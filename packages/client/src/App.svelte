@@ -1992,7 +1992,7 @@
 
   .chat-badge {
     position: absolute;
-    top: -4px;
+    top: 0;
     right: -6px;
     background: var(--color-accent);
     color: #fff;
