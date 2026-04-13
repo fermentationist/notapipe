@@ -192,6 +192,20 @@
   let chat_unread = $state(0);
 
   // ---------------------------------------------------------------------------
+  // Voice call state
+  // ---------------------------------------------------------------------------
+
+  let voice_active = $state(false);
+  let local_voice_stream: MediaStream | null = null;
+  // Maps peer_id → RTCRtpSender[] for audio tracks we've added to that connection.
+  const voice_senders = new Map<string, RTCRtpSender[]>();
+  // Maps peer_id → HTMLAudioElement for playing remote audio.
+  const remote_audio_nodes = new Map<string, HTMLAudioElement>();
+  // Tracks peers where the answerer's mic has been added via beforeAnswer,
+  // to prevent duplicate addTrack calls on subsequent renegotiations.
+  const answerer_voice_added = new Set<string>();
+
+  // ---------------------------------------------------------------------------
   // File transfer UI state (reactive so the bar re-renders)
   // ---------------------------------------------------------------------------
 
@@ -576,6 +590,88 @@
   }
 
   // ---------------------------------------------------------------------------
+  // Voice call
+  // ---------------------------------------------------------------------------
+
+  async function startVoice(): Promise<void> {
+    try {
+      local_voice_stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    } catch {
+      connection_store.setError("Microphone permission denied or unavailable");
+      return;
+    }
+    voice_active = true;
+    // Add mic track to each connected peer where we are the offerer —
+    // adding a track triggers onnegotiationneeded, which creates a new offer.
+    // Answerer peers get their own mic added via the beforeAnswer hook.
+    for (const [peer_id, manager] of peer_managers) {
+      if (peer_states.get(peer_id) === "connected" && manager.getIsOfferer()) {
+        const senders: RTCRtpSender[] = [];
+        for (const track of local_voice_stream.getTracks()) {
+          senders.push(manager.addTrack(track, local_voice_stream));
+        }
+        voice_senders.set(peer_id, senders);
+      }
+    }
+  }
+
+  function stopVoice(): void {
+    voice_active = false;
+    // Remove our audio senders from each peer connection.
+    for (const [peer_id, senders] of voice_senders) {
+      const manager = peer_managers.get(peer_id);
+      if (manager !== undefined) {
+        for (const sender of senders) {
+          manager.removeTrack(sender);
+        }
+      }
+    }
+    voice_senders.clear();
+    answerer_voice_added.clear();
+    // Stop the local mic.
+    local_voice_stream?.getTracks().forEach((track) => track.stop());
+    local_voice_stream = null;
+    // Detach remote audio.
+    for (const audio_el of remote_audio_nodes.values()) {
+      audio_el.srcObject = null;
+      audio_el.remove();
+    }
+    remote_audio_nodes.clear();
+  }
+
+  async function toggleVoice(): Promise<void> {
+    if (voice_active) {
+      stopVoice();
+    } else {
+      await startVoice();
+    }
+  }
+
+  function handleRemoteTrack(peer_id: string, event: RTCTrackEvent): void {
+    if (event.streams.length === 0) {
+      return;
+    }
+    let audio_el = remote_audio_nodes.get(peer_id);
+    if (audio_el === undefined) {
+      audio_el = document.createElement("audio");
+      audio_el.autoplay = true;
+      document.body.appendChild(audio_el);
+      remote_audio_nodes.set(peer_id, audio_el);
+    }
+    audio_el.srcObject = event.streams[0];
+  }
+
+  async function beforeAnswerAddVoice(peer_id: string, pc: RTCPeerConnection): Promise<void> {
+    if (!voice_active || local_voice_stream === null || answerer_voice_added.has(peer_id)) {
+      return;
+    }
+    for (const track of local_voice_stream.getTracks()) {
+      pc.addTrack(track, local_voice_stream);
+    }
+    answerer_voice_added.add(peer_id);
+  }
+
+  // ---------------------------------------------------------------------------
   // Peer toast notifications
   // ---------------------------------------------------------------------------
 
@@ -610,6 +706,15 @@
     const updated_handles = new Map(remote_handles);
     updated_handles.delete(remote_peer_id);
     remote_handles = updated_handles;
+    // Clean up voice resources for this peer.
+    voice_senders.delete(remote_peer_id);
+    answerer_voice_added.delete(remote_peer_id);
+    const audio_el = remote_audio_nodes.get(remote_peer_id);
+    if (audio_el !== undefined) {
+      audio_el.srcObject = null;
+      audio_el.remove();
+      remote_audio_nodes.delete(remote_peer_id);
+    }
     connection_store.removeRemotePeer(remote_peer_id);
     manager.close();
     if (departed_handle !== undefined) {
@@ -653,6 +758,15 @@
           if (state === "connected") {
             was_ever_connected = true;
             connection_store.addRemotePeer(remote_peer_id);
+            // If voice is already active and we are the offerer, add audio tracks
+            // now so a renegotiation offer is sent to the new peer.
+            if (voice_active && local_voice_stream !== null && manager.getIsOfferer()) {
+              const senders: RTCRtpSender[] = [];
+              for (const track of local_voice_stream.getTracks()) {
+                senders.push(manager.addTrack(track, local_voice_stream));
+              }
+              voice_senders.set(remote_peer_id, senders);
+            }
           }
           // Only auto-disconnect on "failed" (terminal ICE failure) or on
           // "disconnected" after the connection was previously established.
@@ -668,6 +782,12 @@
         },
         onError(error) {
           connection_store.setError(error.message);
+        },
+        onTrack(event) {
+          handleRemoteTrack(remote_peer_id, event);
+        },
+        async beforeAnswer(pc) {
+          await beforeAnswerAddVoice(remote_peer_id, pc);
         },
       },
       undefined,
@@ -872,6 +992,14 @@
             }
             connection_store.addRemotePeer(session_id);
             show_qr_overlay = false;
+            // Add voice tracks if voice is already active and we are the offerer.
+            if (voice_active && local_voice_stream !== null && manager.getIsOfferer()) {
+              const senders: RTCRtpSender[] = [];
+              for (const track of local_voice_stream.getTracks()) {
+                senders.push(manager.addTrack(track, local_voice_stream));
+              }
+              voice_senders.set(session_id, senders);
+            }
           }
           if (state === "failed") {
             pending_qr_room_id = null;
@@ -903,6 +1031,12 @@
         },
         onError(error) {
           connection_store.setError(error.message);
+        },
+        onTrack(event) {
+          handleRemoteTrack(session_id, event);
+        },
+        async beforeAnswer(pc_arg) {
+          await beforeAnswerAddVoice(session_id, pc_arg);
         },
       },
       pc,
@@ -1454,6 +1588,27 @@
           <span class="chat-badge" aria-hidden="true">{chat_unread > 99 ? "99+" : chat_unread}</span>
         {/if}
       </div>
+      <button
+        class="copy-btn"
+        class:voice-active={voice_active}
+        onclick={toggleVoice}
+        title={voice_active ? "End voice call" : "Start voice call"}
+        aria-label={voice_active ? "End voice call" : "Start voice call"}
+        aria-pressed={voice_active}
+      >
+        {#if voice_active}
+          <!-- Handset with slash = end call -->
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3.5 1.5C3 3 3 5 4.5 6.5L6 8C4.5 9.5 3.5 11 3.5 12c0 .6.4 1 1 1l2-.5c.4-.1.7-.5.7-.9V10c0-.4-.3-.8-.7-.9L5.5 9c.5-1 1.2-1.8 2-2.5"/>
+            <line x1="2" y1="2" x2="14" y2="14"/>
+          </svg>
+        {:else}
+          <!-- Phone handset -->
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3.5 1.5C3 3 3 5 4.5 6.5L6 8C4.5 9.5 3.5 11 3.5 12c0 .6.4 1 1 1l2-.5c.4-.1.7-.5.7-.9V10c0-.4-.3-.8-.7-.9L5.5 9C7 7.5 8.5 7 10 7l1 1.5c.2.4.5.6.9.7L13.5 9c.5 0 .9-.3 1-.7L15 7c0-.6-.4-1-1-1C13 5.5 11 5 9.5 3.5 8 2 6 2 4.5 1.5c-.4-.1-.8.1-1 .5z"/>
+          </svg>
+        {/if}
+      </button>
       <div class="find-room-wrapper">
         <button
           class="find-room-btn"
@@ -2007,6 +2162,14 @@
     justify-content: center;
     padding: 0 3px;
     pointer-events: none;
+  }
+
+  .copy-btn.voice-active {
+    color: #22c55e;
+  }
+
+  .copy-btn.voice-active:hover {
+    color: #16a34a;
   }
 
   .passphrase-bar {

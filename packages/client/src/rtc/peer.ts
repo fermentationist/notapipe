@@ -32,6 +32,8 @@ export interface PeerManagerCallbacks {
   onFileChannel: (channel: RTCDataChannel) => void;
   onStateChange: (state: PeerManagerState) => void;
   onError: (error: Error) => void;
+  onTrack?: (event: RTCTrackEvent) => void;
+  beforeAnswer?: (pc: RTCPeerConnection) => Promise<void>;
 }
 
 /**
@@ -49,6 +51,7 @@ export class RTCPeerManager {
   private callbacks: PeerManagerCallbacks;
   private provided_peer_connection: RTCPeerConnection | null;
   private ice_servers: RTCIceServer[];
+  private is_offerer = false;
 
   constructor(
     transport: SignalTransport,
@@ -67,6 +70,7 @@ export class RTCPeerManager {
    * Uses trickle ICE: candidates are sent as they are discovered.
    */
   async startAsOfferer(): Promise<void> {
+    this.is_offerer = true;
     const { pc, flush_pending } = this.createPeerConnection();
 
     const data_channel = pc.createDataChannel(DATA_CHANNEL_LABEL, { ordered: true });
@@ -74,6 +78,25 @@ export class RTCPeerManager {
 
     const file_channel = pc.createDataChannel(FILE_TRANSFER_CHANNEL_LABEL, { ordered: true });
     this.callbacks.onFileChannel(file_channel);
+
+    // Handle renegotiation (e.g. when audio tracks are added/removed later).
+    // The initial offer is created explicitly below, so we skip when not stable.
+    pc.onnegotiationneeded = async () => {
+      if (pc.signalingState !== "stable") {
+        return;
+      }
+      try {
+        const offer = await pc.createOffer();
+        // Re-check state after the async createOffer — another event may have fired.
+        if (pc.signalingState !== "stable") {
+          return;
+        }
+        await pc.setLocalDescription(offer);
+        this.transport.sendOffer({ type: offer.type, sdp: offer.sdp ?? "" });
+      } catch (err) {
+        console.error("[RTCPeerManager] renegotiation offer failed:", err);
+      }
+    };
 
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
@@ -124,6 +147,9 @@ export class RTCPeerManager {
       }
       await pc.setRemoteDescription(new RTCSessionDescription(offer_sdp));
       await flush_pending();
+      if (this.callbacks.beforeAnswer !== undefined) {
+        await this.callbacks.beforeAnswer(pc);
+      }
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
       this.transport.sendAnswer({ type: answer.type, sdp: answer.sdp ?? "" });
@@ -135,6 +161,21 @@ export class RTCPeerManager {
     this.peer_connection = null;
     this.transport.close();
     this.callbacks.onStateChange("closed");
+  }
+
+  getIsOfferer(): boolean {
+    return this.is_offerer;
+  }
+
+  addTrack(track: MediaStreamTrack, stream: MediaStream): RTCRtpSender {
+    if (this.peer_connection === null) {
+      throw new Error("No active peer connection");
+    }
+    return this.peer_connection.addTrack(track, stream);
+  }
+
+  removeTrack(sender: RTCRtpSender): void {
+    this.peer_connection?.removeTrack(sender);
   }
 
   private createPeerConnection(): {
@@ -149,6 +190,10 @@ export class RTCPeerManager {
       if (event.candidate !== null) {
         this.transport.sendIceCandidate(event.candidate);
       }
+    };
+
+    pc.ontrack = (event) => {
+      this.callbacks.onTrack?.(event);
     };
 
     // Buffer remote candidates that arrive before setRemoteDescription.
