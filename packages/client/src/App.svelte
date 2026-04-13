@@ -192,6 +192,22 @@
   let chat_unread = $state(0);
 
   // ---------------------------------------------------------------------------
+  // Voice call state
+  // ---------------------------------------------------------------------------
+
+  let voice_active = $state(false);
+  let local_voice_stream: MediaStream | null = null;
+  // Maps peer_id → RTCRtpSender[] for audio tracks we've added to that connection.
+  const voice_senders = new Map<string, RTCRtpSender[]>();
+  // Maps peer_id → HTMLAudioElement for playing remote audio.
+  const remote_audio_nodes = new Map<string, HTMLAudioElement>();
+  // Tracks peers where the answerer's mic has been added via beforeAnswer,
+  // to prevent duplicate addTrack calls on subsequent renegotiations.
+  const answerer_voice_added = new Set<string>();
+  // Reactive: remote peers who currently have voice active (peer_id → handle).
+  let remote_voice_active = $state(new Map<string, string>());
+
+  // ---------------------------------------------------------------------------
   // File transfer UI state (reactive so the bar re-renders)
   // ---------------------------------------------------------------------------
 
@@ -465,14 +481,18 @@
   function registerDataChannel(remote_peer_id: string, channel: RTCDataChannel): void {
     data_channels.set(remote_peer_id, channel);
 
-    const send_identity = (): void => {
+    const send_initial_state = (): void => {
       channel.send(JSON.stringify({ type: "identity", handle: local_handle }));
+      // Let the new peer know our current voice state immediately.
+      if (voice_active) {
+        channel.send(JSON.stringify({ type: "voice-start", handle: local_handle }));
+      }
     };
 
     if (channel.readyState === "open") {
-      send_identity();
+      send_initial_state();
     } else {
-      channel.addEventListener("open", send_identity, { once: true });
+      channel.addEventListener("open", send_initial_state, { once: true });
     }
 
     channel.addEventListener("message", (event: MessageEvent<ArrayBuffer | string>) => {
@@ -487,6 +507,16 @@
           if (is_new) {
             addPeerToast(`Connected to ${msg.handle}`);
           }
+        } else if (msg.type === "voice-start" && typeof msg.handle === "string") {
+          const was_anyone_calling = remote_voice_active.size > 0;
+          remote_voice_active = new Map(remote_voice_active).set(remote_peer_id, msg.handle);
+          if (!was_anyone_calling && !voice_active) {
+            addPeerToast(`${msg.handle} started a voice call`);
+          }
+        } else if (msg.type === "voice-stop") {
+          const updated = new Map(remote_voice_active);
+          updated.delete(remote_peer_id);
+          remote_voice_active = updated;
         } else if (
           msg.type === "chat" &&
           typeof msg.text === "string" &&
@@ -576,6 +606,102 @@
   }
 
   // ---------------------------------------------------------------------------
+  // Voice call
+  // ---------------------------------------------------------------------------
+
+  async function startVoice(): Promise<void> {
+    try {
+      local_voice_stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    } catch {
+      connection_store.setError("Microphone permission denied or unavailable");
+      return;
+    }
+    voice_active = true;
+    // Notify all connected peers that we're starting a voice call.
+    const voice_start_msg = JSON.stringify({ type: "voice-start", handle: local_handle });
+    data_channels.forEach((channel) => {
+      if (channel.readyState === "open") {
+        channel.send(voice_start_msg);
+      }
+    });
+    // Add mic track to each connected peer where we are the offerer —
+    // adding a track triggers onnegotiationneeded, which creates a new offer.
+    // Answerer peers get their own mic added via the beforeAnswer hook.
+    for (const [peer_id, manager] of peer_managers) {
+      if (peer_states.get(peer_id) === "connected" && manager.getIsOfferer()) {
+        const senders: RTCRtpSender[] = [];
+        for (const track of local_voice_stream.getTracks()) {
+          senders.push(manager.addTrack(track, local_voice_stream));
+        }
+        voice_senders.set(peer_id, senders);
+      }
+    }
+  }
+
+  function stopVoice(): void {
+    voice_active = false;
+    // Notify all connected peers that we're ending the voice call.
+    const voice_stop_msg = JSON.stringify({ type: "voice-stop" });
+    data_channels.forEach((channel) => {
+      if (channel.readyState === "open") {
+        channel.send(voice_stop_msg);
+      }
+    });
+    // Remove our audio senders from each peer connection.
+    for (const [peer_id, senders] of voice_senders) {
+      const manager = peer_managers.get(peer_id);
+      if (manager !== undefined) {
+        for (const sender of senders) {
+          manager.removeTrack(sender);
+        }
+      }
+    }
+    voice_senders.clear();
+    answerer_voice_added.clear();
+    // Stop the local mic.
+    local_voice_stream?.getTracks().forEach((track) => track.stop());
+    local_voice_stream = null;
+    // Detach remote audio.
+    for (const audio_el of remote_audio_nodes.values()) {
+      audio_el.srcObject = null;
+      audio_el.remove();
+    }
+    remote_audio_nodes.clear();
+  }
+
+  async function toggleVoice(): Promise<void> {
+    if (voice_active) {
+      stopVoice();
+    } else {
+      await startVoice();
+    }
+  }
+
+  function handleRemoteTrack(peer_id: string, event: RTCTrackEvent): void {
+    if (event.streams.length === 0) {
+      return;
+    }
+    let audio_el = remote_audio_nodes.get(peer_id);
+    if (audio_el === undefined) {
+      audio_el = document.createElement("audio");
+      audio_el.autoplay = true;
+      document.body.appendChild(audio_el);
+      remote_audio_nodes.set(peer_id, audio_el);
+    }
+    audio_el.srcObject = event.streams[0];
+  }
+
+  async function beforeAnswerAddVoice(peer_id: string, pc: RTCPeerConnection): Promise<void> {
+    if (!voice_active || local_voice_stream === null || answerer_voice_added.has(peer_id)) {
+      return;
+    }
+    for (const track of local_voice_stream.getTracks()) {
+      pc.addTrack(track, local_voice_stream);
+    }
+    answerer_voice_added.add(peer_id);
+  }
+
+  // ---------------------------------------------------------------------------
   // Peer toast notifications
   // ---------------------------------------------------------------------------
 
@@ -610,6 +736,20 @@
     const updated_handles = new Map(remote_handles);
     updated_handles.delete(remote_peer_id);
     remote_handles = updated_handles;
+    // Clean up voice resources for this peer.
+    voice_senders.delete(remote_peer_id);
+    answerer_voice_added.delete(remote_peer_id);
+    if (remote_voice_active.has(remote_peer_id)) {
+      const updated = new Map(remote_voice_active);
+      updated.delete(remote_peer_id);
+      remote_voice_active = updated;
+    }
+    const audio_el = remote_audio_nodes.get(remote_peer_id);
+    if (audio_el !== undefined) {
+      audio_el.srcObject = null;
+      audio_el.remove();
+      remote_audio_nodes.delete(remote_peer_id);
+    }
     connection_store.removeRemotePeer(remote_peer_id);
     manager.close();
     if (departed_handle !== undefined) {
@@ -653,6 +793,15 @@
           if (state === "connected") {
             was_ever_connected = true;
             connection_store.addRemotePeer(remote_peer_id);
+            // If voice is already active and we are the offerer, add audio tracks
+            // now so a renegotiation offer is sent to the new peer.
+            if (voice_active && local_voice_stream !== null && manager.getIsOfferer()) {
+              const senders: RTCRtpSender[] = [];
+              for (const track of local_voice_stream.getTracks()) {
+                senders.push(manager.addTrack(track, local_voice_stream));
+              }
+              voice_senders.set(remote_peer_id, senders);
+            }
           }
           // Only auto-disconnect on "failed" (terminal ICE failure) or on
           // "disconnected" after the connection was previously established.
@@ -668,6 +817,12 @@
         },
         onError(error) {
           connection_store.setError(error.message);
+        },
+        onTrack(event) {
+          handleRemoteTrack(remote_peer_id, event);
+        },
+        async beforeAnswer(pc) {
+          await beforeAnswerAddVoice(remote_peer_id, pc);
         },
       },
       undefined,
@@ -872,6 +1027,14 @@
             }
             connection_store.addRemotePeer(session_id);
             show_qr_overlay = false;
+            // Add voice tracks if voice is already active and we are the offerer.
+            if (voice_active && local_voice_stream !== null && manager.getIsOfferer()) {
+              const senders: RTCRtpSender[] = [];
+              for (const track of local_voice_stream.getTracks()) {
+                senders.push(manager.addTrack(track, local_voice_stream));
+              }
+              voice_senders.set(session_id, senders);
+            }
           }
           if (state === "failed") {
             pending_qr_room_id = null;
@@ -903,6 +1066,12 @@
         },
         onError(error) {
           connection_store.setError(error.message);
+        },
+        onTrack(event) {
+          handleRemoteTrack(session_id, event);
+        },
+        async beforeAnswer(pc_arg) {
+          await beforeAnswerAddVoice(session_id, pc_arg);
         },
       },
       pc,
@@ -1272,6 +1441,8 @@
   ];
 
   const is_connected = $derived($connection_store.peer_state === "connected");
+  // True when a remote peer has started a voice call but we haven't joined yet.
+  const incoming_voice_call = $derived(remote_voice_active.size > 0 && !voice_active);
   const show_actions = $derived(!$focus_mode_store && !code_mode);
   // Preview is suppressed in focus mode and code mode
   const show_preview = $derived(
@@ -1454,6 +1625,29 @@
           <span class="chat-badge" aria-hidden="true">{chat_unread > 99 ? "99+" : chat_unread}</span>
         {/if}
       </div>
+      <button
+        class="copy-btn"
+        class:voice-active={voice_active}
+        class:voice-ringing={incoming_voice_call}
+        onclick={toggleVoice}
+        disabled={!is_connected && !voice_active}
+        title={voice_active ? "End voice call" : incoming_voice_call ? "Join voice call" : "Start voice call"}
+        aria-label={voice_active ? "End voice call" : incoming_voice_call ? "Join voice call" : "Start voice call"}
+        aria-pressed={voice_active}
+      >
+        {#if voice_active}
+          <!-- phone-off (Lucide) -->
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/>
+            <line x1="23" y1="1" x2="1" y2="23"/>
+          </svg>
+        {:else}
+          <!-- phone (Lucide) -->
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.35 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6 6l.92-.92a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+          </svg>
+        {/if}
+      </button>
       <div class="find-room-wrapper">
         <button
           class="find-room-btn"
@@ -2007,6 +2201,28 @@
     justify-content: center;
     padding: 0 3px;
     pointer-events: none;
+  }
+
+  .copy-btn.voice-active {
+    color: #22c55e;
+  }
+
+  .copy-btn.voice-active:hover {
+    color: #16a34a;
+  }
+
+  @keyframes voice-ring {
+    0%, 100% { color: #22c55e; transform: scale(1); }
+    50% { color: #16a34a; transform: scale(1.2); }
+  }
+
+  .copy-btn.voice-ringing {
+    animation: voice-ring 1s ease-in-out infinite;
+  }
+
+  .copy-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
   }
 
   .passphrase-bar {
