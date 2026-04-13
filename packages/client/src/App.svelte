@@ -471,7 +471,7 @@
         const msg = JSON.parse(event.data) as { type?: string; handle?: string };
         if (msg.type === "identity" && typeof msg.handle === "string") {
           const is_new = !remote_handles.has(remote_peer_id);
-          remote_handles.set(remote_peer_id, msg.handle);
+          remote_handles = new Map(remote_handles).set(remote_peer_id, msg.handle);
           if (is_new) {
             addPeerToast(`${msg.handle} joined`);
           }
@@ -514,7 +514,9 @@
     file_transfer_managers.delete(remote_peer_id);
     const departed_handle = remote_handles.get(remote_peer_id);
     data_channels.delete(remote_peer_id);
-    remote_handles.delete(remote_peer_id);
+    const updated_handles = new Map(remote_handles);
+    updated_handles.delete(remote_peer_id);
+    remote_handles = updated_handles;
     connection_store.removeRemotePeer(remote_peer_id);
     manager.close();
     if (departed_handle !== undefined) {
