@@ -197,8 +197,6 @@
 
   let voice_active = $state(false);
   let local_voice_stream: MediaStream | null = null;
-  // Maps peer_id → RTCRtpSender[] for audio tracks we've added to that connection.
-  const voice_senders = new Map<string, RTCRtpSender[]>();
   // Maps peer_id → HTMLAudioElement for playing remote audio.
   const remote_audio_nodes = new Map<string, HTMLAudioElement>();
   // Tracks peers where the answerer's mic has been added via beforeAnswer,
@@ -629,11 +627,9 @@
     // Answerer peers get their own mic added via the beforeAnswer hook.
     for (const [peer_id, manager] of peer_managers) {
       if (peer_states.get(peer_id) === "connected" && manager.getIsOfferer()) {
-        const senders: RTCRtpSender[] = [];
         for (const track of local_voice_stream.getTracks()) {
-          senders.push(manager.addTrack(track, local_voice_stream));
+          manager.addTrack(track, local_voice_stream);
         }
-        voice_senders.set(peer_id, senders);
       }
     }
   }
@@ -647,16 +643,11 @@
         channel.send(voice_stop_msg);
       }
     });
-    // Remove our audio senders from each peer connection.
-    for (const [peer_id, senders] of voice_senders) {
-      const manager = peer_managers.get(peer_id);
-      if (manager !== undefined) {
-        for (const sender of senders) {
-          manager.removeTrack(sender);
-        }
-      }
+    // Remove all audio tracks from every peer connection — covers both the
+    // offerer (tracks added via addTrack) and answerer (tracks added via beforeAnswer).
+    for (const manager of peer_managers.values()) {
+      manager.removeAudioTracks();
     }
-    voice_senders.clear();
     answerer_voice_added.clear();
     // Stop the local mic.
     local_voice_stream?.getTracks().forEach((track) => track.stop());
@@ -737,7 +728,6 @@
     updated_handles.delete(remote_peer_id);
     remote_handles = updated_handles;
     // Clean up voice resources for this peer.
-    voice_senders.delete(remote_peer_id);
     answerer_voice_added.delete(remote_peer_id);
     if (remote_voice_active.has(remote_peer_id)) {
       const updated = new Map(remote_voice_active);
@@ -793,15 +783,6 @@
           if (state === "connected") {
             was_ever_connected = true;
             connection_store.addRemotePeer(remote_peer_id);
-            // If voice is already active and we are the offerer, add audio tracks
-            // now so a renegotiation offer is sent to the new peer.
-            if (voice_active && local_voice_stream !== null && manager.getIsOfferer()) {
-              const senders: RTCRtpSender[] = [];
-              for (const track of local_voice_stream.getTracks()) {
-                senders.push(manager.addTrack(track, local_voice_stream));
-              }
-              voice_senders.set(remote_peer_id, senders);
-            }
           }
           // Only auto-disconnect on "failed" (terminal ICE failure) or on
           // "disconnected" after the connection was previously established.
@@ -1027,14 +1008,6 @@
             }
             connection_store.addRemotePeer(session_id);
             show_qr_overlay = false;
-            // Add voice tracks if voice is already active and we are the offerer.
-            if (voice_active && local_voice_stream !== null && manager.getIsOfferer()) {
-              const senders: RTCRtpSender[] = [];
-              for (const track of local_voice_stream.getTracks()) {
-                senders.push(manager.addTrack(track, local_voice_stream));
-              }
-              voice_senders.set(session_id, senders);
-            }
           }
           if (state === "failed") {
             pending_qr_room_id = null;

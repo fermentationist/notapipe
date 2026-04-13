@@ -182,6 +182,18 @@ export class RTCPeerManager {
     this.peer_connection?.removeTrack(sender);
   }
 
+  /** Remove all audio senders from the peer connection (used to end a voice call). */
+  removeAudioTracks(): void {
+    if (this.peer_connection === null) {
+      return;
+    }
+    for (const sender of this.peer_connection.getSenders()) {
+      if (sender.track?.kind === "audio") {
+        this.peer_connection.removeTrack(sender);
+      }
+    }
+  }
+
   private createPeerConnection(): {
     pc: RTCPeerConnection;
     flush_pending: () => Promise<void>;
