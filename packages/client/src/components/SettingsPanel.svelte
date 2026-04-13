@@ -2,6 +2,7 @@
   import { get } from "svelte/store";
   import { theme_store } from "../stores/theme.ts";
   import { persistence_store } from "../stores/persistence.ts";
+  import { chat_persistence_store } from "../stores/chat_persistence.ts";
   import { rtc_config_store, RTC_CONFIG_DEFAULTS } from "../stores/rtc_config.ts";
   import { DEFAULT_LIGHT_THEME, DEFAULT_DARK_THEME } from "$lib/constants/theme.ts";
 
@@ -184,11 +185,22 @@
             checked={$persistence_store}
             onchange={() => { $persistence_store ? persistence_store.disable() : persistence_store.enable(); }}
           />
-          <span>Save to localStorage</span>
+          <span>Save document</span>
         </label>
         <p class="note">
-          Stores document content in your browser's local storage — never sent to a server.
-          Off by default.
+          Stores document content in your browser's IndexedDB — never sent to a server. Off by default.
+        </p>
+
+        <label class="toggle-label">
+          <input
+            type="checkbox"
+            checked={$chat_persistence_store}
+            onchange={() => { $chat_persistence_store ? chat_persistence_store.disable() : chat_persistence_store.enable(); }}
+          />
+          <span>Save chat log</span>
+        </label>
+        <p class="note">
+          Stores chat history in localStorage per room ID — never sent to a server. Off by default.
         </p>
 
       {:else if active_section === "theme"}

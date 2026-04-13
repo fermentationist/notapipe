@@ -16,6 +16,7 @@
     DOC_DB_PREFIX,
     GEO_PASSPHRASE_PREFIX,
     PERSISTENCE_ENABLED_KEY,
+    CHAT_LOG_PREFIX,
   } from "$lib/constants/storage.ts";
   import { ICE_SERVERS } from "$lib/constants/rtc.ts";
   import {
@@ -39,6 +40,7 @@
   import { connection_store } from "./stores/connection.ts";
   import { focus_mode_store } from "./stores/focus_mode.ts";
   import { persistence_store } from "./stores/persistence.ts";
+  import { chat_persistence_store } from "./stores/chat_persistence.ts";
   import Editor from "./components/Editor.svelte";
   import MarkdownPreview from "./components/MarkdownPreview.svelte";
   import ConnectionStatus from "./components/ConnectionStatus.svelte";
@@ -49,6 +51,7 @@
   import HandleWidget from "./components/HandleWidget.svelte";
   import PeerList from "./components/PeerList.svelte";
   import PeerToastBar, { type PeerToast } from "./components/PeerToastBar.svelte";
+  import ChatPanel, { type ChatMessage } from "./components/ChatPanel.svelte";
   import InfoModal from "./components/InfoModal.svelte";
   import UrlQrModal from "./components/UrlQrModal.svelte";
   import { loadHandle, saveHandle } from "$lib/handle.ts";
@@ -179,6 +182,13 @@
   // Reactive map: remote_peer_id → handle string. Drives the peer list UI.
   let remote_handles = $state(new Map<string, string>());
   let peer_toasts = $state<PeerToast[]>([]);
+
+  // ---------------------------------------------------------------------------
+  // Chat state
+  // ---------------------------------------------------------------------------
+
+  let chat_messages = $state<ChatMessage[]>([]);
+  let chat_open = $state(false);
 
   // ---------------------------------------------------------------------------
   // File transfer UI state (reactive so the bar re-renders)
@@ -354,6 +364,7 @@
     room_token = ensureToken();
     connection_store.setRoomId(room_id);
     reinitPersistence();
+    loadChatLog();
 
     const unsubscribe_persistence = persistence_store.subscribe(() => {
       reinitPersistence();
@@ -475,11 +486,86 @@
           if (is_new) {
             addPeerToast(`Connected to ${msg.handle}`);
           }
+        } else if (
+          msg.type === "chat" &&
+          typeof msg.text === "string" &&
+          msg.text.trim().length > 0
+        ) {
+          const incoming: ChatMessage = {
+            id: typeof msg.id === "string" ? msg.id : crypto.randomUUID(),
+            handle: typeof msg.handle === "string" ? msg.handle : "Unknown",
+            text: msg.text.trim(),
+            timestamp: typeof msg.timestamp === "number" ? msg.timestamp : Date.now(),
+            is_local: false,
+          };
+          // Deduplicate by id in case the message is echoed
+          if (!chat_messages.some((m) => m.id === incoming.id)) {
+            chat_messages = [...chat_messages, incoming];
+            saveChatLog();
+          }
         }
       } catch {
         // Ignore malformed messages
       }
     });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Chat
+  // ---------------------------------------------------------------------------
+
+  function loadChatLog(): void {
+    if (!$chat_persistence_store) {
+      return;
+    }
+    const stored = localStorage.getItem(`${CHAT_LOG_PREFIX}${room_id}`);
+    if (stored === null) {
+      return;
+    }
+    try {
+      chat_messages = JSON.parse(stored) as ChatMessage[];
+    } catch {
+      // Ignore malformed storage
+    }
+  }
+
+  function saveChatLog(): void {
+    if (!$chat_persistence_store) {
+      return;
+    }
+    localStorage.setItem(`${CHAT_LOG_PREFIX}${room_id}`, JSON.stringify(chat_messages));
+  }
+
+  function sendChatMessage(text: string): void {
+    const message: ChatMessage = {
+      id: crypto.randomUUID(),
+      handle: local_handle,
+      text,
+      timestamp: Date.now(),
+      is_local: true,
+    };
+    chat_messages = [...chat_messages, message];
+    saveChatLog();
+    const payload = JSON.stringify({
+      type: "chat",
+      id: message.id,
+      handle: message.handle,
+      text: message.text,
+      timestamp: message.timestamp,
+    });
+    data_channels.forEach((channel) => {
+      if (channel.readyState === "open") {
+        channel.send(payload);
+      }
+    });
+  }
+
+  function toggleChat(): void {
+    chat_open = !chat_open;
+    // Chat and preview are mutually exclusive
+    if (chat_open && $preview_store) {
+      preview_store.toggle();
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -1184,6 +1270,7 @@
   const show_preview = $derived(
     $preview_store && !$focus_mode_store && !code_mode,
   );
+  const show_chat = $derived(chat_open && !$focus_mode_store && !code_mode);
 </script>
 
 <svelte:window
@@ -1343,6 +1430,18 @@
       <PeerList
         peers={Array.from(remote_handles.entries()).map(([id, handle]) => ({ id, handle }))}
       />
+      <button
+        class="copy-btn"
+        class:active={show_chat}
+        onclick={toggleChat}
+        title="Toggle chat"
+        aria-label="Toggle chat"
+        aria-pressed={show_chat}
+      >
+        <svg width="15" height="14" viewBox="0 0 16 15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M14 1H2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h3l3 3 3-3h3a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z"/>
+        </svg>
+      </button>
       <div class="find-room-wrapper">
         <button
           class="find-room-btn"
@@ -1397,10 +1496,10 @@
     {/if}
   {/if}
 
-  <!-- Editor (+ optional preview pane) -->
-  <main class:preview-split={show_preview}>
-    <!-- On narrow screens in preview mode, hide the editor; always show on wide or when preview is off -->
-    <div class="editor-pane" class:hidden-narrow={show_preview}>
+  <!-- Editor (+ optional preview / chat pane) -->
+  <main class:preview-split={show_preview && !show_chat} class:chat-split={show_chat}>
+    <!-- On narrow screens hide editor when preview or chat is active -->
+    <div class="editor-pane" class:hidden-narrow={show_preview || show_chat}>
       <Editor
         {doc}
         {ytext}
@@ -1410,7 +1509,7 @@
       />
       <PeerToastBar toasts={peer_toasts} ondismiss={dismissPeerToast} />
     </div>
-    {#if show_preview}
+    {#if show_preview && !show_chat}
       <div class="preview-pane">
         <!-- Narrow: toggle button to flip back to editor -->
         <button
@@ -1419,6 +1518,17 @@
           aria-label="Back to editor">← Edit</button
         >
         <MarkdownPreview content={preview_content} />
+      </div>
+    {/if}
+    {#if show_chat}
+      <div class="chat-pane">
+        <ChatPanel
+          messages={chat_messages}
+          {local_handle}
+          connected={is_connected}
+          onclose={toggleChat}
+          onsend={sendChatMessage}
+        />
       </div>
     {/if}
     <FileTransferBar
@@ -1857,7 +1967,8 @@
     align-items: center;
   }
 
-  .copy-btn:hover {
+  .copy-btn:hover,
+  .copy-btn.active {
     color: var(--color-text);
   }
 
@@ -2027,11 +2138,13 @@
 
   /* Split-pane layout on wide screens */
   @media (min-width: 768px) {
-    main.preview-split {
+    main.preview-split,
+    main.chat-split {
       flex-direction: row;
     }
 
-    main.preview-split .editor-pane {
+    main.preview-split .editor-pane,
+    main.chat-split .editor-pane {
       flex: 1;
       min-width: 0;
       border-right: 1px solid var(--color-border);
@@ -2043,6 +2156,15 @@
     main.preview-split .preview-pane {
       flex: 1;
       min-width: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    main.chat-split .chat-pane {
+      width: 300px;
+      flex-shrink: 0;
+      min-height: 0;
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -2065,6 +2187,15 @@
 
     .editor-pane.hidden-narrow {
       display: none;
+    }
+
+    /* On narrow screens, chat pane fills the main area like preview does */
+    .chat-pane {
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
 
     .preview-back-btn {
