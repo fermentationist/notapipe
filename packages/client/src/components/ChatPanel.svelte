@@ -88,6 +88,10 @@
   </div>
 
   <div class="messages" bind:this={scroll_el}>
+    <!-- Spacer grows to fill unused space so messages are anchored to the bottom,
+         matching the behaviour of WhatsApp/iMessage and keeping the latest
+         messages visible when the virtual keyboard shrinks the viewport. -->
+    <div class="messages-spacer" aria-hidden="true"></div>
     {#if messages.length === 0}
       <p class="empty-hint">No messages yet.</p>
     {:else}
@@ -176,11 +180,15 @@
     min-height: 0;
   }
 
+  .messages-spacer {
+    flex: 1;
+  }
+
   .empty-hint {
-    margin: auto;
     font-size: 0.8rem;
     color: var(--color-text-muted);
     text-align: center;
+    padding: 0.5rem 0;
   }
 
   .message {
