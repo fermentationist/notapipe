@@ -189,6 +189,7 @@
 
   let chat_messages = $state<ChatMessage[]>([]);
   let chat_open = $state(false);
+  let chat_unread = $state(0);
 
   // ---------------------------------------------------------------------------
   // File transfer UI state (reactive so the bar re-renders)
@@ -502,6 +503,9 @@
           if (!chat_messages.some((m) => m.id === incoming.id)) {
             chat_messages = [...chat_messages, incoming];
             saveChatLog();
+            if (!chat_open) {
+              chat_unread += 1;
+            }
           }
         }
       } catch {
@@ -562,9 +566,12 @@
 
   function toggleChat(): void {
     chat_open = !chat_open;
-    // Chat and preview are mutually exclusive
-    if (chat_open && $preview_store) {
-      preview_store.toggle();
+    if (chat_open) {
+      chat_unread = 0;
+      // Chat and preview are mutually exclusive
+      if ($preview_store) {
+        preview_store.toggle();
+      }
     }
   }
 
@@ -1430,18 +1437,23 @@
       <PeerList
         peers={Array.from(remote_handles.entries()).map(([id, handle]) => ({ id, handle }))}
       />
-      <button
-        class="copy-btn"
-        class:active={show_chat}
-        onclick={toggleChat}
-        title="Toggle chat"
-        aria-label="Toggle chat"
-        aria-pressed={show_chat}
-      >
-        <svg width="15" height="14" viewBox="0 0 16 15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M14 1H2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h3l3 3 3-3h3a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z"/>
-        </svg>
-      </button>
+      <div class="chat-btn-wrapper">
+        <button
+          class="copy-btn"
+          class:active={show_chat}
+          onclick={toggleChat}
+          title="Toggle chat"
+          aria-label="Toggle chat{chat_unread > 0 ? ` (${chat_unread} unread)` : ''}"
+          aria-pressed={show_chat}
+        >
+          <svg width="15" height="14" viewBox="0 0 16 15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M14 1H2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h3l3 3 3-3h3a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z"/>
+          </svg>
+        </button>
+        {#if chat_unread > 0}
+          <span class="chat-badge" aria-hidden="true">{chat_unread > 99 ? "99+" : chat_unread}</span>
+        {/if}
+      </div>
       <div class="find-room-wrapper">
         <button
           class="find-room-btn"
@@ -1970,6 +1982,31 @@
   .copy-btn:hover,
   .copy-btn.active {
     color: var(--color-text);
+  }
+
+  .chat-btn-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .chat-badge {
+    position: absolute;
+    top: -4px;
+    right: -6px;
+    background: var(--color-accent);
+    color: #fff;
+    font-size: 0.6rem;
+    font-weight: 600;
+    line-height: 1;
+    min-width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 3px;
+    pointer-events: none;
   }
 
   .passphrase-bar {
