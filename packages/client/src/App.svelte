@@ -188,6 +188,40 @@
   let peer_toasts = $state<PeerToast[]>([]);
 
   // ---------------------------------------------------------------------------
+  // Room lock
+  // ---------------------------------------------------------------------------
+
+  let room_locked = $state(false);
+
+  function toggleRoomLock(): void {
+    room_locked = !room_locked;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Peer count alert (flashes briefly when a new peer joins)
+  // ---------------------------------------------------------------------------
+
+  let peer_count_alert = $state(false);
+  let peer_count_alert_timeout: ReturnType<typeof setTimeout> | null = null;
+  // Non-reactive; compared against current size each effect run.
+  let prev_peer_count = 0;
+
+  $effect(() => {
+    const count = remote_handles.size;
+    if (count > prev_peer_count) {
+      if (peer_count_alert_timeout !== null) {
+        clearTimeout(peer_count_alert_timeout);
+      }
+      peer_count_alert = true;
+      peer_count_alert_timeout = setTimeout(() => {
+        peer_count_alert = false;
+        peer_count_alert_timeout = null;
+      }, 2000);
+    }
+    prev_peer_count = count;
+  });
+
+  // ---------------------------------------------------------------------------
   // Chat state
   // ---------------------------------------------------------------------------
 
@@ -223,12 +257,16 @@
   let ft_completed = $state(
     new Map<string, { url: string; filename: string }>(),
   );
-  let ft_sent = $state(new Map<string, string>()); // transfer_id → filename
-  let ft_sending = $state(new Map<string, string>()); // transfer_id → filename (accepted, in-flight)
-  let ft_pending_sent = $state(new Map<string, string>()); // transfer_id → filename (offered, awaiting acceptance)
-  // Non-reactive map: tracks filenames for in-flight outgoing transfers so
-  // onTransferAccepted / onFileSent can surface the name without re-querying the file object.
+  let ft_sent = $state(new Map<string, string>()); // job_id → filename
+  let ft_sending = $state(new Map<string, string>()); // job_id → filename (accepted, in-flight)
+  let ft_pending_sent = $state(new Map<string, string>()); // job_id → filename (offered, awaiting acceptance)
+  // Non-reactive maps for outgoing transfer tracking.
+  // ft_outgoing_names: transfer_id → filename (for callbacks that only know the transfer_id)
+  // ft_job_ids: job_id → [transfer_id, ...] (one job per sendFileToAllPeers call)
+  // ft_transfer_to_job: transfer_id → job_id (reverse lookup)
   const ft_outgoing_names = new Map<string, string>();
+  const ft_job_ids = new Map<string, string[]>();
+  const ft_transfer_to_job = new Map<string, string>();
 
   function makeFileTransferCallbacks(peer_id: string) {
     return {
@@ -260,39 +298,57 @@
         });
       },
       onTransferAccepted(transfer_id: string) {
+        const job_id = ft_transfer_to_job.get(transfer_id);
+        if (job_id === undefined) { return; }
         const filename = ft_outgoing_names.get(transfer_id) ?? "file";
-        const pending = new Map(ft_pending_sent);
-        pending.delete(transfer_id);
-        ft_pending_sent = pending;
-        ft_sending = new Map(ft_sending).set(transfer_id, filename);
+        // First acceptance moves the job from pending → sending.
+        // Subsequent acceptances (other peers) are ignored since the strip is already showing.
+        if (ft_pending_sent.has(job_id)) {
+          const pending = new Map(ft_pending_sent);
+          pending.delete(job_id);
+          ft_pending_sent = pending;
+          ft_sending = new Map(ft_sending).set(job_id, filename);
+        }
         void peer_id; // suppress unused warning
       },
       onFileSent(transfer_id: string) {
-        ft_sending = (() => {
-          const m = new Map(ft_sending);
-          m.delete(transfer_id);
-          return m;
-        })();
-        const filename = ft_outgoing_names.get(transfer_id) ?? "file";
+        const job_id = ft_transfer_to_job.get(transfer_id);
+        if (job_id === undefined) { return; }
+        const filename = ft_outgoing_names.get(transfer_id) ?? ft_sending.get(job_id) ?? "file";
+        ft_transfer_to_job.delete(transfer_id);
         ft_outgoing_names.delete(transfer_id);
-        ft_sent = new Map(ft_sent).set(transfer_id, filename);
+        // Move the job to "sent" only when all its transfers have completed.
+        const job_transfers = ft_job_ids.get(job_id) ?? [];
+        const still_active = job_transfers.filter((t) => ft_transfer_to_job.has(t));
+        if (still_active.length === 0) {
+          ft_job_ids.delete(job_id);
+          ft_sending = (() => { const m = new Map(ft_sending); m.delete(job_id); return m; })();
+          ft_sent = new Map(ft_sent).set(job_id, filename);
+        }
       },
       onTransferCancelled(transfer_id: string) {
+        // Clean up incoming-side state (for the receiver of this transfer).
         const offers = new Map(ft_incoming_offers);
         offers.delete(transfer_id);
         ft_incoming_offers = offers;
         const progress = new Map(ft_progress);
         progress.delete(transfer_id);
         ft_progress = progress;
-        ft_sending = (() => {
-          const m = new Map(ft_sending);
-          m.delete(transfer_id);
-          return m;
-        })();
-        const pending = new Map(ft_pending_sent);
-        pending.delete(transfer_id);
-        ft_pending_sent = pending;
-        ft_outgoing_names.delete(transfer_id);
+        // Clean up outgoing-side job state (for the sender, remote peer cancelled).
+        const job_id = ft_transfer_to_job.get(transfer_id);
+        if (job_id !== undefined) {
+          ft_transfer_to_job.delete(transfer_id);
+          ft_outgoing_names.delete(transfer_id);
+          const job_transfers = ft_job_ids.get(job_id) ?? [];
+          const still_active = job_transfers.filter((t) => ft_transfer_to_job.has(t));
+          if (still_active.length === 0) {
+            ft_job_ids.delete(job_id);
+            ft_sending = (() => { const m = new Map(ft_sending); m.delete(job_id); return m; })();
+            const pending = new Map(ft_pending_sent);
+            pending.delete(job_id);
+            ft_pending_sent = pending;
+          }
+        }
       },
       onError(message: string) {
         connection_store.setError(message);
@@ -318,13 +374,35 @@
     ft_incoming_offers = offers;
   }
 
-  function cancelTransfer(transfer_id: string): void {
-    for (const manager of file_transfer_managers.values()) {
-      manager.cancelTransfer(transfer_id);
+  function cancelTransfer(id: string): void {
+    // Handle outgoing job cancellation: id is a job_id.
+    const transfer_ids = ft_job_ids.get(id);
+    if (transfer_ids !== undefined) {
+      for (const transfer_id of transfer_ids) {
+        for (const manager of file_transfer_managers.values()) {
+          manager.cancelTransfer(transfer_id);
+        }
+        ft_transfer_to_job.delete(transfer_id);
+        ft_outgoing_names.delete(transfer_id);
+      }
+      ft_job_ids.delete(id);
+    } else {
+      // Handle incoming transfer cancellation: id is a transfer_id in ft_progress.
+      for (const manager of file_transfer_managers.values()) {
+        manager.cancelTransfer(id);
+      }
     }
     const progress = new Map(ft_progress);
-    progress.delete(transfer_id);
+    if (transfer_ids !== undefined) {
+      transfer_ids.forEach((t) => progress.delete(t));
+    } else {
+      progress.delete(id);
+    }
     ft_progress = progress;
+    const pending = new Map(ft_pending_sent);
+    pending.delete(id);
+    ft_pending_sent = pending;
+    ft_sending = (() => { const m = new Map(ft_sending); m.delete(id); return m; })();
   }
 
   function dismissCompleted(transfer_id: string): void {
@@ -338,15 +416,19 @@
   }
 
   function sendFileToAllPeers(file: File): void {
-    console.log("[sendFileToAllPeers] managers:", file_transfer_managers.size, "file:", file.name);
+    const job_id = crypto.randomUUID();
+    const transfer_ids: string[] = [];
     for (const manager of file_transfer_managers.values()) {
       const transfer_id = manager.sendFile(file);
-      console.log("[sendFileToAllPeers] transfer_id:", transfer_id);
       if (transfer_id !== null) {
         ft_outgoing_names.set(transfer_id, file.name);
-        ft_pending_sent = new Map(ft_pending_sent).set(transfer_id, file.name);
-        console.log("[sendFileToAllPeers] ft_pending_sent size:", ft_pending_sent.size);
+        ft_transfer_to_job.set(transfer_id, job_id);
+        transfer_ids.push(transfer_id);
       }
+    }
+    if (transfer_ids.length > 0) {
+      ft_job_ids.set(job_id, transfer_ids);
+      ft_pending_sent = new Map(ft_pending_sent).set(job_id, file.name);
     }
   }
 
@@ -933,6 +1015,7 @@
         }
       },
       onPeerJoined(remote_id) {
+        if (room_locked) { return; }
         startWebRtc(remote_id);
       },
       onPeerLeft(remote_id) {
@@ -1541,6 +1624,13 @@
       disabled: !is_connected,
       action: handleDisconnect,
     },
+    {
+      id: "lock-room",
+      label: room_locked ? "Unlock room" : "Lock room",
+      group: "Connect",
+      keywords: ["lock", "secure", "block", "prevent", "join", "unlock"],
+      action: toggleRoomLock,
+    },
     // Document
     {
       id: "copy-text",
@@ -1695,6 +1785,21 @@
       </div>
       <div class="header-center">
         <ConnectionStatus />
+        <div
+          class="peer-count"
+          class:alert={peer_count_alert}
+          class:locked={room_locked}
+          title="{remote_handles.size} peer{remote_handles.size === 1 ? '' : 's'} connected{room_locked ? ' · room locked' : ''}"
+          aria-label="{remote_handles.size} peer{remote_handles.size === 1 ? '' : 's'} connected{room_locked ? ', room locked' : ''}"
+        >
+          <!-- person icon -->
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <span class="peer-count-num">{remote_handles.size}</span>
+          {#if room_locked}
+            <!-- lock icon -->
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          {/if}
+        </div>
       </div>
       <div class="header-right">
         {#if $persistence_store}
@@ -2404,6 +2509,32 @@
     color: var(--color-text-muted);
   }
 
+  .peer-count {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.72rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-text-muted);
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    transition: color 0.15s, background 0.15s;
+    user-select: none;
+  }
+
+  .peer-count.alert {
+    color: var(--color-accent);
+    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  }
+
+  .peer-count.locked {
+    color: color-mix(in srgb, #f59e0b 80%, var(--color-text-muted));
+  }
+
+  .peer-count-num {
+    font-family: "IBM Plex Mono", monospace;
+  }
+
   .room-bar {
     display: flex;
     align-items: center;
@@ -2751,13 +2882,18 @@
     }
   }
 
-  /* Shared pane styles for non-split mode */
-  .editor-pane {
+  /* Shared pane styles */
+  .editor-pane,
+  .preview-pane {
     flex: 1;
     min-height: 0;
+    min-width: 0;
     overflow: hidden;
     display: flex;
     flex-direction: column;
+  }
+
+  .editor-pane {
     position: relative;
   }
 

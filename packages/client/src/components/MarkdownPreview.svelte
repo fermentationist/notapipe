@@ -92,7 +92,8 @@
 <style>
   .preview {
     width: 100%;
-    height: 100%;
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
     padding: 1rem 1.25rem;
     box-sizing: border-box;
