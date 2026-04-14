@@ -54,6 +54,8 @@
   import ChatPanel, { type ChatMessage } from "./components/ChatPanel.svelte";
   import InfoModal from "./components/InfoModal.svelte";
   import UrlQrModal from "./components/UrlQrModal.svelte";
+  import CommandPalette, { type PaletteCommand } from "./components/CommandPalette.svelte";
+  import ThemePanel from "./components/ThemePanel.svelte";
   import { loadHandle, saveHandle } from "$lib/handle.ts";
   import { preview_store } from "./stores/preview.ts";
   import { wide_mode_store } from "./stores/wide_mode.ts";
@@ -86,6 +88,8 @@
 
   let show_qr_overlay = $state(false);
   let show_settings = $state(false);
+  let show_palette = $state(false);
+  let show_theme_panel = $state(false);
   let show_connect_menu = $state(false);
   let show_find_room_menu = $state(false);
   let show_actions_menu = $state(false);
@@ -388,8 +392,17 @@
       reinitPersistence();
     });
 
-    // Focus mode keyboard shortcuts
+    // Global keyboard shortcuts
     const handle_keydown = (event: KeyboardEvent): void => {
+      // ⌘K / Ctrl+K — open command palette
+      if (event.key === "k" && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault();
+        show_palette = true;
+        return;
+      }
+      // All other shortcuts are suppressed while the palette is open
+      // (the palette handles its own Escape/arrow/enter internally).
+      if (show_palette) { return; }
       if (event.key === "f" && (event.metaKey || event.ctrlKey)) {
         event.preventDefault();
         code_mode = false;
@@ -1483,6 +1496,170 @@
   const is_connected = $derived($connection_store.peer_state === "connected");
   // True when a remote peer has started a voice call but we haven't joined yet.
   const incoming_voice_call = $derived(remote_voice_active.size > 0 && !voice_active);
+  const is_dark_theme = $derived($theme_store["name"] === "dark");
+
+  // ---------------------------------------------------------------------------
+  // Command palette command definitions
+  // ---------------------------------------------------------------------------
+
+  const palette_commands = $derived<PaletteCommand[]>([
+    // Connect
+    {
+      id: "connect-signalling",
+      label: "Connect via signalling server",
+      group: "Connect",
+      keywords: ["websocket", "internet", "server", "join"],
+      disabled: is_connected,
+      action: selectSignalling,
+    },
+    {
+      id: "connect-qr",
+      label: "Connect via QR code",
+      group: "Connect",
+      keywords: ["air-gap", "offline", "scan", "camera", "serverless"],
+      action: selectQr,
+    },
+    {
+      id: "new-room",
+      label: "New random room",
+      group: "Connect",
+      keywords: ["generate", "fresh", "different", "random"],
+      action: selectRandom,
+    },
+    {
+      id: "nearby-room",
+      label: "Connect to nearby device",
+      group: "Connect",
+      keywords: ["geo", "location", "proximity", "local"],
+      action: selectNearby,
+    },
+    {
+      id: "disconnect",
+      label: "Disconnect",
+      group: "Connect",
+      keywords: ["leave", "close", "end"],
+      disabled: !is_connected,
+      action: handleDisconnect,
+    },
+    // Document
+    {
+      id: "copy-text",
+      label: "Copy all text",
+      group: "Document",
+      keywords: ["clipboard", "copy"],
+      action: copyEditorContent,
+    },
+    {
+      id: "toggle-preview",
+      label: $preview_store ? "Hide markdown preview" : "Show markdown preview",
+      group: "Document",
+      keywords: ["markdown", "render", "preview", "md"],
+      action: () => { preview_store.toggle(); },
+    },
+    {
+      id: "toggle-code",
+      label: code_mode ? "Exit code mode" : "Enter code mode",
+      group: "Document",
+      keywords: ["syntax", "highlight", "editor", "code"],
+      action: () => { code_mode = !code_mode; },
+    },
+    {
+      id: "import",
+      label: "Import text file",
+      group: "Document",
+      keywords: ["upload", "load", "open", "file"],
+      action: importDocument,
+    },
+    {
+      id: "export",
+      label: "Export as text file",
+      group: "Document",
+      keywords: ["download", "save", "file"],
+      action: exportDocument,
+    },
+    {
+      id: "share-link",
+      label: "Share room link",
+      group: "Document",
+      keywords: ["url", "invite", "link", "share"],
+      action: shareRoomLink,
+    },
+    {
+      id: "clear-doc",
+      label: "Clear document",
+      group: "Document",
+      keywords: ["delete", "erase", "reset", "wipe"],
+      action: () => { showConfirm("Clear the document?", clearCurrentDoc); },
+    },
+    // Chat
+    {
+      id: "toggle-chat",
+      label: chat_open ? "Close chat" : "Open chat",
+      group: "Chat",
+      keywords: ["message", "talk", "chat"],
+      action: () => { chat_open = !chat_open; },
+    },
+    // Voice
+    {
+      id: "toggle-voice",
+      label: voice_active ? "End voice call" : incoming_voice_call ? "Join voice call" : "Start voice call",
+      group: "Voice",
+      keywords: ["audio", "call", "phone", "mic", "voice"],
+      disabled: !is_connected && !voice_active,
+      action: () => { void toggleVoice(); },
+    },
+    // View
+    {
+      id: "toggle-focus",
+      label: $focus_mode_store ? "Exit focus mode" : "Enter focus mode",
+      group: "View",
+      keywords: ["distraction", "zen", "fullscreen", "focus"],
+      action: () => { focus_mode_store.toggle(); },
+    },
+    {
+      id: "toggle-wide",
+      label: $wide_mode_store ? "Exit wide layout" : "Enable wide layout",
+      group: "View",
+      keywords: ["full", "expand", "width", "wide"],
+      action: () => { wide_mode_store.toggle(); },
+    },
+    {
+      id: "theme-toggle",
+      label: is_dark_theme ? "Switch to light mode" : "Switch to dark mode",
+      group: "View",
+      keywords: ["theme", "dark", "light", "mode", "bright", "night"],
+      action: () => { theme_store.setBuiltIn(is_dark_theme ? "light" : "dark"); },
+    },
+    {
+      id: "theme-custom",
+      label: "Customize theme",
+      group: "View",
+      keywords: ["color", "tokens", "css", "palette", "theme", "custom"],
+      action: () => { show_theme_panel = true; },
+    },
+    // App
+    {
+      id: "settings",
+      label: "Open settings",
+      group: "App",
+      keywords: ["preferences", "config", "storage", "connection"],
+      action: () => { show_settings = true; },
+    },
+    {
+      id: "user-guide",
+      label: "User guide",
+      group: "App",
+      keywords: ["help", "docs", "documentation", "how"],
+      action: openUserGuide,
+    },
+    {
+      id: "about",
+      label: "About notapipe",
+      group: "App",
+      keywords: ["info", "version", "credits"],
+      action: openAbout,
+    },
+  ]);
   // True when we've started/joined a call but haven't received audio from any peer yet.
   const voice_connecting = $derived(voice_active && peers_with_audio.size === 0);
   // True once audio is actually flowing from at least one peer.
@@ -1549,6 +1726,21 @@
             aria-expanded={show_info_menu}>?</button
           >
         </div>
+        <!-- Sun / moon — visible light/dark toggle -->
+        <button
+          class="icon-btn"
+          onclick={() => { theme_store.setBuiltIn(is_dark_theme ? "light" : "dark"); }}
+          title={is_dark_theme ? "Switch to light mode" : "Switch to dark mode"}
+          aria-label={is_dark_theme ? "Switch to light mode" : "Switch to dark mode"}
+        >
+          {#if is_dark_theme}
+            <!-- sun -->
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+          {:else}
+            <!-- moon -->
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          {/if}
+        </button>
         <button
           class="icon-btn"
           onclick={() => {
@@ -1557,6 +1749,13 @@
           title="Settings"
           aria-label="Settings">⚙</button
         >
+        <!-- ⌘K palette trigger — also serves as the tap target on mobile -->
+        <button
+          class="icon-btn palette-trigger"
+          onclick={() => { show_palette = true; }}
+          title="Command palette (⌘K)"
+          aria-label="Open command palette"
+        >⌘K</button>
         <div class="actions-menu-wrapper">
           <button
             class="icon-btn"
@@ -1943,6 +2142,17 @@
       onclose={() => {
         show_settings = false;
       }}
+    />
+  {/if}
+
+  {#if show_theme_panel}
+    <ThemePanel onclose={() => { show_theme_panel = false; }} />
+  {/if}
+
+  {#if show_palette}
+    <CommandPalette
+      commands={palette_commands}
+      onclose={() => { show_palette = false; }}
     />
   {/if}
 
@@ -2436,6 +2646,20 @@
   .icon-btn:disabled {
     opacity: 0.35;
     cursor: not-allowed;
+  }
+
+  .palette-trigger {
+    font-size: 0.65rem;
+    letter-spacing: 0.02em;
+    opacity: 0.6;
+    min-width: unset;
+    padding: 0.25rem 0.45rem;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+  }
+
+  .palette-trigger:hover:not(:disabled) {
+    opacity: 1;
   }
 
   main {
