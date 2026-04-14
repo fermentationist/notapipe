@@ -204,6 +204,9 @@
   const answerer_voice_added = new Set<string>();
   // Reactive: remote peers who currently have voice active (peer_id → handle).
   let remote_voice_active = $state(new Map<string, string>());
+  // Reactive: peers from whom we have received at least one audio track in the
+  // current call cycle. Used to distinguish "connecting" from "active".
+  let peers_with_audio = $state(new Set<string>());
 
   // ---------------------------------------------------------------------------
   // File transfer UI state (reactive so the bar re-renders)
@@ -541,6 +544,12 @@
           if (manager?.getIsOfferer() === true) {
             manager.removeAudioTracks();
           }
+          // If this was the last peer in the call, auto-stop so our icon returns to
+          // inactive. Without this, voice_active stays true and the icon stays green
+          // even though there is nobody left to talk to.
+          if (updated.size === 0 && voice_active) {
+            stopVoice();
+          }
         } else if (
           msg.type === "chat" &&
           typeof msg.text === "string" &&
@@ -677,6 +686,8 @@
     answerer_voice_added.clear();
     // Clear remote voice active state so the icon returns to inactive (not ringing).
     remote_voice_active = new Map();
+    // Clear audio-received tracking so the next call starts in "connecting" state.
+    peers_with_audio = new Set();
     // Stop the local mic.
     local_voice_stream?.getTracks().forEach((track) => track.stop());
     local_voice_stream = null;
@@ -708,6 +719,8 @@
       remote_audio_nodes.set(peer_id, audio_el);
     }
     audio_el.srcObject = event.streams[0];
+    // Mark this peer as having delivered audio — transitions icon from connecting → active.
+    peers_with_audio = new Set(peers_with_audio).add(peer_id);
   }
 
   async function beforeAnswerAddVoice(peer_id: string, pc: RTCPeerConnection): Promise<void> {
@@ -772,6 +785,11 @@
       const updated = new Map(remote_voice_active);
       updated.delete(remote_peer_id);
       remote_voice_active = updated;
+    }
+    if (peers_with_audio.has(remote_peer_id)) {
+      const updated = new Set(peers_with_audio);
+      updated.delete(remote_peer_id);
+      peers_with_audio = updated;
     }
     const audio_el = remote_audio_nodes.get(remote_peer_id);
     if (audio_el !== undefined) {
@@ -1455,6 +1473,10 @@
   const is_connected = $derived($connection_store.peer_state === "connected");
   // True when a remote peer has started a voice call but we haven't joined yet.
   const incoming_voice_call = $derived(remote_voice_active.size > 0 && !voice_active);
+  // True when we've started/joined a call but haven't received audio from any peer yet.
+  const voice_connecting = $derived(voice_active && peers_with_audio.size === 0);
+  // True once audio is actually flowing from at least one peer.
+  const voice_call_active = $derived(voice_active && peers_with_audio.size > 0);
   const show_actions = $derived(!$focus_mode_store && !code_mode);
   // Preview is suppressed in focus mode and code mode
   const show_preview = $derived(
@@ -1651,7 +1673,8 @@
       </div>
       <button
         class="copy-btn"
-        class:voice-active={voice_active}
+        class:voice-active={voice_call_active}
+        class:voice-connecting={voice_connecting}
         class:voice-ringing={incoming_voice_call}
         onclick={toggleVoice}
         disabled={!is_connected && !voice_active}
@@ -2236,6 +2259,11 @@
   @keyframes voice-ring {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.35; }
+  }
+
+  .copy-btn.voice-connecting {
+    color: #22c55e;
+    animation: voice-ring 1.2s ease-in-out infinite;
   }
 
   .copy-btn.voice-ringing {
