@@ -117,7 +117,7 @@
         aria-label="Search commands"
         aria-autocomplete="list"
       />
-      <kbd class="esc-hint">esc</kbd>
+      <button class="esc-hint" onclick={onclose} aria-label="Close command palette">esc</button>
     </div>
 
     <div class="results" bind:this={list_el} role="listbox">
@@ -221,6 +221,12 @@
     padding: 0.1rem 0.3rem;
     flex-shrink: 0;
     opacity: 0.7;
+    cursor: pointer;
+    line-height: normal;
+  }
+
+  .esc-hint:hover {
+    opacity: 1;
   }
 
   .results {

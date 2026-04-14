@@ -2194,6 +2194,17 @@
         role="menuitem"
         onclick={() => {
           show_actions_menu = false;
+          show_palette = true;
+        }}
+      >
+        ⌘ Command palette
+      </button>
+      <div class="menu-divider" role="separator"></div>
+      <button
+        class="menu-item"
+        role="menuitem"
+        onclick={() => {
+          show_actions_menu = false;
           if (ytext.length > 0) {
             showConfirm(
               `Load a file? This will replace the current document${is_connected ? " and sync the change to all connected peers" : ""}.`,
@@ -2382,11 +2393,11 @@
     }
   }
 
-  /* On narrow phones, hide non-essential header buttons — everything is in ⌘K */
+  /* On narrow phones, hide non-essential header buttons — use ⌘K via actions menu */
   @media (max-width: 600px) {
     .info-menu-wrapper,
     .theme-toggle-btn,
-    .settings-btn {
+    .palette-trigger {
       display: none;
     }
   }
