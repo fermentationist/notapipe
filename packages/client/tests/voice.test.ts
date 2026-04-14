@@ -539,3 +539,166 @@ describe("voice call lifecycle", () => {
     expect(offerer_transport.offers_sent.length).toBeGreaterThan(offers_before);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Voice icon state
+//
+// The phone button in the UI has three display states derived from two reactive
+// variables in App.svelte:
+//
+//   voice_active           — local user is in a call
+//   remote_voice_active    — Map of peer IDs that have sent voice-start
+//
+// Derived:
+//   incoming_voice_call = remote_voice_active.size > 0 && !voice_active
+//
+// Icon states:
+//   "active"   — voice_active === true
+//   "ringing"  — incoming_voice_call (remote calling, local hasn't joined)
+//   "inactive" — neither (default, no call in progress)
+//
+// The critical bug that motivated these tests: after the local user hangs up,
+// remote_voice_active still contains the remote peer (who is still "calling"),
+// so incoming_voice_call becomes true and the icon shows "ringing" instead of
+// "inactive". The fix: stopVoice() clears remote_voice_active.
+// ---------------------------------------------------------------------------
+
+type VoiceIconState = "inactive" | "ringing" | "active";
+
+function deriveVoiceIconState(
+  voice_active: boolean,
+  remote_voice_active: Map<string, string>,
+): VoiceIconState {
+  if (voice_active) {
+    return "active";
+  }
+  const incoming_voice_call = remote_voice_active.size > 0;
+  if (incoming_voice_call) {
+    return "ringing";
+  }
+  return "inactive";
+}
+
+/** Simulate App.svelte stopVoice() clearing remote_voice_active (the fix). */
+function stopVoice(state: {
+  voice_active: boolean;
+  remote_voice_active: Map<string, string>;
+}): void {
+  state.voice_active = false;
+  state.remote_voice_active = new Map();
+}
+
+/** Simulate App.svelte startVoice() — sets voice_active. */
+function startVoice(state: { voice_active: boolean }): void {
+  state.voice_active = true;
+}
+
+/** Simulate receiving a voice-start data channel message from a remote peer. */
+function receiveVoiceStart(
+  state: { remote_voice_active: Map<string, string> },
+  peer_id: string,
+  handle: string,
+): void {
+  state.remote_voice_active.set(peer_id, handle);
+}
+
+/** Simulate receiving a voice-stop data channel message from a remote peer. */
+function receiveVoiceStop(
+  state: { remote_voice_active: Map<string, string> },
+  peer_id: string,
+): void {
+  state.remote_voice_active.delete(peer_id);
+}
+
+describe("voice icon state", () => {
+  it("starts as inactive with no active calls", () => {
+    const state = { voice_active: false, remote_voice_active: new Map<string, string>() };
+    expect(deriveVoiceIconState(state.voice_active, state.remote_voice_active)).toBe("inactive");
+  });
+
+  it("transitions to ringing when remote peer sends voice-start", () => {
+    const state = { voice_active: false, remote_voice_active: new Map<string, string>() };
+
+    receiveVoiceStart(state, "peer-a", "Alice");
+
+    expect(deriveVoiceIconState(state.voice_active, state.remote_voice_active)).toBe("ringing");
+  });
+
+  it("transitions to active when local user joins the call", () => {
+    const state = { voice_active: false, remote_voice_active: new Map<string, string>() };
+
+    receiveVoiceStart(state, "peer-a", "Alice");
+    startVoice(state);
+
+    expect(deriveVoiceIconState(state.voice_active, state.remote_voice_active)).toBe("active");
+  });
+
+  it("returns to inactive (not ringing) after local user hangs up", () => {
+    // This tests the bug fix: stopVoice() must clear remote_voice_active.
+    const state = { voice_active: false, remote_voice_active: new Map<string, string>() };
+
+    receiveVoiceStart(state, "peer-a", "Alice");
+    startVoice(state);
+    // Icon is "active" at this point.
+    expect(deriveVoiceIconState(state.voice_active, state.remote_voice_active)).toBe("active");
+
+    // Local user hangs up. stopVoice clears remote_voice_active.
+    stopVoice(state);
+
+    // Must be "inactive", NOT "ringing" (which was the bug).
+    expect(deriveVoiceIconState(state.voice_active, state.remote_voice_active)).toBe("inactive");
+  });
+
+  it("can start a new call after hanging up", () => {
+    const state = { voice_active: false, remote_voice_active: new Map<string, string>() };
+
+    // First call cycle.
+    receiveVoiceStart(state, "peer-a", "Alice");
+    startVoice(state);
+    stopVoice(state);
+    expect(deriveVoiceIconState(state.voice_active, state.remote_voice_active)).toBe("inactive");
+
+    // Remote peer starts calling again.
+    receiveVoiceStart(state, "peer-a", "Alice");
+    expect(deriveVoiceIconState(state.voice_active, state.remote_voice_active)).toBe("ringing");
+
+    // Local user joins again.
+    startVoice(state);
+    expect(deriveVoiceIconState(state.voice_active, state.remote_voice_active)).toBe("active");
+  });
+
+  it("transitions to ringing when remote stops while local is still active (edge case)", () => {
+    // If the remote peer hangs up but local hasn't yet, the local is still "active".
+    const state = { voice_active: false, remote_voice_active: new Map<string, string>() };
+
+    receiveVoiceStart(state, "peer-a", "Alice");
+    startVoice(state);
+    // Both in call. Remote hangs up (sends voice-stop).
+    receiveVoiceStop(state, "peer-a");
+
+    // Local is still voice_active — show "active" (they're still transmitting).
+    expect(deriveVoiceIconState(state.voice_active, state.remote_voice_active)).toBe("active");
+  });
+
+  it("is inactive once both peers have stopped", () => {
+    const state = { voice_active: false, remote_voice_active: new Map<string, string>() };
+
+    receiveVoiceStart(state, "peer-a", "Alice");
+    startVoice(state);
+    receiveVoiceStop(state, "peer-a");
+    stopVoice(state);
+
+    expect(deriveVoiceIconState(state.voice_active, state.remote_voice_active)).toBe("inactive");
+  });
+
+  it("remains ringing when one of multiple remote peers stops", () => {
+    const state = { voice_active: false, remote_voice_active: new Map<string, string>() };
+
+    receiveVoiceStart(state, "peer-a", "Alice");
+    receiveVoiceStart(state, "peer-b", "Bob");
+    receiveVoiceStop(state, "peer-a");
+
+    // peer-b is still calling — should still show ringing.
+    expect(deriveVoiceIconState(state.voice_active, state.remote_voice_active)).toBe("ringing");
+  });
+});

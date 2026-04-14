@@ -675,6 +675,8 @@
       manager.removeAudioTracks();
     }
     answerer_voice_added.clear();
+    // Clear remote voice active state so the icon returns to inactive (not ringing).
+    remote_voice_active = new Map();
     // Stop the local mic.
     local_voice_stream?.getTracks().forEach((track) => track.stop());
     local_voice_stream = null;
