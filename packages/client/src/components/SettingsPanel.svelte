@@ -74,7 +74,7 @@
           <span>Save document</span>
         </label>
         <p class="note">
-          Stores document content in your browser's IndexedDB — never sent to a server. Off by default.
+          Stores document content in your browser's IndexedDB. Content <strong>survives tab close and browser restart</strong> — it is no longer ephemeral. Never sent to a server. Off by default.
         </p>
 
         <label class="toggle-label">

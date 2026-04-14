@@ -232,6 +232,20 @@
     prev_peer_count = count;
   });
 
+  // Show a one-time notice when the user enables document persistence,
+  // so they understand the privacy implication (content survives tab close).
+  let prev_persistence = false;
+  $effect(() => {
+    const enabled = $persistence_store;
+    if (enabled && !prev_persistence) {
+      addPeerToast(
+        "Document persistence enabled — content is now saved locally in your browser and will survive tab close. " +
+        "Disable in Settings → Storage to return to ephemeral mode.",
+      );
+    }
+    prev_persistence = enabled;
+  });
+
   // ---------------------------------------------------------------------------
   // Chat state
   // ---------------------------------------------------------------------------
@@ -931,6 +945,13 @@
             state === "failed" ||
             (state === "disconnected" && was_ever_connected)
           ) {
+            if (state === "failed" && !was_ever_connected) {
+              addPeerToast(
+                "Connection failed — could not reach your peer. " +
+                "If you're on a restricted network (VPN, corporate firewall), " +
+                "try QR mode for a fully direct connection, or add a custom TURN relay in Settings → Connection.",
+              );
+            }
             disconnectPeer(remote_peer_id);
           }
           updateAggregateState();
@@ -1791,8 +1812,8 @@
           <button
             class="persist-indicator"
             onclick={() => { show_settings = true; }}
-            title="Document persistence is on — click to manage storage settings"
-            aria-label="Document persistence active — open storage settings"
+            title="Document content is saved in your browser (IndexedDB) — survives tab close. Click to manage storage settings."
+            aria-label="Document persistence active — content is saved locally and survives tab close. Open storage settings."
           >
             <HardDriveIcon />
           </button>
