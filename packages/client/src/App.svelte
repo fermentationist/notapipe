@@ -2099,6 +2099,7 @@
     background-color: var(--color-bg);
     max-width: 800px;
     margin: 0 auto;
+    overflow-x: hidden;
   }
 
   @media (min-width: 768px) {
@@ -2149,11 +2150,17 @@
     border-bottom: 1px solid var(--color-border);
     flex-shrink: 0;
     position: relative;
+    overflow: hidden;
   }
 
   .room-id {
     font-size: 0.85rem;
     color: var(--color-accent);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+    flex-shrink: 1;
   }
 
   .copy-btn {
