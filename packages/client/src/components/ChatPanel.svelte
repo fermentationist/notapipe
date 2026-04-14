@@ -260,7 +260,9 @@
     border-radius: 6px;
     color: var(--color-text);
     font-family: inherit;
-    font-size: 0.85rem;
+    /* iOS zooms the page when a focused input has font-size < 16px.
+       Keep at 1rem (16px) to prevent that. */
+    font-size: 1rem;
     line-height: 1.4;
     padding: 0.4rem 0.6rem;
     resize: none;
