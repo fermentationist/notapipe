@@ -1788,13 +1788,14 @@
       </div>
       <div class="header-right">
         {#if $persistence_store}
-          <span
+          <button
             class="persist-indicator"
-            title="Document persistence is on"
-            aria-label="Document persistence active"
+            onclick={() => { show_settings = true; }}
+            title="Document persistence is on — click to manage storage settings"
+            aria-label="Document persistence active — open storage settings"
           >
             <HardDriveIcon />
-          </span>
+          </button>
         {/if}
         <div class="info-menu-wrapper">
           <button
@@ -2621,8 +2622,18 @@
   .persist-indicator {
     display: flex;
     align-items: center;
+    background: none;
+    border: none;
+    padding: 0.25rem;
+    border-radius: 4px;
     color: var(--color-accent);
     opacity: 0.7;
+    cursor: pointer;
+  }
+
+  .persist-indicator:hover {
+    opacity: 1;
+    background: var(--color-surface);
   }
 
   .actions-menu-wrapper,
