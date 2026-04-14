@@ -416,10 +416,20 @@
   // Connection actions
   // ---------------------------------------------------------------------------
 
+  let copy_url_feedback = $state(false);
+
   function copyRoomUrl(): void {
-    navigator.clipboard.writeText(window.location.href).catch(() => {
-      // Clipboard not available — fail silently
-    });
+    navigator.clipboard
+      .writeText(window.location.href)
+      .then(() => {
+        copy_url_feedback = true;
+        setTimeout(() => {
+          copy_url_feedback = false;
+        }, 1500);
+      })
+      .catch(() => {
+        // Clipboard not available — fail silently
+      });
   }
 
   let copy_content_feedback = $state(false);
@@ -1588,26 +1598,23 @@
       <span class="room-id">{room_id}</span>
       <button
         class="copy-btn"
+        class:active={copy_url_feedback}
         onclick={copyRoomUrl}
-        title="Copy room URL"
+        title={copy_url_feedback ? "Copied!" : "Copy room URL"}
         aria-label="Copy room link"
       >
-        <svg
-          width="13"
-          height="14"
-          viewBox="0 0 13 14"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.6"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <rect x="4" y="4" width="8" height="9" rx="1.5"></rect>
-          <path
-            d="M2 10H1.5A1.5 1.5 0 0 1 0 8.5v-7A1.5 1.5 0 0 1 1.5 0h7A1.5 1.5 0 0 1 10 1.5V2"
-          ></path>
-        </svg>
+        {#if copy_url_feedback}
+          <!-- checkmark -->
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        {:else}
+          <!-- copy (two overlapping pages, Lucide style) -->
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          </svg>
+        {/if}
       </button>
       <button
         class="copy-btn"
