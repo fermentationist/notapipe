@@ -2172,7 +2172,6 @@
     border-bottom: 1px solid var(--color-border);
     flex-shrink: 0;
     position: relative;
-    overflow: hidden;
   }
 
   .room-id {
