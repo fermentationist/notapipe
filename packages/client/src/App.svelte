@@ -56,6 +56,17 @@
   import UrlQrModal from "./components/UrlQrModal.svelte";
   import CommandPalette, { type PaletteCommand } from "./components/CommandPalette.svelte";
   import ThemePanel from "./components/ThemePanel.svelte";
+  import CopyIcon from "./components/CopyIcon.svelte";
+  import UserIcon from "./components/UserIcon.svelte";
+  import LockIcon from "./components/LockIcon.svelte";
+  import HardDriveIcon from "./components/HardDriveIcon.svelte";
+  import SunIcon from "./components/SunIcon.svelte";
+  import MoonIcon from "./components/MoonIcon.svelte";
+  import QrCodeIcon from "./components/QrCodeIcon.svelte";
+  import DocumentIcon from "./components/DocumentIcon.svelte";
+  import ChatIcon from "./components/ChatIcon.svelte";
+  import PhoneIcon from "./components/PhoneIcon.svelte";
+  import DisconnectIcon from "./components/DisconnectIcon.svelte";
   import { loadHandle, saveHandle } from "$lib/handle.ts";
   import { preview_store } from "./stores/preview.ts";
   import { wide_mode_store } from "./stores/wide_mode.ts";
@@ -257,16 +268,16 @@
   let ft_completed = $state(
     new Map<string, { url: string; filename: string }>(),
   );
-  let ft_sent = $state(new Map<string, string>()); // job_id → filename
-  let ft_sending = $state(new Map<string, string>()); // job_id → filename (accepted, in-flight)
-  let ft_pending_sent = $state(new Map<string, string>()); // job_id → filename (offered, awaiting acceptance)
+  // Each outgoing strip shows the filename and the handle of the specific recipient.
+  type FtPeerEntry = { filename: string; handle: string };
+  let ft_sent = $state(new Map<string, FtPeerEntry>()); // transfer_id → {filename, handle}
+  let ft_sending = $state(new Map<string, FtPeerEntry>()); // transfer_id → {filename, handle}
+  let ft_pending_sent = $state(new Map<string, FtPeerEntry>()); // transfer_id → {filename, handle}
   // Non-reactive maps for outgoing transfer tracking.
-  // ft_outgoing_names: transfer_id → filename (for callbacks that only know the transfer_id)
-  // ft_job_ids: job_id → [transfer_id, ...] (one job per sendFileToAllPeers call)
-  // ft_transfer_to_job: transfer_id → job_id (reverse lookup)
+  // ft_outgoing_names: transfer_id → filename (for callbacks that receive only transfer_id)
+  // ft_transfer_to_peer: transfer_id → peer_id (so cancelTransfer hits the right manager)
   const ft_outgoing_names = new Map<string, string>();
-  const ft_job_ids = new Map<string, string[]>();
-  const ft_transfer_to_job = new Map<string, string>();
+  const ft_transfer_to_peer = new Map<string, string>();
 
   function makeFileTransferCallbacks(peer_id: string) {
     return {
@@ -298,33 +309,21 @@
         });
       },
       onTransferAccepted(transfer_id: string) {
-        const job_id = ft_transfer_to_job.get(transfer_id);
-        if (job_id === undefined) { return; }
         const filename = ft_outgoing_names.get(transfer_id) ?? "file";
-        // First acceptance moves the job from pending → sending.
-        // Subsequent acceptances (other peers) are ignored since the strip is already showing.
-        if (ft_pending_sent.has(job_id)) {
-          const pending = new Map(ft_pending_sent);
-          pending.delete(job_id);
-          ft_pending_sent = pending;
-          ft_sending = new Map(ft_sending).set(job_id, filename);
-        }
-        void peer_id; // suppress unused warning
+        const handle = remote_handles.get(peer_id) ?? peer_id;
+        const pending = new Map(ft_pending_sent);
+        pending.delete(transfer_id);
+        ft_pending_sent = pending;
+        ft_sending = new Map(ft_sending).set(transfer_id, { filename, handle });
       },
       onFileSent(transfer_id: string) {
-        const job_id = ft_transfer_to_job.get(transfer_id);
-        if (job_id === undefined) { return; }
-        const filename = ft_outgoing_names.get(transfer_id) ?? ft_sending.get(job_id) ?? "file";
-        ft_transfer_to_job.delete(transfer_id);
+        const sending_entry = ft_sending.get(transfer_id);
+        const filename = ft_outgoing_names.get(transfer_id) ?? sending_entry?.filename ?? "file";
+        const handle = sending_entry?.handle ?? remote_handles.get(peer_id) ?? peer_id;
+        ft_transfer_to_peer.delete(transfer_id);
         ft_outgoing_names.delete(transfer_id);
-        // Move the job to "sent" only when all its transfers have completed.
-        const job_transfers = ft_job_ids.get(job_id) ?? [];
-        const still_active = job_transfers.filter((t) => ft_transfer_to_job.has(t));
-        if (still_active.length === 0) {
-          ft_job_ids.delete(job_id);
-          ft_sending = (() => { const m = new Map(ft_sending); m.delete(job_id); return m; })();
-          ft_sent = new Map(ft_sent).set(job_id, filename);
-        }
+        ft_sending = (() => { const m = new Map(ft_sending); m.delete(transfer_id); return m; })();
+        ft_sent = new Map(ft_sent).set(transfer_id, { filename, handle });
       },
       onTransferCancelled(transfer_id: string) {
         // Clean up incoming-side state (for the receiver of this transfer).
@@ -334,21 +333,13 @@
         const progress = new Map(ft_progress);
         progress.delete(transfer_id);
         ft_progress = progress;
-        // Clean up outgoing-side job state (for the sender, remote peer cancelled).
-        const job_id = ft_transfer_to_job.get(transfer_id);
-        if (job_id !== undefined) {
-          ft_transfer_to_job.delete(transfer_id);
-          ft_outgoing_names.delete(transfer_id);
-          const job_transfers = ft_job_ids.get(job_id) ?? [];
-          const still_active = job_transfers.filter((t) => ft_transfer_to_job.has(t));
-          if (still_active.length === 0) {
-            ft_job_ids.delete(job_id);
-            ft_sending = (() => { const m = new Map(ft_sending); m.delete(job_id); return m; })();
-            const pending = new Map(ft_pending_sent);
-            pending.delete(job_id);
-            ft_pending_sent = pending;
-          }
-        }
+        // Clean up outgoing-side state (for the sender, remote peer cancelled).
+        ft_transfer_to_peer.delete(transfer_id);
+        ft_outgoing_names.delete(transfer_id);
+        ft_sending = (() => { const m = new Map(ft_sending); m.delete(transfer_id); return m; })();
+        const pending = new Map(ft_pending_sent);
+        pending.delete(transfer_id);
+        ft_pending_sent = pending;
       },
       onError(message: string) {
         connection_store.setError(message);
@@ -374,35 +365,26 @@
     ft_incoming_offers = offers;
   }
 
-  function cancelTransfer(id: string): void {
-    // Handle outgoing job cancellation: id is a job_id.
-    const transfer_ids = ft_job_ids.get(id);
-    if (transfer_ids !== undefined) {
-      for (const transfer_id of transfer_ids) {
-        for (const manager of file_transfer_managers.values()) {
-          manager.cancelTransfer(transfer_id);
-        }
-        ft_transfer_to_job.delete(transfer_id);
-        ft_outgoing_names.delete(transfer_id);
-      }
-      ft_job_ids.delete(id);
+  function cancelTransfer(transfer_id: string): void {
+    const peer_id = ft_transfer_to_peer.get(transfer_id);
+    if (peer_id !== undefined) {
+      // Outgoing: cancel only the specific peer's manager.
+      file_transfer_managers.get(peer_id)?.cancelTransfer(transfer_id);
+      ft_transfer_to_peer.delete(transfer_id);
+      ft_outgoing_names.delete(transfer_id);
+      const pending = new Map(ft_pending_sent);
+      pending.delete(transfer_id);
+      ft_pending_sent = pending;
+      ft_sending = (() => { const m = new Map(ft_sending); m.delete(transfer_id); return m; })();
     } else {
-      // Handle incoming transfer cancellation: id is a transfer_id in ft_progress.
+      // Incoming: cancel across all managers (receiver doesn't track which one owns it).
       for (const manager of file_transfer_managers.values()) {
-        manager.cancelTransfer(id);
+        manager.cancelTransfer(transfer_id);
       }
+      const progress = new Map(ft_progress);
+      progress.delete(transfer_id);
+      ft_progress = progress;
     }
-    const progress = new Map(ft_progress);
-    if (transfer_ids !== undefined) {
-      transfer_ids.forEach((t) => progress.delete(t));
-    } else {
-      progress.delete(id);
-    }
-    ft_progress = progress;
-    const pending = new Map(ft_pending_sent);
-    pending.delete(id);
-    ft_pending_sent = pending;
-    ft_sending = (() => { const m = new Map(ft_sending); m.delete(id); return m; })();
   }
 
   function dismissCompleted(transfer_id: string): void {
@@ -416,19 +398,14 @@
   }
 
   function sendFileToAllPeers(file: File): void {
-    const job_id = crypto.randomUUID();
-    const transfer_ids: string[] = [];
-    for (const manager of file_transfer_managers.values()) {
+    for (const [peer_id, manager] of file_transfer_managers) {
       const transfer_id = manager.sendFile(file);
       if (transfer_id !== null) {
+        const handle = remote_handles.get(peer_id) ?? peer_id;
         ft_outgoing_names.set(transfer_id, file.name);
-        ft_transfer_to_job.set(transfer_id, job_id);
-        transfer_ids.push(transfer_id);
+        ft_transfer_to_peer.set(transfer_id, peer_id);
+        ft_pending_sent = new Map(ft_pending_sent).set(transfer_id, { filename: file.name, handle });
       }
-    }
-    if (transfer_ids.length > 0) {
-      ft_job_ids.set(job_id, transfer_ids);
-      ft_pending_sent = new Map(ft_pending_sent).set(job_id, file.name);
     }
   }
 
@@ -1640,6 +1617,16 @@
       action: copyEditorContent,
     },
     {
+      id: "send-file",
+      label: "Send file",
+      group: "Document",
+      keywords: ["transfer", "attach", "upload", "file", "share", "send"],
+      disabled: !is_connected,
+      action: () => {
+        (document.getElementById("file-transfer-input") as HTMLInputElement).click();
+      },
+    },
+    {
       id: "toggle-preview",
       label: $preview_store ? "Hide markdown preview" : "Show markdown preview",
       group: "Document",
@@ -1792,12 +1779,10 @@
           title="{remote_handles.size} peer{remote_handles.size === 1 ? '' : 's'} connected{room_locked ? ' · room locked' : ''}"
           aria-label="{remote_handles.size} peer{remote_handles.size === 1 ? '' : 's'} connected{room_locked ? ', room locked' : ''}"
         >
-          <!-- person icon -->
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <UserIcon size={11} />
           <span class="peer-count-num">{remote_handles.size}</span>
           {#if room_locked}
-            <!-- lock icon -->
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <LockIcon size={10} />
           {/if}
         </div>
       </div>
@@ -1805,9 +1790,11 @@
         {#if $persistence_store}
           <span
             class="persist-indicator"
-            title="localStorage persistence is on"
-            aria-label="Persistence active">●</span
+            title="Document persistence is on"
+            aria-label="Document persistence active"
           >
+            <HardDriveIcon />
+          </span>
         {/if}
         <div class="info-menu-wrapper">
           <button
@@ -1831,23 +1818,21 @@
             aria-expanded={show_info_menu}>?</button
           >
         </div>
-        <!-- Sun / moon — visible light/dark toggle -->
+        <!-- Sun / moon — visible light/dark toggle (hidden on narrow screens; use ⌘K instead) -->
         <button
-          class="icon-btn"
+          class="icon-btn theme-toggle-btn"
           onclick={() => { theme_store.setBuiltIn(is_dark_theme ? "light" : "dark"); }}
           title={is_dark_theme ? "Switch to light mode" : "Switch to dark mode"}
           aria-label={is_dark_theme ? "Switch to light mode" : "Switch to dark mode"}
         >
           {#if is_dark_theme}
-            <!-- sun -->
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+            <SunIcon />
           {:else}
-            <!-- moon -->
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            <MoonIcon />
           {/if}
         </button>
         <button
-          class="icon-btn"
+          class="icon-btn settings-btn"
           onclick={() => {
             show_settings = !show_settings;
           }}
@@ -1907,18 +1892,7 @@
         title={copy_url_feedback ? "Copied!" : "Copy room URL"}
         aria-label="Copy room link"
       >
-        {#if copy_url_feedback}
-          <!-- checkmark -->
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <polyline points="20 6 9 17 4 12"/>
-          </svg>
-        {:else}
-          <!-- copy (two overlapping pages, Lucide style) -->
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-          </svg>
-        {/if}
+        <CopyIcon copied={copy_url_feedback} />
       </button>
       <button
         class="copy-btn"
@@ -1926,28 +1900,7 @@
         title="Display current URL as QR code"
         aria-label="Display current URL as QR code"
       >
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 14 14"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <rect x="1" y="1" width="4" height="4" rx="0.5"></rect>
-          <rect x="9" y="1" width="4" height="4" rx="0.5"></rect>
-          <rect x="1" y="9" width="4" height="4" rx="0.5"></rect>
-          <rect x="2.5" y="2.5" width="1" height="1" fill="currentColor" stroke="none"></rect>
-          <rect x="10.5" y="2.5" width="1" height="1" fill="currentColor" stroke="none"></rect>
-          <rect x="2.5" y="10.5" width="1" height="1" fill="currentColor" stroke="none"></rect>
-          <path d="M9 9h1.5v1.5"></path>
-          <path d="M12 9v1.5H13"></path>
-          <path d="M9 12h1.5v1"></path>
-          <path d="M12 12.5h1"></path>
-        </svg>
+        <QrCodeIcon />
       </button>
       <HandleWidget handle={local_handle} onchange={changeHandle} />
       <PeerList
@@ -1963,19 +1916,9 @@
           aria-pressed={show_chat}
         >
           {#if show_chat}
-            <!-- document icon — indicates clicking returns to the editor -->
-            <svg width="13" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
-              <line x1="16" y1="13" x2="8" y2="13"/>
-              <line x1="16" y1="17" x2="8" y2="17"/>
-              <polyline points="10 9 9 9 8 9"/>
-            </svg>
+            <DocumentIcon size={13} />
           {:else}
-            <!-- speech bubble icon — indicates clicking opens chat -->
-            <svg width="15" height="14" viewBox="0 0 16 15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M14 1H2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h3l3 3 3-3h3a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z"/>
-            </svg>
+            <ChatIcon />
           {/if}
         </button>
         {#if chat_unread > 0}
@@ -1993,10 +1936,7 @@
         aria-label={voice_active ? "End voice call" : incoming_voice_call ? "Join voice call" : "Start voice call"}
         aria-pressed={voice_active}
       >
-        <!-- phone (Lucide) — single icon for all states -->
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.35 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6 6l.92-.92a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-        </svg>
+        <PhoneIcon />
       </button>
       <div class="find-room-wrapper">
         <button
@@ -2109,26 +2049,7 @@
         title="Copy all text to clipboard"
         aria-label="Copy editor content to clipboard"
       >
-        {#if copy_content_feedback}
-          ✓
-        {:else}
-          <svg
-            width="15"
-            height="15"
-            viewBox="0 0 13 14"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.6"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <rect x="4" y="4" width="8" height="9" rx="1.5"></rect>
-            <path
-              d="M2 10H1.5A1.5 1.5 0 0 1 0 8.5v-7A1.5 1.5 0 0 1 1.5 0h7A1.5 1.5 0 0 1 10 1.5V2"
-            ></path>
-          </svg>
-        {/if}
+        <CopyIcon copied={copy_content_feedback} size={14} />
       </button>
       {#if code_mode}
         <select
@@ -2177,26 +2098,11 @@
     <div class="actions">
       {#if is_connected}
         <button class="action-btn" onclick={connectViaQr} title="Add peer via QR">
-          <svg class="btn-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <rect x="1" y="1" width="4" height="4" rx="0.5"></rect>
-            <rect x="9" y="1" width="4" height="4" rx="0.5"></rect>
-            <rect x="1" y="9" width="4" height="4" rx="0.5"></rect>
-            <rect x="2.5" y="2.5" width="1" height="1" fill="currentColor" stroke="none"></rect>
-            <rect x="10.5" y="2.5" width="1" height="1" fill="currentColor" stroke="none"></rect>
-            <rect x="2.5" y="10.5" width="1" height="1" fill="currentColor" stroke="none"></rect>
-            <path d="M9 9h1.5v1.5"></path>
-            <path d="M12 9v1.5H13"></path>
-            <path d="M9 12h1.5v1"></path>
-            <path d="M12 12.5h1"></path>
-          </svg>
+          <QrCodeIcon size={14} />
           <span class="btn-text">Add peer via QR</span>
         </button>
         <button class="action-btn" onclick={handleDisconnect} title="Disconnect">
-          <svg class="btn-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M6 10L10 6"></path>
-            <path d="M4.5 12.5 A4.5 4.5 0 0 1 4.5 5.5 L6 7"></path>
-            <path d="M11.5 3.5 A4.5 4.5 0 0 1 11.5 10.5 L10 9"></path>
-          </svg>
+          <DisconnectIcon />
           <span class="btn-text">Disconnect</span>
         </button>
       {:else}
@@ -2475,6 +2381,15 @@
     }
   }
 
+  /* On narrow phones, hide non-essential header buttons — everything is in ⌘K */
+  @media (max-width: 600px) {
+    .info-menu-wrapper,
+    .theme-toggle-btn,
+    .settings-btn {
+      display: none;
+    }
+  }
+
   header {
     display: flex;
     align-items: center;
@@ -2704,10 +2619,10 @@
   }
 
   .persist-indicator {
-    font-size: 0.5rem;
+    display: flex;
+    align-items: center;
     color: var(--color-accent);
     opacity: 0.7;
-    align-self: center;
   }
 
   .actions-menu-wrapper,
@@ -2921,7 +2836,7 @@
     gap: 0.4rem;
   }
 
-  .btn-icon {
+  .action-btn :global(svg) {
     flex-shrink: 0;
   }
 

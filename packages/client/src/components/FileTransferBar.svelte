@@ -1,14 +1,16 @@
 <script lang="ts">
   import type { IncomingOffer } from "../rtc/file_transfer.ts";
 
+  type PeerEntry = { filename: string; handle: string };
+
   interface Props {
     connected: boolean;
     incoming_offers: Map<string, IncomingOffer>;
     transfer_progress: Map<string, { received: number; total: number }>;
     completed_files: Map<string, { url: string; filename: string }>;
-    sending_files: Map<string, string>; // transfer_id → filename (accepted, sending)
-    sent_files: Map<string, string>;    // transfer_id → filename (fully sent)
-    pending_sent: Map<string, string>;  // transfer_id → filename (offered, awaiting acceptance)
+    sending_files: Map<string, PeerEntry>; // transfer_id → {filename, handle}
+    sent_files: Map<string, PeerEntry>;    // transfer_id → {filename, handle}
+    pending_sent: Map<string, PeerEntry>;  // transfer_id → {filename, handle}
     onaccept: (transfer_id: string) => void;
     ondecline: (transfer_id: string) => void;
     oncancel: (transfer_id: string) => void;
@@ -130,10 +132,10 @@
       </div>
     {/each}
 
-    {#each [...pending_sent.entries()] as [transfer_id, filename] (transfer_id)}
+    {#each [...pending_sent.entries()] as [transfer_id, entry] (transfer_id)}
       <div class="strip pending">
         <span class="strip-label">
-          <strong>{filename}</strong> — waiting for recipient…
+          <strong>{entry.filename}</strong> → <span class="peer-handle">{entry.handle}</span> — waiting…
         </span>
         <div class="strip-actions">
           <button class="strip-btn decline" onclick={() => oncancel(transfer_id)}>Cancel</button>
@@ -141,10 +143,10 @@
       </div>
     {/each}
 
-    {#each [...sending_files.entries()] as [transfer_id, filename] (transfer_id)}
+    {#each [...sending_files.entries()] as [transfer_id, entry] (transfer_id)}
       <div class="strip sending">
         <span class="strip-label">
-          Sending: <strong>{filename}</strong>…
+          Sending: <strong>{entry.filename}</strong> → <span class="peer-handle">{entry.handle}</span>
         </span>
         <div class="strip-actions">
           <button class="strip-btn decline" onclick={() => oncancel(transfer_id)}>Cancel</button>
@@ -152,9 +154,9 @@
       </div>
     {/each}
 
-    {#each [...sent_files.entries()] as [transfer_id, filename] (transfer_id)}
+    {#each [...sent_files.entries()] as [transfer_id, entry] (transfer_id)}
       <div class="strip sent">
-        <span class="strip-label">✓ <strong>{filename}</strong> sent</span>
+        <span class="strip-label">✓ <strong>{entry.filename}</strong> → <span class="peer-handle">{entry.handle}</span></span>
         <div class="strip-actions">
           <button class="strip-btn" onclick={() => ondismisssent(transfer_id)}>×</button>
         </div>
@@ -231,6 +233,11 @@
 
   .saved-label {
     color: var(--color-status-connected);
+  }
+
+  .peer-handle {
+    color: var(--color-accent);
+    font-weight: 500;
   }
 
   .strip-actions {

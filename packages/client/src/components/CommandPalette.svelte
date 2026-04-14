@@ -1,5 +1,6 @@
 <script lang="ts">
   import { tick } from "svelte";
+  import SearchIcon from "./SearchIcon.svelte";
 
   export interface PaletteCommand {
     id: string;
@@ -104,9 +105,7 @@
 >
   <div class="palette" role="dialog" aria-modal="true" aria-label="Command palette">
     <div class="search-row">
-      <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-      </svg>
+      <SearchIcon />
       <input
         bind:this={input_el}
         class="search-input"
@@ -191,7 +190,7 @@
     flex-shrink: 0;
   }
 
-  .search-icon {
+  .search-row :global(svg) {
     color: var(--color-text-muted);
     flex-shrink: 0;
   }
