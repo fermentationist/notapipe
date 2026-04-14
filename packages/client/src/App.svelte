@@ -519,6 +519,14 @@
           if (!was_anyone_calling && !voice_active) {
             addPeerToast(`${msg.handle} started a voice call`);
           }
+          // If we are the offerer and already in a call, the answerer just joined.
+          // Our original offer was sent before they had voice_active=true, so
+          // beforeAnswerAddVoice returned early without adding their mic. Send a
+          // fresh offer now so beforeAnswerAddVoice gets another chance to run.
+          const joining_manager = peer_managers.get(remote_peer_id);
+          if (joining_manager?.getIsOfferer() === true && voice_active) {
+            joining_manager.sendRenegotiationOffer();
+          }
         } else if (msg.type === "voice-stop") {
           const updated = new Map(remote_voice_active);
           updated.delete(remote_peer_id);

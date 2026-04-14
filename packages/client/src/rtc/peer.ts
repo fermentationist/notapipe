@@ -85,14 +85,23 @@ export class RTCPeerManager {
     // and signalingState is "stable" — the same value it has during renegotiation.
     // Gating on localDescription !== null ensures we only renegotiate after the
     // first offer/answer exchange has fully completed.
-    pc.onnegotiationneeded = async () => {
+    //
+    // renegotiation_pending: set when onnegotiationneeded fires while an offer is
+    // already in flight (signalingState === "have-local-offer"). Cleared once a
+    // stable renegotiation completes. Without this, quickly removing then
+    // re-adding tracks (e.g. hang-up immediately followed by reconnect) would
+    // silently drop the re-add because the guard returns early.
+    let renegotiation_pending = false;
+
+    const send_renegotiation_offer = async (): Promise<void> => {
       if (pc.localDescription === null || pc.signalingState !== "stable") {
         return;
       }
+      renegotiation_pending = false;
       try {
         const offer = await pc.createOffer();
-        // Re-check after the async gap — state may have changed.
         if (pc.signalingState !== "stable") {
+          renegotiation_pending = true;
           return;
         }
         await pc.setLocalDescription(offer);
@@ -102,31 +111,40 @@ export class RTCPeerManager {
       }
     };
 
+    pc.onnegotiationneeded = async () => {
+      if (pc.localDescription === null) {
+        return; // initial createDataChannel trigger — explicit offer follows below
+      }
+      if (pc.signalingState !== "stable") {
+        // An offer is already in flight. Mark the pending flag so we re-negotiate
+        // once the current answer is processed.
+        renegotiation_pending = true;
+        return;
+      }
+      await send_renegotiation_offer();
+    };
+
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
 
     this.transport.sendOffer({ type: offer.type, sdp: offer.sdp ?? "" });
 
     this.transport.onAnswer(async (answer_sdp) => {
-      console.log(
-        "[QR offerer] onAnswer fired, signalingState:",
-        pc.signalingState,
-        "sdp length:",
-        answer_sdp.sdp?.length,
-      );
       if (pc.signalingState !== "have-local-offer") {
-        console.warn("[QR offerer] unexpected signalingState — ignoring answer");
+        console.warn("[RTCPeerManager] onAnswer: unexpected signalingState — ignoring");
         return;
       }
       try {
         await pc.setRemoteDescription(new RTCSessionDescription(answer_sdp));
-        console.log(
-          "[QR offerer] setRemoteDescription OK, iceConnectionState:",
-          pc.iceConnectionState,
-        );
         await flush_pending();
+        // If a track change arrived while we were waiting for this answer,
+        // the onnegotiationneeded guard would have set renegotiation_pending.
+        // Now that signalingState is stable again, fire the queued negotiation.
+        if (renegotiation_pending) {
+          await send_renegotiation_offer();
+        }
       } catch (err) {
-        console.error("[QR offerer] setRemoteDescription failed:", err);
+        console.error("[RTCPeerManager] onAnswer: setRemoteDescription failed:", err);
       }
     });
   }
@@ -180,6 +198,33 @@ export class RTCPeerManager {
 
   removeTrack(sender: RTCRtpSender): void {
     this.peer_connection?.removeTrack(sender);
+  }
+
+  /**
+   * Explicitly trigger a renegotiation offer when the onnegotiationneeded
+   * event won't fire naturally (e.g. when the answerer joins a call late and
+   * the offerer needs to send a fresh offer so beforeAnswer can add the
+   * answerer's mic tracks).
+   * No-op if not the offerer, no active connection, or state is not stable.
+   */
+  async sendRenegotiationOffer(): Promise<void> {
+    const pc = this.peer_connection;
+    if (pc === null || !this.is_offerer) {
+      return;
+    }
+    if (pc.localDescription === null || pc.signalingState !== "stable") {
+      return;
+    }
+    try {
+      const offer = await pc.createOffer();
+      if (pc.signalingState !== "stable") {
+        return;
+      }
+      await pc.setLocalDescription(offer);
+      this.transport.sendOffer({ type: offer.type, sdp: offer.sdp ?? "" });
+    } catch (err) {
+      console.error("[RTCPeerManager] sendRenegotiationOffer failed:", err);
+    }
   }
 
   /** Remove all audio senders from the peer connection (used to end a voice call). */
