@@ -179,6 +179,13 @@
         line-height: 1.75;
       }
 
+      .section-sub {
+        font-size: 0.97rem;
+        color: var(--muted);
+        max-width: 520px;
+        line-height: 1.75;
+      }
+
       .hero-ctas {
         display: flex;
         align-items: center;
@@ -652,6 +659,71 @@
         opacity: 0.8;
       }
 
+      /* ── PHILOSOPHY ────────────────────────────────────────── */
+
+            .philosophy-p {
+        display: flex;
+        flex-direction: column;
+        gap: 0.8rem;
+      }
+
+      .philosophy-inner {
+        max-width: 680px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+
+      .philosophy-list-container {
+        display: flex;
+        justify-content: center;
+        padding-top: 0.25rem;
+      }
+
+      /* Grid list for philosophy points — matches other .plist styles
+         but keeps a two-column layout on wider screens for balance */
+      .philosophy-list {
+        list-style: none;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.8rem;
+        max-width: 720px;
+        width: 100%;
+        font-family: var(--mono);
+        font-size: 0.8rem;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      @media (min-width: 768px) {
+        .philosophy-list {
+          grid-template-columns: repeat(2, 1fr);
+          gap: 0.9rem 1.6rem;
+        }
+      }
+
+      .philosophy-list li {
+        font-family: var(--mono);
+        font-size: 0.88rem;
+        line-height: 1.45;
+        display: flex;
+        align-items: baseline;
+        gap: 0.6rem;
+      }
+
+      .philosophy-desc {
+        font-size: 0.95rem;
+        color: var(--muted);
+        line-height: 1.7;
+        max-width: 680px;
+      }
+
+      #philosophy {
+        padding: 4.5rem 1.5rem;
+        border-top: 1px solid var(--border);
+      }
+
       /* ── USE CASES ────────────────────────────────────────── */
       #use-cases {
         padding: 4.5rem 1.5rem;
@@ -980,6 +1052,32 @@
           <p class="card-desc">
             A real-time text channel between peers, separate from the shared document. No server can
             read or log your messages.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- PHILOSOPHY -->
+    <section id="philosophy">
+      <h2 class="section-hed">Design Philosophy</h2>
+      <div class="philosophy-inner">
+        <p class="section-sub">
+          notapipe is built in the spirit of *local-first software*:
+        </p>
+        <div class="philosophy-list-container">
+          <ul class="plist good philosophy-list">
+            <li><span class="mk">✓</span><span class="txt">Edits happen locally and sync peer-to-peer</span></li>
+            <li><span class="mk">✓</span><span class="txt">Connections are end-to-end encrypted</span></li>
+            <li><span class="mk">✓</span><span class="txt">No accounts or cloud storage</span></li>
+            <li><span class="mk">✓</span><span class="txt">Open source and self-hostable</span></li>
+          </ul>
+        </div>
+        <div class="philosophy-p">
+          <p class="philosophy-desc">
+            Sessions are ephemeral by default, but you can enable local storage or export your data at any time. There is no server-side database — your data is only stored if you choose to store it.
+          </p>
+          <p class="philosophy-desc">
+            Installed as a PWA, notapipe can run independently of notapipe.app, and can be configured to use your own signaling and TURN infrastructure.
           </p>
         </div>
       </div>

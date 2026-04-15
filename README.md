@@ -17,6 +17,53 @@ notapipe is also useful anywhere you want a conversation or file exchange that d
 
 ---
 
+# Philosophy
+
+notapipe is built in the spirit of *local-first software*.
+
+It prioritizes local execution, peer-to-peer communication, and user control over both data and infrastructure.
+
+## Local-first principles
+
+- **Local-first execution**  
+  All edits happen locally using CRDTs. Once connected, changes are instant and do not depend on a server.
+
+- **Seamless collaboration**  
+  Multiple peers can edit simultaneously with automatic conflict resolution.
+
+- **Privacy by default**  
+  Connections are end-to-end encrypted over WebRTC. No server ever has access to your content.
+
+- **Ownership and control**  
+  No accounts, no lock-in, open source (MIT), and fully self-hostable.
+
+- **The Long Now**  
+  notapipe does not depend on any single service or vendor.  
+  - It can be installed as a PWA and run independently of notapipe.app  
+  - Signaling and TURN servers are configurable  
+  - It uses open web standards (WebRTC, IndexedDB)
+
+  Your ability to use the software—and access your data—does not depend on the continued existence of the original host.
+
+## Data lifecycle: fully user-controlled
+
+notapipe gives you explicit control over whether data persists:
+
+- By default, sessions are **ephemeral**
+- You can enable **local persistence** (IndexedDB)
+- You can **export** your data at any time
+
+There is no backend database and no implicit cloud storage.
+
+> Your data exists only when—and where you choose it to.
+
+## Learn more
+
+For the original local-first philosophy, see:  
+https://www.inkandswitch.com/essay/local-first/
+
+---
+
 ## Threat model
 
 **What notapipe protects:**
