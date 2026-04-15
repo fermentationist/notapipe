@@ -1,7 +1,9 @@
 {
   "name": "notapipe",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
+  "type": "module",
+  "description": "Ephemeral, peer-to-peer text, voice, and file sharing. No servers ever see your content.",
   "scripts": {
     "dev": "pnpm -r --parallel run dev",
     "build": "cd packages/client && pnpm run build",
