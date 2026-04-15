@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>notapipe — Move text between devices. No server stores or reads your content.</title>
+    <title>notapipe — Send secrets between devices. No server stores or reads your content.</title>
     <meta
       name="description"
       content="Ephemeral peer-to-peer text and file sharing over WebRTC. No account. No stored data. No permanent record."
@@ -775,12 +775,12 @@
     <!-- HERO -->
     <section id="hero">
       <h1 class="hero-hed hero-text">
-        <span class="hero-line" id="hero-line1">Move text between your devices.</span>
+        <span class="hero-line" id="hero-line1">Send a secret to your other machine.</span>
         <span class="hero-line" id="hero-line2"></span>
       </h1>
       <p class="hero-sub">
-        notapipe syncs text, files, and secrets peer-to-peer over WebRTC. No account. No cloud.
-        Ephemeral by default.
+        Paste a password, token, or file directly to another device — peer-to-peer, no cloud in the middle.
+        No account. Nothing stored on a server. Close the tab and it's gone.
       </p>
       <div class="hero-ctas">
         <a href="../../" data-app-link class="hero-cta">Open App →</a>
@@ -1125,11 +1125,11 @@
       hl2.appendChild(heroCursor);
 
       const PHRASES = [
+        "Send a secret to your other machine.",
         "Move text between your devices.",
-        "Share a secret without a third party.",
+        "Share a password without a third party.",
         "Chat without leaving a trace.",
         "Send files directly, peer-to-peer.",
-        "Collaborate on a note. No account required.",
       ];
       let phraseIdx = 0;
 
@@ -1158,9 +1158,9 @@
         let pos = 0;
         setTimeout(() => {
           const ti = setInterval(() => {
-            if (pos < "No server ever sees it.".length) {
+            if (pos < "No server can read it.".length) {
               hl2.insertBefore(
-                document.createTextNode("No server ever sees it."[pos++]),
+                document.createTextNode("No server can read it."[pos++]),
                 heroCursor,
               );
             } else {

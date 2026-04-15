@@ -148,6 +148,10 @@
   >();
   // Tracks whether each peer's active candidate pair is going through TURN relay.
   const peer_relay_status = new Map<string, boolean>();
+  // Reactive: true when at least one connected peer is using a TURN relay.
+  let any_peer_relayed = $state(false);
+  // Whether the relay notice banner has been manually dismissed this session.
+  let relay_notice_dismissed = $state(false);
 
   // ---------------------------------------------------------------------------
   // Handle (username) state
@@ -859,6 +863,7 @@
     file_transfer_managers.get(remote_peer_id)?.destroy();
     file_transfer_managers.delete(remote_peer_id);
     peer_relay_status.delete(remote_peer_id);
+    any_peer_relayed = Array.from(peer_relay_status.values()).some(Boolean);
     const departed_handle = remote_handles.get(remote_peer_id);
     data_channels.delete(remote_peer_id);
     const updated_handles = new Map(remote_handles);
@@ -947,6 +952,7 @@
         },
         onRelayDetected(is_relay) {
           peer_relay_status.set(remote_peer_id, is_relay);
+          if (is_relay) { any_peer_relayed = true; }
         },
         onError(error) {
           connection_store.setError(error.message);
@@ -1180,6 +1186,7 @@
         },
         onRelayDetected(is_relay) {
           peer_relay_status.set(session_id, is_relay);
+          if (is_relay) { any_peer_relayed = true; }
         },
         onError(error) {
           connection_store.setError(error.message);
@@ -1302,6 +1309,7 @@
     ws_transport = null;
     qr_transport = null;
     qr_packet = null;
+    relay_notice_dismissed = false;
     connection_store.setMode("none");
     connection_store.setPeerState("idle");
   }
@@ -1910,6 +1918,19 @@
     </div>
   {/if}
 
+  <!-- Relay notice banner — shown when a peer is connected via TURN relay and no custom TURN is configured -->
+  {#if any_peer_relayed && !$rtc_config_store.turn_url && !relay_notice_dismissed}
+    <div class="relay-notice-bar" role="status">
+      <span>
+        Connection is relayed — traffic is forwarded through a third-party server (encrypted, but observable metadata).
+        File transfers over 5 MB are blocked.
+        <button class="relay-notice-link" onclick={() => { show_settings = true; settings_initial_section = "connection"; }}>Configure your own TURN server</button>
+        to remove this limit.
+      </span>
+      <button class="relay-notice-dismiss" onclick={() => { relay_notice_dismissed = true; }} aria-label="Dismiss">✕</button>
+    </div>
+  {/if}
+
   <!-- Voice call 4-hour warning banner -->
   {#if voice_warning_visible}
     <div class="voice-warning-bar" role="alert">
@@ -2483,6 +2504,51 @@
     padding: 0 0.25rem;
     line-height: 1;
     flex-shrink: 0;
+  }
+
+  .relay-notice-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    padding: 0.4rem 1rem;
+    gap: 0.5rem;
+    flex-shrink: 0;
+    line-height: 1.4;
+  }
+
+  .relay-notice-link {
+    background: none;
+    border: none;
+    color: var(--color-accent);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: inherit;
+    padding: 0;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .relay-notice-link:hover {
+    opacity: 0.8;
+  }
+
+  .relay-notice-dismiss {
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 0 0.25rem;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .relay-notice-dismiss:hover {
+    color: var(--color-text);
   }
 
   .room-name-wrapper {
