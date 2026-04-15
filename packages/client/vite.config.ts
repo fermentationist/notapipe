@@ -3,6 +3,7 @@ import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { VitePWA } from "vite-plugin-pwa";
 import basicSsl from "@vitejs/plugin-basic-ssl";
 import { resolve } from "path";
+import { createReadStream, existsSync } from "fs";
 
 // Base path for asset references.
 // Set VITE_BASE_PATH=/notapipe for GitHub Pages subdirectory deployment.
@@ -14,6 +15,24 @@ const base = raw_base.endsWith("/") ? raw_base : `${raw_base}/`;
 export default defineConfig({
   base,
   plugins: [
+    // Dev-only: serve public/info/index.html for /info and /info/ before the
+    // SPA history fallback can intercept them.
+    {
+      name: "serve-info-page",
+      configureServer(server) {
+        const info_file = resolve(__dirname, "public/info/index.html");
+        server.middlewares.use((req, res, next) => {
+          if (req.url === "/info" || req.url === "/info/") {
+            if (existsSync(info_file)) {
+              res.setHeader("Content-Type", "text/html; charset=utf-8");
+              createReadStream(info_file).pipe(res);
+              return;
+            }
+          }
+          next();
+        });
+      },
+    },
     svelte(),
     basicSsl(),
     VitePWA({
@@ -53,7 +72,7 @@ export default defineConfig({
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,woff2}", "icons/*.png"],
         navigateFallback: `${base}index.html`,
-        navigateFallbackDenylist: [/^\/ws/],
+        navigateFallbackDenylist: [/^\/ws/, /^\/info/],
       },
       devOptions: {
         enabled: true,

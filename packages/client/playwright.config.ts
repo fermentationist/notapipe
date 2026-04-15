@@ -29,7 +29,7 @@ export default defineConfig({
     },
     {
       command: "MAX_JOINS_PER_WINDOW=1000 pnpm --filter @notapipe/signalling run start",
-      url: "http://localhost:3001",
+      url: "http://localhost:3001/health",
       reuseExistingServer: true,
       stdout: "ignore",
       stderr: "pipe",

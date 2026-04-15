@@ -1,0 +1,1270 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>notapipe — Move text between devices. No server ever sees it.</title>
+    <meta
+      name="description"
+      content="Ephemeral peer-to-peer text and file sharing over WebRTC. No account. No cloud. No trace."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg: #0d0d0d;
+        --bg-card: #141414;
+        --bg-alt: #0f0f0f;
+        --text: #f0ede8;
+        --muted: #7c7c78;
+        --accent: #4ade80;
+        --red: #f87171;
+        --border: #1e1e1c;
+        --mono: "IBM Plex Mono", "Courier New", monospace;
+        --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+        --r: 8px;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--sans);
+        font-size: 16px;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      /* ── NAV ──────────────────────────────────────────────── */
+      nav {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 1.5rem;
+        background: rgba(13, 13, 13, 0.88);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border-bottom: 1px solid var(--border);
+      }
+
+      .nav-brand {
+        font-family: var(--mono);
+        font-weight: 500;
+        font-size: 0.9rem;
+      }
+
+      .nav-right {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+      }
+
+      .nav-gh {
+        font-size: 0.82rem;
+        color: var(--muted);
+        transition: color 0.2s;
+      }
+      .nav-gh:hover {
+        color: var(--text);
+      }
+
+      .btn {
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        font-weight: 600;
+        background: var(--accent);
+        color: #0d0d0d;
+        padding: 0.38rem 0.9rem;
+        border-radius: 4px;
+        transition: opacity 0.2s;
+        display: inline-block;
+      }
+      .btn:hover {
+        opacity: 0.82;
+      }
+
+      @media (max-width: 767px) {
+        .nav-gh {
+          display: none;
+        }
+      }
+
+      /* ── HERO ─────────────────────────────────────────────── */
+      #hero {
+        padding: 5.5rem 1.5rem 4.5rem;
+        max-width: 720px;
+        margin: 0 auto;
+        animation: fadeUp 0.75s ease forwards;
+      }
+
+      @keyframes fadeUp {
+        from {
+          opacity: 0;
+          transform: translateY(14px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .hero-hed {
+        font-family: var(--mono);
+        font-size: clamp(1.7rem, 5.5vw, 2.75rem);
+        font-weight: 600;
+        line-height: 1.2;
+        letter-spacing: -0.03em;
+        margin-bottom: 1.5rem;
+      }
+
+      .hero-line {
+        display: block;
+      }
+      .hero-line + .hero-line {
+        margin-top: 0.1em;
+      }
+      #hero-line1 {
+        transition: opacity 0.5s ease;
+      }
+
+      .cursor {
+        display: inline-block;
+        width: 3px;
+        height: 0.88em;
+        background: var(--accent);
+        vertical-align: middle;
+        margin-left: 2px;
+        animation: blink 1s step-end infinite;
+      }
+
+      @keyframes blink {
+        50% {
+          opacity: 0;
+        }
+      }
+
+      .hero-sub {
+        font-size: 0.97rem;
+        color: var(--muted);
+        max-width: 520px;
+        margin-bottom: 2.25rem;
+        line-height: 1.75;
+      }
+
+      .hero-ctas {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        margin-bottom: 1.75rem;
+        flex-wrap: wrap;
+      }
+
+      .hero-cta {
+        font-family: var(--mono);
+        font-size: 0.88rem;
+        font-weight: 600;
+        background: var(--accent);
+        color: #0d0d0d;
+        padding: 0.55rem 1.2rem;
+        border-radius: 4px;
+        transition: opacity 0.2s;
+      }
+      .hero-cta:hover {
+        opacity: 0.82;
+      }
+
+      .hero-scroll {
+        font-size: 0.88rem;
+        color: var(--muted);
+        transition: color 0.2s;
+      }
+      .hero-scroll:hover {
+        color: var(--text);
+      }
+
+      .hero-try {
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        color: var(--muted);
+      }
+      .hero-try code {
+        color: var(--text);
+        background: var(--bg-card);
+        padding: 0.1em 0.4em;
+        border-radius: 3px;
+        border: 1px solid var(--border);
+      }
+
+      /* ── PROBLEM ──────────────────────────────────────────── */
+      #problem {
+        padding: 4.5rem 1.5rem;
+        border-top: 1px solid var(--border);
+      }
+
+      .problem-inner {
+        max-width: 680px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 2.5rem;
+      }
+
+      @media (min-width: 768px) {
+        .problem-inner {
+          grid-template-columns: 1fr 1fr;
+          gap: 3.5rem;
+        }
+      }
+
+      .plist {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 0.8rem;
+      }
+
+      .plist li {
+        font-family: var(--mono);
+        font-size: 0.88rem;
+        line-height: 1.4;
+        display: flex;
+        align-items: baseline;
+        gap: 0.6rem;
+      }
+
+      .mk {
+        flex-shrink: 0;
+      }
+
+      .bad .mk {
+        color: var(--red);
+      }
+      .bad .txt {
+        color: var(--muted);
+        text-decoration: line-through;
+        text-decoration-color: rgba(248, 113, 113, 0.45);
+      }
+
+      .good .mk {
+        color: var(--accent);
+      }
+      .good .txt {
+        color: var(--text);
+      }
+
+      /* ── DEMO ─────────────────────────────────────────────── */
+      #demo {
+        padding: 4.5rem 1.5rem;
+        border-top: 1px solid var(--border);
+        background: var(--bg-alt);
+      }
+
+      #demo .inner {
+        max-width: 700px;
+        margin: 0 auto;
+        text-align: center;
+      }
+
+      .frames {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+        align-items: center;
+        margin-bottom: 1rem;
+      }
+
+      @media (min-width: 768px) {
+        .frames {
+          flex-direction: row;
+          align-items: flex-start;
+          justify-content: center;
+          gap: 2rem;
+        }
+      }
+
+      .device {
+        flex: 1;
+        max-width: 300px;
+        width: 100%;
+      }
+
+      /* Phone on top on mobile */
+      .device.phone {
+        order: -1;
+      }
+      @media (min-width: 768px) {
+        .device.phone {
+          order: 0;
+        }
+      }
+
+      .dev-label {
+        font-family: var(--mono);
+        font-size: 0.68rem;
+        color: var(--muted);
+        text-align: left;
+        margin-bottom: 0.35rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      /* Frame uses actual app colors */
+      .dev-frame {
+        background: #1a1a18;
+        border: 1px solid #2e2e2a;
+        border-radius: var(--r);
+        overflow: hidden;
+      }
+
+      /* App header bar */
+      .dev-app-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.35rem 0.65rem;
+        background: #242420;
+        border-bottom: 1px solid #2e2e2a;
+      }
+
+      .dev-app-name {
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        font-weight: 500;
+        color: #e8e3d8;
+        letter-spacing: -0.01em;
+      }
+
+      .dev-status {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+      }
+
+      .sdot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        background: #6b6660;
+        transition:
+          background 0.35s ease,
+          box-shadow 0.35s ease;
+      }
+
+      .sdot.on {
+        background: #4caf50;
+        box-shadow: 0 0 5px rgba(76, 175, 80, 0.45);
+      }
+
+      .dot-lbl {
+        font-family: var(--mono);
+        font-size: 0.6rem;
+        color: #6b6660;
+      }
+
+      /* Room bar */
+      .dev-room-bar {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.28rem 0.65rem;
+        background: #242420;
+        border-bottom: 1px solid #2e2e2a;
+      }
+
+      .dev-room-id {
+        font-family: var(--mono);
+        font-size: 0.65rem;
+        color: #e8e3d8;
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .dev-icon-btn {
+        background: none;
+        border: none;
+        padding: 0.1rem 0.15rem;
+        color: #6b6660;
+        display: flex;
+        align-items: center;
+        border-radius: 3px;
+        cursor: default;
+      }
+
+      /* Editor area */
+      .dev-editor {
+        padding: 0.65rem 0.7rem;
+        min-height: 52px;
+      }
+
+      .dev-content {
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        color: #e8e3d8;
+        line-height: 1.6;
+        word-break: break-all;
+        min-height: 26px;
+        transition: opacity 0.28s ease;
+      }
+
+      .dev-cursor {
+        display: inline-block;
+        width: 1px;
+        height: 0.85em;
+        background: #e05c4a;
+        margin-left: 0;
+        vertical-align: middle;
+        animation: blink 1s step-end infinite;
+      }
+
+      /* Bottom actions bar */
+      .dev-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding: 0.28rem 0.5rem;
+        border-top: 1px solid #2e2e2a;
+      }
+
+      .dev-corner-btn {
+        background: none;
+        border: none;
+        padding: 0.18rem 0.32rem;
+        color: #6b6660;
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        border-radius: 3px;
+        display: flex;
+        align-items: center;
+        gap: 0.2rem;
+        cursor: default;
+        transition: color 0.15s;
+      }
+
+      .dev-corner-btn.copied {
+        color: #e8e3d8;
+      }
+
+      .demo-caption {
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        color: var(--muted);
+        margin-top: 0.75rem;
+      }
+
+      /* ── FEATURES ─────────────────────────────────────────── */
+      #features {
+        padding: 4.5rem 1.5rem;
+        border-top: 1px solid var(--border);
+      }
+
+      .section-hed {
+        font-family: var(--mono);
+        font-size: clamp(1rem, 3vw, 1.4rem);
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        text-align: center;
+        margin-bottom: 2.5rem;
+      }
+
+      .f-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      @media (min-width: 480px) {
+        .f-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+      @media (min-width: 768px) {
+        .f-grid {
+          grid-template-columns: repeat(3, 1fr);
+        }
+      }
+
+      .card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--r);
+        padding: 1.4rem;
+      }
+
+      .card-icon {
+        font-size: 1.4rem;
+        display: block;
+        margin-bottom: 0.65rem;
+        line-height: 1;
+      }
+
+      .card-title {
+        font-family: var(--mono);
+        font-size: 0.82rem;
+        font-weight: 600;
+        margin-bottom: 0.35rem;
+        color: var(--text);
+      }
+
+      .card-desc {
+        font-size: 0.82rem;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      /* ── HOW IT WORKS ─────────────────────────────────────── */
+      #how {
+        padding: 4.5rem 1.5rem;
+        border-top: 1px solid var(--border);
+        background: var(--bg-alt);
+      }
+
+      .how-inner {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      .steps {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+        margin-bottom: 1.75rem;
+      }
+
+      @media (min-width: 768px) {
+        .steps {
+          flex-direction: row;
+          gap: 0;
+        }
+      }
+
+      .step {
+        flex: 1;
+        padding: 1.3rem;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+      }
+
+      @media (max-width: 767px) {
+        .step {
+          border-radius: var(--r);
+        }
+      }
+
+      @media (min-width: 768px) {
+        .step {
+          border-right: none;
+          border-radius: 0;
+        }
+        .step:first-child {
+          border-radius: var(--r) 0 0 var(--r);
+        }
+        .step:last-child {
+          border-radius: 0 var(--r) var(--r) 0;
+          border-right: 1px solid var(--border);
+        }
+      }
+
+      .step-n {
+        font-family: var(--mono);
+        font-size: 0.68rem;
+        font-weight: 600;
+        color: var(--accent);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        margin-bottom: 0.45rem;
+      }
+
+      .step-title {
+        font-family: var(--mono);
+        font-size: 0.88rem;
+        font-weight: 600;
+        margin-bottom: 0.45rem;
+      }
+
+      .step-desc {
+        font-size: 0.82rem;
+        color: var(--muted);
+        line-height: 1.65;
+      }
+
+      .step-desc code {
+        font-family: var(--mono);
+        font-size: 0.8em;
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.05);
+        padding: 0.1em 0.35em;
+        border-radius: 3px;
+      }
+
+      .callout {
+        border: 1px solid var(--border);
+        border-radius: var(--r);
+        padding: 1.15rem 1.4rem;
+        background: var(--bg-card);
+        font-size: 0.82rem;
+        color: var(--muted);
+        line-height: 1.65;
+      }
+
+      .callout strong {
+        color: var(--text);
+        font-family: var(--mono);
+      }
+      .callout a {
+        color: var(--accent);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+      .callout a:hover {
+        opacity: 0.8;
+      }
+
+      /* ── USE CASES ────────────────────────────────────────── */
+      #use-cases {
+        padding: 4.5rem 1.5rem;
+        border-top: 1px solid var(--border);
+      }
+
+      .uc-wrap {
+        max-width: 860px;
+        margin: 0 auto;
+      }
+
+      .uc-list {
+        list-style: none;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.6rem;
+      }
+
+      @media (min-width: 768px) {
+        .uc-list {
+          grid-template-columns: repeat(2, 1fr);
+          gap: 0.55rem 2.5rem;
+        }
+      }
+
+      .uc-list li {
+        font-family: var(--mono);
+        font-size: 0.84rem;
+        color: var(--muted);
+        line-height: 1.5;
+        display: flex;
+        gap: 0.55rem;
+        align-items: baseline;
+      }
+
+      .arr {
+        color: var(--accent);
+        flex-shrink: 0;
+      }
+
+      /* ── PRIVACY ──────────────────────────────────────────── */
+      #privacy {
+        padding: 4.5rem 1.5rem;
+        border-top: 1px solid var(--border);
+        background: var(--bg-alt);
+      }
+
+      .privacy-box {
+        max-width: 540px;
+        margin: 0 auto;
+        text-align: center;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--r);
+        padding: 2.5rem 2rem;
+      }
+
+      .privacy-box p {
+        font-family: var(--mono);
+        font-size: 0.8rem;
+        color: var(--muted);
+        line-height: 1.9;
+        margin-bottom: 0.9rem;
+      }
+
+      .privacy-box p:last-child {
+        margin-bottom: 0;
+      }
+      .privacy-box strong {
+        color: var(--text);
+      }
+
+      /* ── FOOTER ───────────────────────────────────────────── */
+      footer {
+        padding: 2rem 1.5rem;
+        border-top: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
+
+      .foot-l,
+      .foot-r {
+        font-family: var(--mono);
+        font-size: 0.73rem;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .foot-r a {
+        transition: color 0.2s;
+      }
+      .foot-r a:hover {
+        color: var(--text);
+      }
+      .foot-r .cta {
+        color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- NAV -->
+    <nav>
+      <a href="#" class="nav-brand">notapipe</a>
+      <div class="nav-right">
+        <a
+          href="https://github.com/fermentationist/notapipe"
+          target="_blank"
+          rel="noopener"
+          class="nav-gh"
+          >GitHub</a
+        >
+        <a href="../../" data-app-link class="btn">Open App →</a>
+      </div>
+    </nav>
+
+    <!-- HERO -->
+    <section id="hero">
+      <h1 class="hero-hed">
+        <span class="hero-line" id="hero-line1">Move text between your devices.</span>
+        <span class="hero-line" id="hero-line2"></span>
+      </h1>
+      <p class="hero-sub">
+        notapipe syncs text, files, and secrets peer-to-peer over WebRTC. No account. No cloud.
+        Ephemeral by default.
+      </p>
+      <div class="hero-ctas">
+        <a href="../../" data-app-link class="hero-cta">Open App →</a>
+        <a href="#demo" class="hero-scroll">See how it works ↓</a>
+      </div>
+      <p class="hero-try">
+        Try it: open <code>notapipe.onrender.com</code>, share the full URL (including
+        <code>#token</code>) to a second device, then click Connect to peer on both.
+      </p>
+    </section>
+
+    <!-- PROBLEM -->
+    <section id="problem">
+      <div class="problem-inner">
+        <ul class="plist bad">
+          <li><span class="mk">✗</span><span class="txt">Paste into Slack</span></li>
+          <li><span class="mk">✗</span><span class="txt">Email yourself</span></li>
+          <li><span class="mk">✗</span><span class="txt">Drop into Google Drive</span></li>
+          <li><span class="mk">✗</span><span class="txt">Screenshot and AirDrop</span></li>
+          <li><span class="mk">✗</span><span class="txt">Pray your clipboard syncs</span></li>
+        </ul>
+        <ul class="plist good">
+          <li>
+            <span class="mk">✓</span
+            ><span class="txt">Open the same URL, click Connect on both</span>
+          </li>
+          <li><span class="mk">✓</span><span class="txt">Text syncs instantly</span></li>
+          <li><span class="mk">✓</span><span class="txt">Close the tab. It's gone.</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- DEMO -->
+    <section id="demo">
+      <div class="inner">
+        <div class="frames">
+          <div class="device laptop">
+            <div class="dev-label">Laptop</div>
+            <div class="dev-frame">
+              <div class="dev-app-bar">
+                <span class="dev-app-name">notapipe</span>
+                <div class="dev-status">
+                  <div class="sdot" id="ldot"></div>
+                  <span class="dot-lbl" id="llbl">waiting</span>
+                </div>
+              </div>
+              <div class="dev-room-bar">
+                <span class="dev-room-id">apple-river-moon</span>
+                <button class="dev-icon-btn" tabindex="-1" aria-hidden="true">
+                  <svg
+                    width="11"
+                    height="12"
+                    viewBox="0 0 13 14"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <rect x="4" y="4" width="8" height="9" rx="1.5"></rect>
+                    <path
+                      d="M2 10H1.5A1.5 1.5 0 0 1 0 8.5v-7A1.5 1.5 0 0 1 1.5 0h7A1.5 1.5 0 0 1 10 1.5V2"
+                    ></path>
+                  </svg>
+                </button>
+              </div>
+              <div class="dev-editor">
+                <div class="dev-content" id="lcontent"></div>
+              </div>
+              <div class="dev-actions">
+                <button class="dev-corner-btn" tabindex="-1" aria-hidden="true">
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 13 14"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <rect x="4" y="4" width="8" height="9" rx="1.5"></rect>
+                    <path
+                      d="M2 10H1.5A1.5 1.5 0 0 1 0 8.5v-7A1.5 1.5 0 0 1 1.5 0h7A1.5 1.5 0 0 1 10 1.5V2"
+                    ></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="device phone">
+            <div class="dev-label">Phone</div>
+            <div class="dev-frame">
+              <div class="dev-app-bar">
+                <span class="dev-app-name">notapipe</span>
+                <div class="dev-status">
+                  <div class="sdot" id="pdot"></div>
+                  <span class="dot-lbl" id="plbl">waiting</span>
+                </div>
+              </div>
+              <div class="dev-room-bar">
+                <span class="dev-room-id">apple-river-moon</span>
+                <button class="dev-icon-btn" tabindex="-1" aria-hidden="true">
+                  <svg
+                    width="11"
+                    height="12"
+                    viewBox="0 0 13 14"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <rect x="4" y="4" width="8" height="9" rx="1.5"></rect>
+                    <path
+                      d="M2 10H1.5A1.5 1.5 0 0 1 0 8.5v-7A1.5 1.5 0 0 1 1.5 0h7A1.5 1.5 0 0 1 10 1.5V2"
+                    ></path>
+                  </svg>
+                </button>
+              </div>
+              <div class="dev-editor">
+                <div class="dev-content" id="pcontent"></div>
+              </div>
+              <div class="dev-actions">
+                <button class="dev-corner-btn" id="copybtn" tabindex="-1" aria-hidden="true">
+                  <svg
+                    id="cbicon"
+                    width="12"
+                    height="12"
+                    viewBox="0 0 13 14"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <rect x="4" y="4" width="8" height="9" rx="1.5"></rect>
+                    <path
+                      d="M2 10H1.5A1.5 1.5 0 0 1 0 8.5v-7A1.5 1.5 0 0 1 1.5 0h7A1.5 1.5 0 0 1 10 1.5V2"
+                    ></path>
+                  </svg>
+                  <span id="cbcheck" hidden>✓</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="demo-caption">Both tabs. Same URL. Nothing in between.</p>
+      </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section id="features">
+      <h2 class="section-hed">Everything you need. Nothing you don't.</h2>
+      <div class="f-grid">
+        <div class="card">
+          <span class="card-icon">🔒</span>
+          <div class="card-title">Zero server storage</div>
+          <p class="card-desc">
+            Your text is never stored on any server. Close the tabs and it's gone — local
+            persistence is opt-in only.
+          </p>
+        </div>
+        <div class="card">
+          <span class="card-icon">⚡</span>
+          <div class="card-title">Real-time sync</div>
+          <p class="card-desc">
+            Yjs CRDTs over a WebRTC data channel. Conflicts merge automatically.
+          </p>
+        </div>
+        <div class="card">
+          <span class="card-icon">📷</span>
+          <div class="card-title">QR air-gap mode</div>
+          <p class="card-desc">
+            Pair two devices by scanning a QR code — no server contact at any point. The entire
+            WebRTC handshake is encoded in the QR itself.
+          </p>
+        </div>
+        <div class="card">
+          <span class="card-icon">📁</span>
+          <div class="card-title">File transfer</div>
+          <p class="card-desc">
+            Send files up to 100 MB directly peer-to-peer. Nothing routed through a server.
+          </p>
+        </div>
+        <div class="card">
+          <span class="card-icon">🎙️</span>
+          <div class="card-title">Voice calls</div>
+          <p class="card-desc">
+            Talk to your peer over the same WebRTC connection. Server-free audio.
+          </p>
+        </div>
+        <div class="card">
+          <span class="card-icon">💬</span>
+          <div class="card-title">Ephemeral chat</div>
+          <p class="card-desc">
+            A real-time text channel between peers, separate from the shared document. No server
+            handles or logs your messages.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section id="how">
+      <div class="how-inner">
+        <h2 class="section-hed">How it actually works</h2>
+        <div class="steps">
+          <div class="step">
+            <div class="step-n">Step 1</div>
+            <div class="step-title">Room ID</div>
+            <p class="step-desc">
+              Your browser generates a 3-word room ID — like <code>apple-river-moon</code> — plus a
+              random access token in the URL <code>#fragment</code>. Browsers never send
+              <code>#</code> fragments in HTTP requests, so the token never reaches any server.
+            </p>
+          </div>
+          <div class="step">
+            <div class="step-n">Step 2</div>
+            <div class="step-title">Handshake</div>
+            <p class="step-desc">
+              Connection is always explicit — notapipe never connects automatically. In signalling
+              mode, a server brokers the WebRTC handshake; it sees the room ID and connection
+              metadata, never your content. In QR mode, no server is involved at all.
+            </p>
+          </div>
+          <div class="step">
+            <div class="step-n">Step 3</div>
+            <div class="step-title">Sync</div>
+            <p class="step-desc">
+              Text syncs via Yjs CRDTs over an encrypted WebRTC data channel. No server is in the
+              loop. Close the tab and nothing persists unless you opted in to local storage.
+            </p>
+          </div>
+        </div>
+        <div class="callout">
+          <strong>Open source.</strong> The signalling server does what it says and nothing more.
+          Read the code:
+          <a href="https://github.com/fermentationist/notapipe" target="_blank" rel="noopener"
+            >github.com/fermentationist/notapipe</a
+          >
+        </div>
+      </div>
+    </section>
+
+    <!-- USE CASES -->
+    <section id="use-cases">
+      <div class="uc-wrap">
+        <h2 class="section-hed">Built for moments like these</h2>
+        <ul class="uc-list">
+          <li>
+            <span class="arr">→</span>Moving a password between your work and personal machine
+          </li>
+          <li>
+            <span class="arr">→</span>Sharing a deploy key with a teammate without Slack or email
+          </li>
+          <li>
+            <span class="arr">→</span>Sending a draft to someone in the same room, no account
+            required
+          </li>
+          <li>
+            <span class="arr">→</span>Transferring a file between phone and laptop on a locked-down
+            corporate network
+          </li>
+          <li>
+            <span class="arr">→</span>Pairing with a friend to edit a note together in real time
+          </li>
+          <li>
+            <span class="arr">→</span>Moving a snippet or link from your phone to your laptop
+            without cloud clipboard sync
+          </li>
+          <li>
+            <span class="arr">→</span>Talking with someone when you don't want the conversation
+            logged anywhere
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- PRIVACY -->
+    <section id="privacy">
+      <div class="privacy-box">
+        <p>
+          <strong>notapipe does not:</strong><br />
+          collect your text, store your files, log your sessions, require an account, or know who
+          you are.
+        </p>
+        <p>
+          The signalling server sees: the room ID and connection metadata — never your content,
+          never the room token. Once the handshake completes, it is no longer involved.
+        </p>
+        <p>In QR mode, it sees nothing at all.</p>
+        <p>
+          <strong>Two things worth knowing.</strong> If you paste a room URL into Gmail, Slack, or
+          iMessage to arrange a session, those services receive the full URL including the access
+          token. For sensitive use, share the link in person or use QR mode to skip URL sharing
+          entirely. Also: enabling "Save document" in Settings writes content to your browser's
+          local storage — opt-in, local-only, but it does break ephemerality.
+        </p>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+      <div class="foot-l">
+        <span>notapipe</span>
+        <span>MIT License</span>
+        <span>© 2025</span>
+        <span>PWA — works on desktop and mobile</span>
+      </div>
+      <div class="foot-r">
+        <a href="https://github.com/fermentationist/notapipe" target="_blank" rel="noopener"
+          >GitHub</a
+        >
+        <a href="../../" data-app-link class="cta">Open App →</a>
+      </div>
+    </footer>
+
+    <script>
+      // ── Dynamic app URL ──────────────────────────────────────
+      (function () {
+        var parts = window.location.pathname.replace(/\/$/, "").split("/").filter(Boolean);
+        parts.pop();
+        var appUrl = parts.length
+          ? window.location.origin + "/" + parts.join("/")
+          : window.location.origin;
+        document.querySelectorAll("[data-app-link]").forEach(function (el) {
+          el.href = appUrl;
+        });
+      })();
+
+      // ── Hero animation — coordinated cycling loop ────────────
+      const hl1 = document.getElementById("hero-line1");
+      const hl2 = document.getElementById("hero-line2");
+      const heroCursor = document.createElement("span");
+      heroCursor.className = "cursor";
+      hl2.appendChild(heroCursor);
+
+      const PHRASES = [
+        "Move text between your devices.",
+        "Share a secret without a third party.",
+        "Chat without leaving a trace.",
+        "Send files directly, peer-to-peer.",
+        "Collaborate on a note. No account required.",
+      ];
+      let phraseIdx = 0;
+
+      function maskFade(el, onDone) {
+        let p = -20;
+        const fi = setInterval(() => {
+          p += 1;
+          const m = `linear-gradient(to right, transparent ${p}%, black ${p + 20}%)`;
+          el.style.webkitMaskImage = m;
+          el.style.maskImage = m;
+          if (p >= 100) {
+            clearInterval(fi);
+            onDone && onDone();
+          }
+        }, 25);
+      }
+
+      function clearMask(el) {
+        el.style.webkitMaskImage = "";
+        el.style.maskImage = "";
+      }
+
+      function typeLine2(delay, onDone) {
+        while (hl2.firstChild !== heroCursor) hl2.removeChild(hl2.firstChild);
+        clearMask(hl2);
+        let pos = 0;
+        setTimeout(() => {
+          const ti = setInterval(() => {
+            if (pos < "No server ever sees it.".length) {
+              hl2.insertBefore(
+                document.createTextNode("No server ever sees it."[pos++]),
+                heroCursor,
+              );
+            } else {
+              clearInterval(ti);
+              onDone && onDone();
+            }
+          }, 52);
+        }, delay);
+      }
+
+      function runLoop(isFirst) {
+        hl1.textContent = PHRASES[phraseIdx];
+        phraseIdx = (phraseIdx + 1) % PHRASES.length;
+        if (!isFirst) {
+          hl1.style.opacity = "0";
+          requestAnimationFrame(() =>
+            requestAnimationFrame(() => {
+              hl1.style.opacity = "1";
+            }),
+          );
+        }
+        typeLine2(isFirst ? 720 : 300, () => {
+          setTimeout(() => {
+            maskFade(hl2, () => {
+              setTimeout(() => runLoop(false), 900);
+            });
+          }, 2500);
+        });
+      }
+
+      runLoop(true);
+
+      // ── Demo animation ───────────────────────────────────────
+      const lc = document.getElementById("lcontent");
+      const pc = document.getElementById("pcontent");
+      const copyBtn = document.getElementById("copybtn");
+      const cbicon = document.getElementById("cbicon");
+      const cbcheck = document.getElementById("cbcheck");
+      const ldot = document.getElementById("ldot");
+      const pdot = document.getElementById("pdot");
+      const llbl = document.getElementById("llbl");
+      const plbl = document.getElementById("plbl");
+
+      const DEMO_TEXT = "ghp_k8mX92qPwRtN4s7vFjQ2";
+      const demoCursor = document.createElement("span");
+      demoCursor.className = "dev-cursor";
+
+      function resetFrames() {
+        lc.innerHTML = "";
+        lc.appendChild(demoCursor);
+        lc.style.opacity = "1";
+        pc.textContent = "";
+        pc.style.opacity = "1";
+        cbicon.hidden = false;
+        cbcheck.hidden = true;
+        copyBtn.classList.remove("copied");
+        ldot.classList.remove("on");
+        pdot.classList.remove("on");
+        llbl.textContent = "waiting";
+        plbl.textContent = "waiting";
+      }
+
+      function runDemo() {
+        resetFrames();
+        let i = 0;
+
+        const typing = setInterval(() => {
+          if (i < DEMO_TEXT.length) {
+            lc.insertBefore(document.createTextNode(DEMO_TEXT[i++]), demoCursor);
+          } else {
+            clearInterval(typing);
+
+            // Peers connect
+            setTimeout(() => {
+              ldot.classList.add("on");
+              pdot.classList.add("on");
+              llbl.textContent = "1 connected";
+              plbl.textContent = "1 connected";
+
+              // Sync text to phone
+              setTimeout(() => {
+                pc.style.opacity = "0";
+                setTimeout(() => {
+                  pc.textContent = DEMO_TEXT;
+                  pc.style.opacity = "1";
+
+                  // Copy feedback: show ✓
+                  setTimeout(() => {
+                    cbicon.hidden = true;
+                    cbcheck.hidden = false;
+                    copyBtn.classList.add("copied");
+
+                    // Hold, then reset and loop
+                    setTimeout(() => {
+                      cbicon.hidden = false;
+                      cbcheck.hidden = true;
+                      copyBtn.classList.remove("copied");
+                      setTimeout(() => {
+                        lc.style.opacity = "0";
+                        pc.style.opacity = "0";
+                        setTimeout(runDemo, 550);
+                      }, 1100);
+                    }, 950);
+                  }, 650);
+                }, 200);
+              }, 520);
+            }, 380);
+          }
+        }, 62);
+      }
+
+      setTimeout(runDemo, 450);
+    </script>
+  </body>
+</html>
