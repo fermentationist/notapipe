@@ -170,14 +170,14 @@ The palette gives keyboard access to every feature in the app. Start typing to f
 
 Commands are organised into groups:
 
-| Group        | Commands |
-| ------------ | -------- |
-| **Connect**  | Connect via signalling server, Connect via QR code, New random room, Disconnect, Lock/Unlock room |
+| Group        | Commands                                                                                                                                           |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Connect**  | Connect via signalling server, Connect via QR code, New random room, Disconnect, Lock/Unlock room                                                  |
 | **Document** | Copy all text, Send file, Show/hide markdown preview, Enter/exit code mode, Import text file, Export as text file, Share room link, Clear document |
-| **Chat**     | Open/close chat |
-| **Voice**    | Start/join/end voice call |
-| **View**     | Enter/exit focus mode, Enable/exit wide layout, Switch to light/dark mode, Customize theme |
-| **App**      | Open settings, User guide, About notapipe |
+| **Chat**     | Open/close chat                                                                                                                                    |
+| **Voice**    | Start/join/end voice call                                                                                                                          |
+| **View**     | Enter/exit focus mode, Enable/exit wide layout, Switch to light/dark mode, Customize theme                                                         |
+| **App**      | Open settings, User guide, About notapipe                                                                                                          |
 
 ### Locking the room
 
@@ -483,12 +483,12 @@ Chrome will show an **Add to Home Screen** banner automatically, or you can tap 
 
 From the `···` actions menu:
 
-| Option                     | What it clears                                                 |
-| -------------------------- | -------------------------------------------------------------- |
+| Option                     | What it clears                                                |
+| -------------------------- | ------------------------------------------------------------- |
 | **Clear current document** | Empties the shared document and removes it from local storage |
 | **Clear all documents**    | Removes saved documents for all room IDs                      |
-| **Clear settings**         | Removes the saved theme and all other settings                 |
-| **Clear everything**       | Clears all of the above                                        |
+| **Clear settings**         | Removes the saved theme and all other settings                |
+| **Clear everything**       | Clears all of the above                                       |
 
 Each option shows a confirmation dialog before proceeding.
 

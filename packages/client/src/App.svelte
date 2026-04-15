@@ -1863,12 +1863,15 @@
           class="copy-btn"
           class:active={show_chat}
           onclick={toggleChat}
-          title={show_chat ? "Back to document" : "Toggle chat"}
-          aria-label={show_chat ? "Back to document" : `Toggle chat${chat_unread > 0 ? ` (${chat_unread} unread)` : ""}`}
+          title="Toggle chat"
+          aria-label={`Toggle chat${chat_unread > 0 ? ` (${chat_unread} unread)` : ""}`}
           aria-pressed={show_chat}
         >
+          <!-- Narrow: swap to document icon when chat is open (editor is hidden) -->
+          <!-- Wide: always show chat icon; active state conveys open/closed -->
           {#if show_chat}
-            <DocumentIcon size={13} />
+            <span class="icon-narrow-only"><DocumentIcon size={13} /></span>
+            <span class="icon-wide-only"><ChatIcon /></span>
           {:else}
             <ChatIcon />
           {/if}
@@ -2393,6 +2396,16 @@
     position: relative;
     display: inline-flex;
     align-items: center;
+  }
+
+  /* Chat icon swap helpers: narrow shows document icon (back-to-editor),
+     wide always shows the chat icon in active/inactive states */
+  .icon-narrow-only { display: flex; }
+  .icon-wide-only   { display: none; }
+
+  @media (min-width: 768px) {
+    .icon-narrow-only { display: none; }
+    .icon-wide-only   { display: flex; }
   }
 
   .chat-badge {
