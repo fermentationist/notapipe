@@ -141,8 +141,8 @@
         margin-bottom: 1.5rem;
       }
 
-      .hero-text {
-        min-height: 150px; /* Prevent layout shift when second line appears */
+      .hero-heading {
+        min-height: 220px; /* Prevent layout shift when second line appears */
       }
 
       .hero-line {
@@ -774,7 +774,7 @@
 
     <!-- HERO -->
     <section id="hero">
-      <h1 class="hero-hed hero-text">
+      <h1 class="hero-hed hero-heading">
         <span class="hero-line" id="hero-line1">Send a secret to your other machine.</span>
         <span class="hero-line" id="hero-line2"></span>
       </h1>
@@ -1133,6 +1133,14 @@
       ];
       let phraseIdx = 0;
 
+      const PHRASES2 = [
+        "No server can read it.",
+        "Servers see nothing.",
+        "Zero server visibility.",
+        "Always encrypted in transit.",
+      ];
+      let phrase2Idx = 0;
+
       function maskFade(el, onDone) {
         let p = -20;
         const fi = setInterval(() => {
@@ -1153,16 +1161,15 @@
       }
 
       function typeLine2(delay, onDone) {
+        const text = PHRASES2[phrase2Idx];
+        phrase2Idx = (phrase2Idx + 1) % PHRASES2.length;
         while (hl2.firstChild !== heroCursor) hl2.removeChild(hl2.firstChild);
         clearMask(hl2);
         let pos = 0;
         setTimeout(() => {
           const ti = setInterval(() => {
-            if (pos < "No server can read it.".length) {
-              hl2.insertBefore(
-                document.createTextNode("No server can read it."[pos++]),
-                heroCursor,
-              );
+            if (pos < text.length) {
+              hl2.insertBefore(document.createTextNode(text[pos++]), heroCursor);
             } else {
               clearInterval(ti);
               onDone && onDone();
