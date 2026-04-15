@@ -4,10 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "pnpm -r --parallel run dev",
-    "build": "vp build",
-    "start": "node --experimental-strip-types packages/signalling/src/index.ts",
+    "build": "cd packages/client && pnpm run build",
+    "start": "cd packages/signalling && pnpm run start",
     "test": "vp test",
-    "check": "vp check"
+    "check": "vp check",
+    "kill:port": "sh -c 'lsof -ti :$0 | xargs kill -9'"
   },
   "dependencies": {
     "marked": "^18.0.0"
