@@ -95,7 +95,7 @@
           Override the signalling server or configure a TURN relay. Changes take effect on the next connection attempt.
         </p>
         <p class="note">
-          notapipe uses STUN by default — connections are direct, peer-to-peer. If a direct connection fails (restrictive firewall or symmetric NAT), you can add a <strong>TURN server</strong> to relay traffic. TURN relays are end-to-end encrypted but do route packets through a third-party server. File transfers on relayed connections are limited to 5 MB; configuring your own TURN server removes this limit.
+          notapipe uses STUN by default — connections are direct, peer-to-peer. If a direct connection fails (restrictive firewall or symmetric NAT), you can add a <strong>TURN server</strong> to relay traffic. The relay cannot decrypt your content (DTLS encryption), but it is in the network path and can observe packet sizes and timing. File transfers on relayed connections are limited to 5 MB; configuring your own TURN server removes this limit.
         </p>
 
         <label class="field-label" for="signal-url">Signalling server URL</label>

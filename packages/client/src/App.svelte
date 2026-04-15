@@ -484,20 +484,23 @@
       });
   }
 
-  let copy_content_feedback = $state(false);
+  let copy_content_feedback = $state<"idle" | "success" | "error">("idle");
 
   function copyEditorContent(): void {
     const text = ytext.toString();
     navigator.clipboard
       .writeText(text)
       .then(() => {
-        copy_content_feedback = true;
+        copy_content_feedback = "success";
         setTimeout(() => {
-          copy_content_feedback = false;
+          copy_content_feedback = "idle";
         }, 1500);
       })
       .catch(() => {
-        // Clipboard not available — fail silently
+        copy_content_feedback = "error";
+        setTimeout(() => {
+          copy_content_feedback = "idle";
+        }, 2500);
       });
   }
 
@@ -2007,11 +2010,12 @@
     <div class="bottom-right">
       <button
         class="corner-btn"
+        class:copy-error={copy_content_feedback === "error"}
         onclick={copyEditorContent}
-        title="Copy all text to clipboard"
-        aria-label="Copy editor content to clipboard"
+        title={copy_content_feedback === "success" ? "Copied!" : copy_content_feedback === "error" ? "Copy failed — clipboard not available" : "Copy all text to clipboard"}
+        aria-label={copy_content_feedback === "error" ? "Copy failed — clipboard not available" : "Copy editor content to clipboard"}
       >
-        <CopyIcon copied={copy_content_feedback} size={14} />
+        <CopyIcon copied={copy_content_feedback === "success"} size={14} />
       </button>
       {#if code_mode}
         <select
@@ -2462,8 +2466,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: #f59e0b;
-    color: #1c1917;
+    background: var(--color-accent);
+    color: var(--color-bg);
     font-size: 0.78rem;
     padding: 0.4rem 1rem;
     gap: 0.5rem;
@@ -2473,7 +2477,7 @@
   .voice-warning-dismiss {
     background: none;
     border: none;
-    color: #1c1917;
+    color: var(--color-bg);
     cursor: pointer;
     font-size: 0.85rem;
     padding: 0 0.25rem;
@@ -2843,6 +2847,11 @@
 
   .corner-btn:hover {
     opacity: 0.7;
+  }
+
+  .corner-btn.copy-error {
+    color: #ef4444;
+    border-color: #ef4444;
   }
 
   .corner-btn.active {

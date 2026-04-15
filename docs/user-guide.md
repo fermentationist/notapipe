@@ -451,9 +451,9 @@ When **Save chat log** is enabled, chat messages for each room are saved to `loc
 
 Override the signalling server URL or configure a TURN relay server. Changes take effect on the next connection attempt.
 
-notapipe uses STUN by default — connections are direct and peer-to-peer, with no relay server involved. If a direct connection fails (restrictive firewall or symmetric NAT), you can supply your own **TURN server** credentials to enable relayed connections. TURN relay is end-to-end encrypted: the relay server forwards packets but cannot read the content.
+notapipe uses STUN by default — connections are direct and peer-to-peer, with no relay server involved. If a direct connection fails (restrictive firewall or symmetric NAT), you can supply your own **TURN server** credentials to enable relayed connections. TURN relay traffic is encrypted in transit (DTLS) — the relay cannot decrypt your content — but the relay is in the network path and can observe packet sizes and timing.
 
-**Privacy note:** When a TURN server is in use, traffic passes through that server (encrypted). The app's "no server" guarantee applies to STUN-only connections. If relay is active, a relay indicator is shown in the connection status.
+**Privacy note:** When a TURN server is in use, traffic passes through that server. The server cannot read your content, but it is not fully opaque. For maximum privacy, prefer direct (STUN-only) connections or QR mode.
 
 **File transfer limit:** File transfers over relayed connections are limited to **5 MB**. Configuring your own TURN server removes this limit. Free TURN service is available from providers such as [Metered](https://www.metered.ca/) and [Open Relay](https://openrelay.metered.ca/).
 

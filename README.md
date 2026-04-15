@@ -1,6 +1,8 @@
 # notapipe
 
-> Ephemeral, peer-to-peer text, voice, and file sharing. No servers ever see your content.
+**[notapipe.app](https://notapipe.app)** — try it now, no account required.
+
+> Ephemeral, peer-to-peer text, voice, and file sharing. No server stores or can read your content.
 
 ## What notapipe is for
 
@@ -25,8 +27,8 @@ notapipe is also useful anywhere you want a conversation or file exchange that d
 **What you should know:**
 
 - **Signalling mode contacts a server.** The default connection method uses a signalling server to broker the WebRTC handshake. The server sees only the room ID and connection metadata — never document content. If even that contact is unacceptable, use **QR mode** (see below), which is fully serverless.
-- **TURN relay routes encrypted traffic through a third party.** By default, notapipe uses STUN only — connections are direct. If you configure a TURN server in Settings → Connection (to traverse a restrictive firewall), traffic is relayed through that server. The relay is end-to-end encrypted and cannot read your content, but a server is in the network path. File transfers over relayed connections are limited to 5 MB; you can remove this limit by supplying your own TURN credentials.
-- **Sharing the room URL through a third-party service.** Your room is identified by a full URL like `notapipe.app/autumn-river-moon#HwDW_XR2pDI`. Connecting requires _both_ the path and the `#fragment` — the fragment is the access token and is never sent to any server (browsers never include fragments in HTTP requests). However, if you paste the full URL into Gmail, Slack, or iMessage to arrange a session, those services receive both pieces. For sensitive use, share the URL in person or via an already-trusted channel — or use QR mode to skip URL sharing entirely.
+- **TURN relay routes encrypted traffic through a third party.** By default, notapipe uses STUN only — connections are direct. If you configure a TURN server in Settings → Connection (to traverse a restrictive firewall), traffic is relayed through that server. Traffic is encrypted in transit (DTLS) and the relay cannot decrypt your content, but it is in the network path and can observe packet sizes and timing. File transfers over relayed connections are limited to 5 MB; you can remove this limit by supplying your own TURN credentials.
+- **Sharing the room URL through a third-party service.** Your room is identified by a full URL like `notapipe.app/autumn-river-moon#HwDW_XR2pDI`. The `#fragment` is a randomly generated access token (~96 bits of entropy) that browsers never include in HTTP requests, so it never reaches any server. However, if you paste the full URL into Gmail, Slack, or iMessage to arrange a session, those services receive both the path and the token. For sensitive use, share the URL in person or via an already-trusted channel — or use QR mode to skip URL sharing entirely.
 - **Enabling persistence breaks ephemerality.** If you enable "Save document" in Settings, content is written to your browser's IndexedDB and survives tab close and browser restart. A hard-drive icon in the header indicates when this is active. Disable it in Settings → Storage to return to ephemeral mode.
 - **No independent security audit has been performed.**
 

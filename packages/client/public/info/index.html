@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>notapipe — Move text between devices. No server ever sees it.</title>
+    <title>notapipe — Move text between devices. No server stores or reads your content.</title>
     <meta
       name="description"
-      content="Ephemeral peer-to-peer text and file sharing over WebRTC. No account. No cloud. No trace."
+      content="Ephemeral peer-to-peer text and file sharing over WebRTC. No account. No stored data. No permanent record."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -935,10 +935,10 @@
       <div class="f-grid">
         <div class="card">
           <span class="card-icon">🔒</span>
-          <div class="card-title">Zero server storage</div>
+          <div class="card-title">Your content never touches a server</div>
           <p class="card-desc">
-            Your text is never stored on any server. Close the tabs and it's gone — local
-            persistence is opt-in only.
+            Content syncs directly between devices — never stored, logged, or read by any server.
+            Close the tabs and it's gone. Local persistence is opt-in only.
           </p>
         </div>
         <div class="card">
@@ -1039,8 +1039,8 @@
             required
           </li>
           <li>
-            <span class="arr">→</span>Transferring a file between phone and laptop on a locked-down
-            corporate network
+            <span class="arr">→</span>Transferring a file between phone and laptop without routing
+            it through a cloud service
           </li>
           <li>
             <span class="arr">→</span>Pairing with a friend to edit a note together in real time
@@ -1077,9 +1077,9 @@
           entirely. Also: enabling "Save document" in Settings writes content to your browser's
           local storage — opt-in, local-only, but it does break ephemerality. Finally: if you
           configure a TURN relay server in Settings → Connection (to work through a restrictive
-          firewall), your traffic is forwarded by that server. It is end-to-end encrypted and the
-          relay cannot read your content, but a server is in the network path. TURN is off by
-          default and entirely opt-in.
+          firewall), your traffic is forwarded by that server. Traffic is encrypted in transit
+          (DTLS) and the relay cannot decrypt your content, but it is in the network path and can
+          observe packet sizes and timing. TURN is off by default and entirely opt-in.
         </p>
       </div>
     </section>
