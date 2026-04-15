@@ -5,9 +5,10 @@
 
   interface Props {
     onclose: () => void;
+    initial_section?: "storage" | "connection";
   }
 
-  let { onclose }: Props = $props();
+  let { onclose, initial_section = "storage" }: Props = $props();
 
   // Snapshot the current CSS variable values so the input styles don't shift
   // when the user live-edits tokens like --color-bg or --color-text.
@@ -19,7 +20,7 @@
 
   type SectionTab = "storage" | "connection";
 
-  let active_section = $state<SectionTab>("storage");
+  let active_section = $state<SectionTab>(initial_section);
 
   function handleKeydown(event: KeyboardEvent): void {
     if (event.key === "Escape") { onclose(); }
@@ -91,7 +92,10 @@
 
       {:else}
         <p class="note">
-          Override the default signalling and TURN servers. Changes take effect on next connection attempt.
+          Override the signalling server or configure a TURN relay. Changes take effect on the next connection attempt.
+        </p>
+        <p class="note">
+          notapipe uses STUN by default — connections are direct, peer-to-peer. If a direct connection fails (restrictive firewall or symmetric NAT), you can add a <strong>TURN server</strong> to relay traffic. TURN relays are end-to-end encrypted but do route packets through a third-party server. File transfers on relayed connections are limited to 5 MB; configuring your own TURN server removes this limit.
         </p>
 
         <label class="field-label" for="signal-url">Signalling server URL</label>

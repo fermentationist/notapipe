@@ -1,15 +1,10 @@
 import { writable } from "svelte/store";
 import { RTC_CONFIG_KEY } from "$lib/constants/storage.ts";
-import {
-  DEFAULT_TURN_URL,
-  DEFAULT_TURN_USERNAME,
-  DEFAULT_TURN_CREDENTIAL,
-} from "$lib/constants/rtc.ts";
 
 export interface RTCUserConfig {
   // Override the build-time VITE_SIGNAL_URL. Empty string = use app default.
   signal_url: string;
-  // TURN server — all three must be set together to take effect.
+  // TURN server — all three must be non-empty to take effect. Empty = STUN only (default).
   turn_url: string;
   turn_username: string;
   turn_credential: string;
@@ -20,10 +15,20 @@ export const RTC_CONFIG_DEFAULTS: RTCUserConfig = {
   // Use || so that an empty-string env var (unset GitHub secret) is treated as missing.
   // Empty string means "same host as the app" (Render self-hosted deployment).
   signal_url: import.meta.env.VITE_SIGNAL_URL || "",
-  turn_url: DEFAULT_TURN_URL,
-  turn_username: DEFAULT_TURN_USERNAME,
-  turn_credential: DEFAULT_TURN_CREDENTIAL,
+  // No default TURN server. Users who need relay supply their own credentials.
+  turn_url: "",
+  turn_username: "",
+  turn_credential: "",
 };
+
+// Previous default TURN servers that were bundled with the app. Stored configs
+// containing these credentials are migrated to the new empty defaults so users
+// aren't silently locked in to third-party relay servers they never chose.
+const STALE_TURN_SERVERS = [
+  { url: "turns:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" },
+  { url: "turn:freestun.net:3479", username: "free", credential: "free" },
+  { url: "turns:freestun.net:5350", username: "free", credential: "free" },
+];
 
 function load(): RTCUserConfig {
   try {
@@ -32,29 +37,11 @@ function load(): RTCUserConfig {
       return { ...RTC_CONFIG_DEFAULTS };
     }
     const stored = JSON.parse(raw) as Partial<RTCUserConfig>;
-    // Migrate pre-population format: turn_url was stored as "" when the user had never
-    // changed the TURN settings (the old "use built-in defaults" sentinel). Now that we
-    // pre-populate the fields, "" is interpreted as "disable TURN" (STUN-only), which
-    // breaks cross-network connections for anyone who visited before the migration.
-    // Treat all-empty TURN fields as "use current defaults" so TURN stays enabled.
-    if (
-      stored.turn_url === "" &&
-      (stored.turn_username ?? "") === "" &&
-      (stored.turn_credential ?? "") === ""
-    ) {
-      delete stored.turn_url;
-      delete stored.turn_username;
-      delete stored.turn_credential;
-    }
-    // Migrate stale openrelay.metered.ca credentials: these were the app defaults before
-    // being replaced by freestun.net. Anyone who saved Settings after that point (which
-    // persists the full config) would have the dead openrelay server locked in.
-    // Reset their TURN fields to the current defaults automatically.
-    if (
-      stored.turn_url === "turns:openrelay.metered.ca:443" &&
-      stored.turn_username === "openrelayproject" &&
-      stored.turn_credential === "openrelayproject"
-    ) {
+    // Migrate any previously-bundled default TURN credentials to empty (user opt-in only).
+    const is_stale = STALE_TURN_SERVERS.some(
+      (s) => stored.turn_url === s.url && stored.turn_username === s.username && stored.turn_credential === s.credential,
+    );
+    if (is_stale) {
       delete stored.turn_url;
       delete stored.turn_username;
       delete stored.turn_credential;

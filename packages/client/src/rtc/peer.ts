@@ -34,6 +34,9 @@ export interface PeerManagerCallbacks {
   onError: (error: Error) => void;
   onTrack?: (event: RTCTrackEvent) => void;
   beforeAnswer?: (pc: RTCPeerConnection) => Promise<void>;
+  /** Called once after the connection reaches "connected" with whether the
+   *  active candidate pair is going through a TURN relay. */
+  onRelayDetected?: (is_relay: boolean) => void;
 }
 
 /**
@@ -303,6 +306,24 @@ export class RTCPeerManager {
       };
       const mapped_state = state_map[pc.connectionState] ?? "idle";
       this.callbacks.onStateChange(mapped_state);
+
+      if (pc.connectionState === "connected" && this.callbacks.onRelayDetected) {
+        const relay_callback = this.callbacks.onRelayDetected;
+        pc.getStats().then((stats) => {
+          let is_relay = false;
+          stats.forEach((report) => {
+            if (report.type === "candidate-pair" && report.nominated === true) {
+              const local_candidate = stats.get(report.localCandidateId);
+              if (local_candidate?.candidateType === "relay") {
+                is_relay = true;
+              }
+            }
+          });
+          relay_callback(is_relay);
+        }).catch(() => {
+          relay_callback(false);
+        });
+      }
 
       if (pc.connectionState === "failed") {
         this.callbacks.onError(new Error("WebRTC connection failed"));

@@ -13,11 +13,13 @@
     DOC_DB_PREFIX,
     CHAT_LOG_PREFIX,
   } from "$lib/constants/storage.ts";
-  import { ICE_SERVERS } from "$lib/constants/rtc.ts";
   import {
-    rtc_config_store,
-    RTC_CONFIG_DEFAULTS,
-  } from "./stores/rtc_config.ts";
+    ICE_SERVERS,
+    RELAY_FILE_SIZE_LIMIT_BYTES,
+    VOICE_CALL_MAX_MS,
+    VOICE_CALL_WARNING_MS,
+  } from "$lib/constants/rtc.ts";
+  import { rtc_config_store } from "./stores/rtc_config.ts";
   import { USER_GUIDE_CONTENT, ABOUT_CONTENT } from "$lib/constants/docs.ts";
   import { IndexeddbPersistence } from "y-indexeddb";
   import { RTCPeerManager, isOfferer } from "./rtc/peer.ts";
@@ -93,6 +95,7 @@
 
   let show_qr_overlay = $state(false);
   let show_settings = $state(false);
+  let settings_initial_section = $state<"storage" | "connection">("storage");
   let show_palette = $state(false);
   let show_theme_panel = $state(false);
   let show_connect_menu = $state(false);
@@ -143,6 +146,8 @@
     string,
     import("./rtc/peer.ts").PeerManagerState
   >();
+  // Tracks whether each peer's active candidate pair is going through TURN relay.
+  const peer_relay_status = new Map<string, boolean>();
 
   // ---------------------------------------------------------------------------
   // Handle (username) state
@@ -215,6 +220,10 @@
   // Reactive: peers from whom we have received at least one audio track in the
   // current call cycle. Used to distinguish "connecting" from "active".
   let peers_with_audio = $state(new Set<string>());
+  // Voice call hard cap: warn at 3 h 45 min, disconnect at 4 h.
+  let voice_warning_visible = $state(false);
+  let voice_warning_timeout_id: ReturnType<typeof setTimeout> | null = null;
+  let voice_max_timeout_id: ReturnType<typeof setTimeout> | null = null;
 
   // ---------------------------------------------------------------------------
   // File transfer UI state (reactive so the bar re-renders)
@@ -356,7 +365,20 @@
   }
 
   function sendFileToAllPeers(file: File): void {
+    const has_custom_turn = $rtc_config_store.turn_url !== "";
+    let showed_relay_warning = false;
     for (const [peer_id, manager] of file_transfer_managers) {
+      const is_relayed = peer_relay_status.get(peer_id) === true;
+      if (!has_custom_turn && is_relayed && file.size > RELAY_FILE_SIZE_LIMIT_BYTES) {
+        if (!showed_relay_warning) {
+          addPeerToast(
+            `File too large for relayed connection (limit: ${RELAY_FILE_SIZE_LIMIT_BYTES / 1_048_576} MB). ` +
+            "Add a TURN server in Settings → Connection to remove this limit.",
+          );
+          showed_relay_warning = true;
+        }
+        continue;
+      }
       const transfer_id = manager.sendFile(file);
       if (transfer_id !== null) {
         const handle = remote_handles.get(peer_id) ?? peer_id;
@@ -690,6 +712,16 @@
       return;
     }
     voice_active = true;
+    // Start hard cap timers: warn at 3 h 45 min, auto-disconnect at 4 h.
+    voice_warning_timeout_id = setTimeout(() => {
+      voice_warning_visible = true;
+      voice_warning_timeout_id = null;
+    }, VOICE_CALL_WARNING_MS);
+    voice_max_timeout_id = setTimeout(() => {
+      voice_max_timeout_id = null;
+      stopVoice();
+      addPeerToast("Voice call ended automatically after 4 hours.");
+    }, VOICE_CALL_MAX_MS);
     // Notify all connected peers that we're starting a voice call.
     const voice_start_msg = JSON.stringify({ type: "voice-start", handle: local_handle });
     data_channels.forEach((channel) => {
@@ -711,6 +743,15 @@
 
   function stopVoice(): void {
     voice_active = false;
+    voice_warning_visible = false;
+    if (voice_warning_timeout_id !== null) {
+      clearTimeout(voice_warning_timeout_id);
+      voice_warning_timeout_id = null;
+    }
+    if (voice_max_timeout_id !== null) {
+      clearTimeout(voice_max_timeout_id);
+      voice_max_timeout_id = null;
+    }
     // Notify all connected peers that we're ending the voice call.
     const voice_stop_msg = JSON.stringify({ type: "voice-stop" });
     data_channels.forEach((channel) => {
@@ -814,6 +855,7 @@
     yjs_providers.delete(remote_peer_id);
     file_transfer_managers.get(remote_peer_id)?.destroy();
     file_transfer_managers.delete(remote_peer_id);
+    peer_relay_status.delete(remote_peer_id);
     const departed_handle = remote_handles.get(remote_peer_id);
     data_channels.delete(remote_peer_id);
     const updated_handles = new Map(remote_handles);
@@ -891,14 +933,17 @@
           ) {
             if (state === "failed" && !was_ever_connected) {
               addPeerToast(
-                "Connection failed — could not reach your peer. " +
-                "If you're on a restricted network (VPN, corporate firewall), " +
-                "try QR mode for a fully direct connection, or add a custom TURN relay in Settings → Connection.",
+                "Connection failed — your peer could not be reached. " +
+                "You may be behind a restrictive firewall. " +
+                "Try QR mode, or add a TURN relay server in Settings → Connection.",
               );
             }
             disconnectPeer(remote_peer_id);
           }
           updateAggregateState();
+        },
+        onRelayDetected(is_relay) {
+          peer_relay_status.set(remote_peer_id, is_relay);
         },
         onError(error) {
           connection_store.setError(error.message);
@@ -1002,22 +1047,11 @@
 
   function getEffectiveIceServers(): RTCIceServer[] {
     const { turn_url, turn_username, turn_credential } = $rtc_config_store;
-    const using_default_turn =
-      turn_url === RTC_CONFIG_DEFAULTS.turn_url &&
-      turn_username === RTC_CONFIG_DEFAULTS.turn_username &&
-      turn_credential === RTC_CONFIG_DEFAULTS.turn_credential;
-    if (using_default_turn) {
-      return ICE_SERVERS;
-    }
     if (turn_url === "") {
-      return [
-        { urls: "stun:stun.l.google.com:19302" },
-        { urls: "stun:stun1.l.google.com:19302" },
-      ];
+      return ICE_SERVERS; // STUN only
     }
     return [
-      { urls: "stun:stun.l.google.com:19302" },
-      { urls: "stun:stun1.l.google.com:19302" },
+      ...ICE_SERVERS,
       { urls: turn_url, username: turn_username, credential: turn_credential },
     ];
   }
@@ -1140,6 +1174,9 @@
             }
           }
           updateAggregateState();
+        },
+        onRelayDetected(is_relay) {
+          peer_relay_status.set(session_id, is_relay);
         },
         onError(error) {
           connection_store.setError(error.message);
@@ -1870,6 +1907,14 @@
     </div>
   {/if}
 
+  <!-- Voice call 4-hour warning banner -->
+  {#if voice_warning_visible}
+    <div class="voice-warning-bar" role="alert">
+      <span>Voice call will end automatically in 15 minutes.</span>
+      <button class="voice-warning-dismiss" onclick={() => { voice_warning_visible = false; }} aria-label="Dismiss">✕</button>
+    </div>
+  {/if}
+
   <!-- Editor (+ optional preview / chat pane) -->
   <main class:preview-split={show_preview && !show_chat} class:chat-split={show_chat}>
     <!-- On narrow screens hide editor when preview or chat is active -->
@@ -2014,8 +2059,10 @@
 
   {#if show_settings}
     <SettingsPanel
+      initial_section={settings_initial_section}
       onclose={() => {
         show_settings = false;
+        settings_initial_section = "storage";
       }}
     />
   {/if}
@@ -2409,6 +2456,29 @@
   .copy-btn:disabled {
     opacity: 0.3;
     cursor: not-allowed;
+  }
+
+  .voice-warning-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #f59e0b;
+    color: #1c1917;
+    font-size: 0.78rem;
+    padding: 0.4rem 1rem;
+    gap: 0.5rem;
+    flex-shrink: 0;
+  }
+
+  .voice-warning-dismiss {
+    background: none;
+    border: none;
+    color: #1c1917;
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 0 0.25rem;
+    line-height: 1;
+    flex-shrink: 0;
   }
 
   .room-name-wrapper {

@@ -36,7 +36,7 @@
 
 ## What is notapipe?
 
-notapipe is a browser-based tool for sharing text between devices in real time. It uses peer-to-peer WebRTC to sync a shared document directly between browsers — no server ever sees your text.
+notapipe is a browser-based tool for sharing text between devices in real time. It uses peer-to-peer WebRTC to sync a shared document directly between browsers — no server can read your content.
 
 **The primary use case** is moving text from one machine to another without a cable, cloud account, or chat app. Open the same room URL on both devices, wait for the connection indicator to turn green, and whatever you type on one device instantly appears on the other. Then copy it from the editor with the copy button (bottom-right corner) and paste it wherever you need it.
 
@@ -46,7 +46,7 @@ It also works anywhere you want a conversation, file transfer, or shared documen
 
 - Nothing you type is stored on any server
 - The signalling server only brokers the initial connection handshake; it never sees document content or the room token
-- In QR mode, no server is involved at all — two devices connect directly
+- In QR mode, no signalling server is involved — the handshake is encoded in QR codes and two devices connect directly
 - The `#token` in the URL prevents two strangers who happen to generate the same 3-word room ID from accidentally connecting to each other
 - Content lives only in the browser tabs that are currently open (unless you turn on local persistence)
 
@@ -128,9 +128,9 @@ If the signalling connection drops unexpectedly, notapipe will automatically rec
 
 ### Via QR code (air-gapped)
 
-Best for: maximum privacy (no server contact at all), or when devices are not on the same network. This is the recommended method for sensitive use.
+Best for: maximum privacy (no signalling server contact), or when devices are not on the same network. This is the recommended method for sensitive use.
 
-In QR mode, the WebRTC offer and answer are encoded as QR codes and exchanged by physically scanning each other's screens. No server is involved at any point.
+In QR mode, the WebRTC offer and answer are encoded as QR codes and exchanged by physically scanning each other's screens. No signalling server is involved at any point.
 
 **Workflow:**
 
@@ -221,7 +221,7 @@ Chat messages are ephemeral by default — they are not saved and will be lost w
 
 ## Voice calls
 
-Voice calls let you speak with all connected peers over the same peer-to-peer WebRTC connection used for text sync — no server handles your audio.
+Voice calls let you speak with all connected peers over the same WebRTC connection used for text sync — no server can hear your audio.
 
 **Starting a voice call:**
 
@@ -245,6 +245,7 @@ When a peer starts a voice call while you are connected, the phone icon begins *
 - If a peer hangs up and calls again, you will see the pulsing notification again — you do not automatically rejoin.
 - Reloading the page ends your participation in any active call. Other peers remain connected to each other; you will need to click the phone icon again after reconnecting.
 - Voice uses your browser's `getUserMedia` API. **HTTPS is required** — on iOS, microphone access is not available over plain HTTP.
+- **Voice calls end automatically after 4 hours.** A warning appears at 3 hours 45 minutes. You can immediately start a new call if you need to continue.
 
 ---
 
@@ -338,7 +339,7 @@ Code editor mode is local — it does not affect what other peers see.
 
 ## Sending and receiving files
 
-You can send any file (up to 100 MB) directly to all connected peers over the same peer-to-peer WebRTC connection — no server involved.
+You can send any file (up to 100 MB) to all connected peers over WebRTC — no server can read the files. By default the transfer is direct browser-to-browser; if you have configured a TURN relay, packets are forwarded by that server encrypted and unreadable to it.
 
 ### Sending a file
 
@@ -448,7 +449,13 @@ When **Save chat log** is enabled, chat messages for each room are saved to `loc
 
 ### Connection tab
 
-Override the default signalling server URL or configure a custom TURN server. Changes take effect on the next connection attempt.
+Override the signalling server URL or configure a TURN relay server. Changes take effect on the next connection attempt.
+
+notapipe uses STUN by default — connections are direct and peer-to-peer, with no relay server involved. If a direct connection fails (restrictive firewall or symmetric NAT), you can supply your own **TURN server** credentials to enable relayed connections. TURN relay is end-to-end encrypted: the relay server forwards packets but cannot read the content.
+
+**Privacy note:** When a TURN server is in use, traffic passes through that server (encrypted). The app's "no server" guarantee applies to STUN-only connections. If relay is active, a relay indicator is shown in the connection status.
+
+**File transfer limit:** File transfers over relayed connections are limited to **5 MB**. Configuring your own TURN server removes this limit. Free TURN service is available from providers such as [Metered](https://www.metered.ca/) and [Open Relay](https://openrelay.metered.ca/).
 
 ---
 
@@ -505,10 +512,10 @@ The remaining options (**Clear all documents**, **Clear settings**, **Clear ever
 
 ### Connection fails after a few seconds
 
-notapipe includes a default TURN relay server (freestun.net) for traversing NATs, but some corporate networks and strict firewalls may still block WebRTC. If connection fails and you see a notification suggesting it, try:
+notapipe uses STUN for NAT traversal, which works for most networks. Some corporate networks, VPNs, or strict firewalls may block direct WebRTC connections (symmetric NAT). If you see a "Connection failed" notification, try:
 
 1. **QR mode** — avoids the signalling server entirely and can sometimes find a path that signalling mode cannot
-2. **A custom TURN server** — configure one in Settings → Connection. Free TURN servers are available from providers such as [Metered](https://www.metered.ca/tools/openrelay/) and [Open Relay](https://openrelay.metered.ca/)
+2. **A custom TURN server** — add one in Settings → Connection. TURN relay works even through symmetric NAT. Free TURN service is available from providers such as [Metered](https://www.metered.ca/) and [Open Relay](https://openrelay.metered.ca/)
 
 ### QR code: camera does not open / shows an error
 

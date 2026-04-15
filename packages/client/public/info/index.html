@@ -952,7 +952,7 @@
           <span class="card-icon">📷</span>
           <div class="card-title">QR air-gap mode</div>
           <p class="card-desc">
-            Pair two devices by scanning a QR code — no server contact at any point. The entire
+            Pair two devices by scanning a QR code — no signalling server contact. The entire
             WebRTC handshake is encoded in the QR itself.
           </p>
         </div>
@@ -960,14 +960,14 @@
           <span class="card-icon">📁</span>
           <div class="card-title">File transfer</div>
           <p class="card-desc">
-            Send files up to 100 MB directly peer-to-peer. Nothing routed through a server.
+            Send files up to 100 MB over an encrypted WebRTC channel. No server can read the files.
           </p>
         </div>
         <div class="card">
           <span class="card-icon">🎙️</span>
           <div class="card-title">Voice calls</div>
           <p class="card-desc">
-            Talk to your peer over the same WebRTC connection. Server-free audio.
+            Talk to your peer over the same WebRTC connection. No server can hear your audio.
           </p>
         </div>
         <div class="card">
@@ -975,7 +975,7 @@
           <div class="card-title">Ephemeral chat</div>
           <p class="card-desc">
             A real-time text channel between peers, separate from the shared document. No server
-            handles or logs your messages.
+            can read or log your messages.
           </p>
         </div>
       </div>
@@ -1001,15 +1001,15 @@
             <p class="step-desc">
               Connection is always explicit — notapipe never connects automatically. In signalling
               mode, a server brokers the WebRTC handshake; it sees the room ID and connection
-              metadata, never your content. In QR mode, no server is involved at all.
+              metadata, never your content. In QR mode, no signalling server is involved.
             </p>
           </div>
           <div class="step">
             <div class="step-n">Step 3</div>
             <div class="step-title">Sync</div>
             <p class="step-desc">
-              Text syncs via Yjs CRDTs over an encrypted WebRTC data channel. No server is in the
-              loop. Close the tab and nothing persists unless you opted in to local storage.
+              Text syncs via Yjs CRDTs over an encrypted WebRTC data channel. No server can read
+              your content. Close the tab and nothing persists unless you opted in to local storage.
             </p>
           </div>
         </div>
@@ -1071,11 +1071,15 @@
         </p>
         <p>In QR mode, it sees nothing at all.</p>
         <p>
-          <strong>Two things worth knowing.</strong> If you paste a room URL into Gmail, Slack, or
-          iMessage to arrange a session, those services receive the full URL including the access
+          <strong>Three things worth knowing.</strong> If you paste a room URL into Gmail, Slack,
+          or iMessage to arrange a session, those services receive the full URL including the access
           token. For sensitive use, share the link in person or use QR mode to skip URL sharing
           entirely. Also: enabling "Save document" in Settings writes content to your browser's
-          local storage — opt-in, local-only, but it does break ephemerality.
+          local storage — opt-in, local-only, but it does break ephemerality. Finally: if you
+          configure a TURN relay server in Settings → Connection (to work through a restrictive
+          firewall), your traffic is forwarded by that server. It is end-to-end encrypted and the
+          relay cannot read your content, but a server is in the network path. TURN is off by
+          default and entirely opt-in.
         </p>
       </div>
     </section>

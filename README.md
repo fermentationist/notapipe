@@ -19,12 +19,13 @@ notapipe is also useful anywhere you want a conversation or file exchange that d
 
 **What notapipe protects:**
 
-- Document content, chat messages, voice audio, and transferred files never reach any server — content travels only peer-to-peer over encrypted WebRTC data channels
+- No server can read your content — all data is end-to-end encrypted over WebRTC. By default, content flows directly peer-to-peer. If you configure a TURN relay server, packets are forwarded by that server but remain encrypted and unreadable to it.
 - Nothing is stored server-side; browser storage is opt-in and local-only
 
 **What you should know:**
 
 - **Signalling mode contacts a server.** The default connection method uses a signalling server to broker the WebRTC handshake. The server sees only the room ID and connection metadata — never document content. If even that contact is unacceptable, use **QR mode** (see below), which is fully serverless.
+- **TURN relay routes encrypted traffic through a third party.** By default, notapipe uses STUN only — connections are direct. If you configure a TURN server in Settings → Connection (to traverse a restrictive firewall), traffic is relayed through that server. The relay is end-to-end encrypted and cannot read your content, but a server is in the network path. File transfers over relayed connections are limited to 5 MB; you can remove this limit by supplying your own TURN credentials.
 - **Sharing the room URL through a third-party service.** Your room is identified by a full URL like `notapipe.app/autumn-river-moon#HwDW_XR2pDI`. Connecting requires _both_ the path and the `#fragment` — the fragment is the access token and is never sent to any server (browsers never include fragments in HTTP requests). However, if you paste the full URL into Gmail, Slack, or iMessage to arrange a session, those services receive both pieces. For sensitive use, share the URL in person or via an already-trusted channel — or use QR mode to skip URL sharing entirely.
 - **Enabling persistence breaks ephemerality.** If you enable "Save document" in Settings, content is written to your browser's IndexedDB and survives tab close and browser restart. A hard-drive icon in the header indicates when this is active. Disable it in Settings → Storage to return to ephemeral mode.
 - **No independent security audit has been performed.**
@@ -38,8 +39,8 @@ notapipe is also useful anywhere you want a conversation or file exchange that d
 - **Real-time collaborative editor** — text syncs via Yjs CRDTs over a WebRTC data channel; conflicts merge automatically
 - **QR pairing** — fully serverless; no signalling server at all
 - **Chat** — real-time text chat between peers, separate from the shared document; no server handles or logs messages
-- **Voice calls** — peer-to-peer audio; no server handles your audio
-- **File transfer** — send any file up to 100 MB directly to all connected peers; no server involved
+- **Voice calls** — peer-to-peer audio; no server can hear your audio; calls end automatically after 4 hours
+- **File transfer** — send files up to 100 MB directly to peers (5 MB cap on relayed connections); no server can read the files
 - **Multi-peer mesh** — more than two devices; each pair syncs independently
 - **Markdown preview** — toggle a live rendered view alongside the editor; local-only
 - **Code editor mode** — syntax highlighting for 14 languages, bracket matching, line commands
@@ -58,7 +59,7 @@ Two or more peers open the same URL — identified by a memorable 3-word path li
 
 **QR mode** (most private): The WebRTC offer/answer is compressed into a binary QR code — typically ~78 bytes — and exchanged by scanning. No server contact at all. Recommended when peers are physically co-located.
 
-After the handshake, all data — text, chat, voice, files — flows directly between browsers over encrypted WebRTC data channels.
+After the handshake, all data — text, chat, voice, files — is end-to-end encrypted over WebRTC. By default it flows directly browser-to-browser. If you have configured a TURN relay, the relay forwards packets but cannot decrypt them.
 
 ---
 
