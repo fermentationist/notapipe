@@ -60,13 +60,27 @@ function make_deps(overrides: Partial<VoiceCallManagerDeps> = {}): {
     get_voice_active: () => state.voice_active,
     get_remote_voice_active: () => state.remote_voice_active,
     get_peers_with_audio: () => state.peers_with_audio,
-    set_voice_active: (v) => { state.voice_active = v; },
-    set_voice_warning_visible: (v) => { state.voice_warning_visible = v; },
-    set_remote_voice_active: (m) => { state.remote_voice_active = m; },
-    set_peers_with_audio: (s) => { state.peers_with_audio = s; },
-    add_peer_toast: (msg) => { toasts.push(msg); },
-    set_error: (msg) => { errors.push(msg); },
-    trigger_renegotiation: (peer_id) => { renegotiations.push(peer_id); },
+    set_voice_active: (v) => {
+      state.voice_active = v;
+    },
+    set_voice_warning_visible: (v) => {
+      state.voice_warning_visible = v;
+    },
+    set_remote_voice_active: (m) => {
+      state.remote_voice_active = m;
+    },
+    set_peers_with_audio: (s) => {
+      state.peers_with_audio = s;
+    },
+    add_peer_toast: (msg) => {
+      toasts.push(msg);
+    },
+    set_error: (msg) => {
+      errors.push(msg);
+    },
+    trigger_renegotiation: (peer_id) => {
+      renegotiations.push(peer_id);
+    },
     ...overrides,
   };
 
@@ -92,7 +106,9 @@ describe("VoiceCallManager", () => {
       const sent_messages: string[] = [];
       const mock_channel = {
         readyState: "open" as RTCDataChannelState,
-        send: (msg: string) => { sent_messages.push(msg); },
+        send: (msg: string) => {
+          sent_messages.push(msg);
+        },
       } as unknown as RTCDataChannel;
 
       const { deps } = make_deps({
@@ -140,7 +156,9 @@ describe("VoiceCallManager", () => {
       const sent_messages: string[] = [];
       const mock_channel = {
         readyState: "open" as RTCDataChannelState,
-        send: (msg: string) => { sent_messages.push(msg); },
+        send: (msg: string) => {
+          sent_messages.push(msg);
+        },
       } as unknown as RTCDataChannel;
 
       const { deps } = make_deps({
@@ -255,9 +273,7 @@ describe("VoiceCallManager", () => {
 
   describe("before_answer()", () => {
     it("adds mic track to peer connection when all conditions met", async () => {
-      mock_get_user_media(
-        Promise.resolve(make_mock_stream([{ kind: "audio" }])),
-      );
+      mock_get_user_media(Promise.resolve(make_mock_stream([{ kind: "audio" }])));
       const { deps, state } = make_deps();
       state.remote_voice_active.set("peer-1", "Bob");
       const manager = new VoiceCallManager(deps);
@@ -265,7 +281,9 @@ describe("VoiceCallManager", () => {
 
       const add_track_calls: Array<[unknown, unknown]> = [];
       const mock_pc = {
-        addTrack: (track: unknown, stream: unknown) => { add_track_calls.push([track, stream]); },
+        addTrack: (track: unknown, stream: unknown) => {
+          add_track_calls.push([track, stream]);
+        },
       } as unknown as RTCPeerConnection;
 
       await manager.before_answer("peer-1", mock_pc);
@@ -278,7 +296,9 @@ describe("VoiceCallManager", () => {
 
       const add_track_calls: unknown[] = [];
       const mock_pc = {
-        addTrack: (t: unknown) => { add_track_calls.push(t); },
+        addTrack: (t: unknown) => {
+          add_track_calls.push(t);
+        },
       } as unknown as RTCPeerConnection;
 
       await manager.before_answer("peer-1", mock_pc);
@@ -286,9 +306,7 @@ describe("VoiceCallManager", () => {
     });
 
     it("does not add track twice for the same peer in a call cycle", async () => {
-      mock_get_user_media(
-        Promise.resolve(make_mock_stream([{ kind: "audio" }])),
-      );
+      mock_get_user_media(Promise.resolve(make_mock_stream([{ kind: "audio" }])));
       const { deps, state } = make_deps();
       state.remote_voice_active.set("peer-1", "Bob");
       const manager = new VoiceCallManager(deps);
@@ -296,7 +314,9 @@ describe("VoiceCallManager", () => {
 
       const add_track_calls: unknown[] = [];
       const mock_pc = {
-        addTrack: (t: unknown) => { add_track_calls.push(t); },
+        addTrack: (t: unknown) => {
+          add_track_calls.push(t);
+        },
       } as unknown as RTCPeerConnection;
 
       await manager.before_answer("peer-1", mock_pc);

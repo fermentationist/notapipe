@@ -309,20 +309,22 @@ export class RTCPeerManager {
 
       if (pc.connectionState === "connected" && this.callbacks.onRelayDetected) {
         const relay_callback = this.callbacks.onRelayDetected;
-        pc.getStats().then((stats) => {
-          let is_relay = false;
-          stats.forEach((report) => {
-            if (report.type === "candidate-pair" && report.nominated === true) {
-              const local_candidate = stats.get(report.localCandidateId);
-              if (local_candidate?.candidateType === "relay") {
-                is_relay = true;
+        pc.getStats()
+          .then((stats) => {
+            let is_relay = false;
+            stats.forEach((report) => {
+              if (report.type === "candidate-pair" && report.nominated === true) {
+                const local_candidate = stats.get(report.localCandidateId);
+                if (local_candidate?.candidateType === "relay") {
+                  is_relay = true;
+                }
               }
-            }
+            });
+            relay_callback(is_relay);
+          })
+          .catch(() => {
+            relay_callback(false);
           });
-          relay_callback(is_relay);
-        }).catch(() => {
-          relay_callback(false);
-        });
       }
 
       if (pc.connectionState === "failed") {

@@ -1,7 +1,4 @@
-import {
-  VOICE_CALL_MAX_MS,
-  VOICE_CALL_WARNING_MS,
-} from "$lib/constants/rtc.ts";
+import { VOICE_CALL_MAX_MS, VOICE_CALL_WARNING_MS } from "$lib/constants/rtc.ts";
 import type { RTCPeerManager, PeerManagerState } from "./peer.ts";
 
 // ---------------------------------------------------------------------------
@@ -100,10 +97,7 @@ export class VoiceCallManager {
     // Add mic track to each connected peer where we are the offerer.
     // (Answerer peers get the track via beforeAnswer hook.)
     for (const [peer_id, manager] of this.deps.get_peer_managers()) {
-      if (
-        this.deps.get_peer_states().get(peer_id) === "connected" &&
-        manager.getIsOfferer()
-      ) {
+      if (this.deps.get_peer_states().get(peer_id) === "connected" && manager.getIsOfferer()) {
         for (const track of this.local_voice_stream.getTracks()) {
           manager.addTrack(track, this.local_voice_stream);
         }
@@ -180,9 +174,7 @@ export class VoiceCallManager {
     }
     audio_el.srcObject = event.streams[0];
     // Mark this peer as having delivered audio — transitions icon: connecting → active.
-    this.deps.set_peers_with_audio(
-      new Set(this.deps.get_peers_with_audio()).add(peer_id),
-    );
+    this.deps.set_peers_with_audio(new Set(this.deps.get_peers_with_audio()).add(peer_id));
   }
 
   /**
@@ -214,10 +206,7 @@ export class VoiceCallManager {
    * Process a voice-related data channel message from a remote peer.
    * Called from the channel message handler in App.svelte.
    */
-  handle_data_message(
-    peer_id: string,
-    msg: { type?: string; handle?: string },
-  ): void {
+  handle_data_message(peer_id: string, msg: { type?: string; handle?: string }): void {
     if (msg.type === "voice-start" && typeof msg.handle === "string") {
       const remote_voice = new Map(this.deps.get_remote_voice_active());
       const was_anyone_calling = remote_voice.size > 0;

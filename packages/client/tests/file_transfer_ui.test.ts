@@ -39,18 +39,34 @@ function make_deps(overrides: Partial<FileTransferUIDeps> = {}): {
     get_sent: () => state.sent,
     get_sending: () => state.sending,
     get_pending_sent: () => state.pending_sent,
-    set_incoming_offers: (v) => { state.incoming_offers = v; },
-    set_progress: (v) => { state.progress = v; },
-    set_completed: (v) => { state.completed = v; },
-    set_sent: (v) => { state.sent = v; },
-    set_sending: (v) => { state.sending = v; },
-    set_pending_sent: (v) => { state.pending_sent = v; },
+    set_incoming_offers: (v) => {
+      state.incoming_offers = v;
+    },
+    set_progress: (v) => {
+      state.progress = v;
+    },
+    set_completed: (v) => {
+      state.completed = v;
+    },
+    set_sent: (v) => {
+      state.sent = v;
+    },
+    set_sending: (v) => {
+      state.sending = v;
+    },
+    set_pending_sent: (v) => {
+      state.pending_sent = v;
+    },
     get_file_transfer_managers: () => new Map(),
     get_peer_relay_status: (_peer_id) => false,
     has_custom_turn: () => false,
     get_remote_handle: (peer_id) => `handle-${peer_id}`,
-    add_peer_toast: (msg) => { toasts.push(msg); },
-    set_error: (msg) => { errors.push(msg); },
+    add_peer_toast: (msg) => {
+      toasts.push(msg);
+    },
+    set_error: (msg) => {
+      errors.push(msg);
+    },
     ...overrides,
   };
 

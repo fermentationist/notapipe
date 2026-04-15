@@ -25,7 +25,11 @@ export const RTC_CONFIG_DEFAULTS: RTCUserConfig = {
 // containing these credentials are migrated to the new empty defaults so users
 // aren't silently locked in to third-party relay servers they never chose.
 const STALE_TURN_SERVERS = [
-  { url: "turns:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" },
+  {
+    url: "turns:openrelay.metered.ca:443",
+    username: "openrelayproject",
+    credential: "openrelayproject",
+  },
   { url: "turn:freestun.net:3479", username: "free", credential: "free" },
   { url: "turns:freestun.net:5350", username: "free", credential: "free" },
 ];
@@ -39,7 +43,10 @@ function load(): RTCUserConfig {
     const stored = JSON.parse(raw) as Partial<RTCUserConfig>;
     // Migrate any previously-bundled default TURN credentials to empty (user opt-in only).
     const is_stale = STALE_TURN_SERVERS.some(
-      (s) => stored.turn_url === s.url && stored.turn_username === s.username && stored.turn_credential === s.credential,
+      (s) =>
+        stored.turn_url === s.url &&
+        stored.turn_username === s.username &&
+        stored.turn_credential === s.credential,
     );
     if (is_stale) {
       delete stored.turn_url;

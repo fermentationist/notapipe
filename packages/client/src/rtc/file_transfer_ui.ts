@@ -72,11 +72,11 @@ export class FileTransferUIManager {
    */
   make_callbacks(peer_id: string) {
     const d = this.deps;
+    // Capture reference so callbacks can read private maps without needing `this`.
+    const outgoing_names = this.outgoing_names;
     return {
       onIncomingOffer(offer: IncomingOffer): void {
-        d.set_incoming_offers(
-          new Map(d.get_incoming_offers()).set(offer.transfer_id, offer),
-        );
+        d.set_incoming_offers(new Map(d.get_incoming_offers()).set(offer.transfer_id, offer));
       },
       onProgress(transfer_id: string, received: number, total: number): void {
         const next = new Map(d.get_progress());
@@ -94,31 +94,25 @@ export class FileTransferUIManager {
         const progress = new Map(d.get_progress());
         progress.delete(transfer_id);
         d.set_progress(progress);
-        d.set_completed(
-          new Map(d.get_completed()).set(transfer_id, { url, filename }),
-        );
+        d.set_completed(new Map(d.get_completed()).set(transfer_id, { url, filename }));
       },
       onTransferAccepted(transfer_id: string): void {
-        const filename = d.get_sending().get(transfer_id)?.filename ?? "file";
+        const filename = outgoing_names.get(transfer_id) ?? "file";
         const handle = d.get_remote_handle(peer_id);
         const pending = new Map(d.get_pending_sent());
         pending.delete(transfer_id);
         d.set_pending_sent(pending);
-        d.set_sending(
-          new Map(d.get_sending()).set(transfer_id, { filename, handle }),
-        );
+        d.set_sending(new Map(d.get_sending()).set(transfer_id, { filename, handle }));
       },
       onFileSent(transfer_id: string): void {
         const sending_entry = d.get_sending().get(transfer_id);
-        const filename =
-          sending_entry?.filename ?? "file";
+        const filename = outgoing_names.get(transfer_id) ?? sending_entry?.filename ?? "file";
         const handle = sending_entry?.handle ?? d.get_remote_handle(peer_id);
+        outgoing_names.delete(transfer_id);
         const sending = new Map(d.get_sending());
         sending.delete(transfer_id);
         d.set_sending(sending);
-        d.set_sent(
-          new Map(d.get_sent()).set(transfer_id, { filename, handle }),
-        );
+        d.set_sent(new Map(d.get_sent()).set(transfer_id, { filename, handle }));
       },
       onTransferCancelled(transfer_id: string): void {
         // Incoming-side cleanup.

@@ -134,17 +134,17 @@
   // Runtime references (not reactive — managed imperatively)
   // ---------------------------------------------------------------------------
 
-  // Keyed by remote peer ID. QR mode uses QR_PEER_ID as a placeholder.
-  const peer_managers = new Map<string, RTCPeerManager>();
-  const yjs_providers = new Map<string, RTCDataChannelProvider>();
-  const file_transfer_managers = new Map<string, FileTransferManager>();
-  const data_channels = new Map<string, RTCDataChannel>();
-  const peer_states = new Map<
-    string,
-    import("./rtc/peer.ts").PeerManagerState
-  >();
-  // Tracks whether each peer's active candidate pair is going through TURN relay.
-  const peer_relay_status = new Map<string, boolean>();
+  // Single record per remote peer, keyed by peer ID.
+  // QR mode uses a `qr-<uuid>` placeholder ID.
+  interface PeerRecord {
+    manager: RTCPeerManager;
+    yjs_provider: RTCDataChannelProvider | null;
+    ft_manager: FileTransferManager | null;
+    data_channel: RTCDataChannel | null;
+    state: import("./rtc/peer.ts").PeerManagerState;
+    relay_status: boolean;
+  }
+  const peers = new Map<string, PeerRecord>();
   // Reactive: true when at least one connected peer is using a TURN relay.
   let any_peer_relayed = $state(false);
   // Whether the relay notice banner has been manually dismissed this session.
@@ -216,9 +216,23 @@
 
   const voice_manager = new VoiceCallManager({
     get_local_handle: () => local_handle,
-    get_data_channels: () => data_channels,
-    get_peer_managers: () => peer_managers,
-    get_peer_states: () => peer_states,
+    get_data_channels: () => {
+      const m = new Map<string, RTCDataChannel>();
+      for (const [id, p] of peers) {
+        if (p.data_channel !== null) { m.set(id, p.data_channel); }
+      }
+      return m;
+    },
+    get_peer_managers: () => {
+      const m = new Map<string, RTCPeerManager>();
+      for (const [id, p] of peers) { m.set(id, p.manager); }
+      return m;
+    },
+    get_peer_states: () => {
+      const m = new Map<string, import("./rtc/peer.ts").PeerManagerState>();
+      for (const [id, p] of peers) { m.set(id, p.state); }
+      return m;
+    },
     get_voice_active: () => voice_active,
     get_remote_voice_active: () => remote_voice_active,
     get_peers_with_audio: () => peers_with_audio,
@@ -229,9 +243,9 @@
     add_peer_toast: (msg) => addPeerToast(msg),
     set_error: (msg) => connection_store.setError(msg),
     trigger_renegotiation: (peer_id) => {
-      const manager = peer_managers.get(peer_id);
-      if (manager?.getIsOfferer() === true && voice_active) {
-        manager.sendRenegotiationOffer();
+      const peer = peers.get(peer_id);
+      if (peer?.manager.getIsOfferer() === true && voice_active) {
+        peer.manager.sendRenegotiationOffer();
       }
     },
   });
@@ -260,8 +274,14 @@
     set_sent: (v) => { ft_sent = v; },
     set_sending: (v) => { ft_sending = v; },
     set_pending_sent: (v) => { ft_pending_sent = v; },
-    get_file_transfer_managers: () => file_transfer_managers,
-    get_peer_relay_status: (peer_id) => peer_relay_status.get(peer_id) === true,
+    get_file_transfer_managers: () => {
+      const m = new Map<string, FileTransferManager>();
+      for (const [id, p] of peers) {
+        if (p.ft_manager !== null) { m.set(id, p.ft_manager); }
+      }
+      return m;
+    },
+    get_peer_relay_status: (peer_id) => peers.get(peer_id)?.relay_status === true,
     has_custom_turn: () => $rtc_config_store.turn_url !== "",
     get_remote_handle: (peer_id) => remote_handles.get(peer_id) ?? peer_id,
     add_peer_toast: (msg) => addPeerToast(msg),
@@ -373,19 +393,22 @@
   // Connection actions
   // ---------------------------------------------------------------------------
 
-  let copy_url_feedback = $state(false);
+  let copy_url_feedback = $state<"idle" | "success" | "error">("idle");
 
   function copyRoomUrl(): void {
     navigator.clipboard
       .writeText(window.location.href)
       .then(() => {
-        copy_url_feedback = true;
+        copy_url_feedback = "success";
         setTimeout(() => {
-          copy_url_feedback = false;
+          copy_url_feedback = "idle";
         }, 1500);
       })
       .catch(() => {
-        // Clipboard not available — fail silently
+        copy_url_feedback = "error";
+        setTimeout(() => {
+          copy_url_feedback = "idle";
+        }, 2500);
       });
   }
 
@@ -414,11 +437,11 @@
   // ---------------------------------------------------------------------------
 
   function updateAggregateState(): void {
-    if (peer_states.size === 0) {
+    if (peers.size === 0) {
       connection_store.setPeerState("idle");
       return;
     }
-    const states = Array.from(peer_states.values());
+    const states = Array.from(peers.values()).map((p) => p.state);
     if (states.some((s) => s === "connected")) {
       connection_store.setPeerState("connected");
     } else if (states.some((s) => s === "connecting")) {
@@ -442,15 +465,16 @@
 
   function broadcastIdentity(): void {
     const msg = JSON.stringify({ type: "identity", handle: local_handle });
-    data_channels.forEach((channel) => {
-      if (channel.readyState === "open") {
-        channel.send(msg);
+    for (const p of peers.values()) {
+      if (p.data_channel?.readyState === "open") {
+        p.data_channel.send(msg);
       }
-    });
+    }
   }
 
   function registerDataChannel(remote_peer_id: string, channel: RTCDataChannel): void {
-    data_channels.set(remote_peer_id, channel);
+    const peer = peers.get(remote_peer_id);
+    if (peer !== undefined) { peer.data_channel = channel; }
 
     const send_initial_state = (): void => {
       channel.send(JSON.stringify({ type: "identity", handle: local_handle }));
@@ -557,11 +581,11 @@
       text: message.text,
       timestamp: message.timestamp,
     });
-    data_channels.forEach((channel) => {
-      if (channel.readyState === "open") {
-        channel.send(payload);
+    for (const p of peers.values()) {
+      if (p.data_channel?.readyState === "open") {
+        p.data_channel.send(payload);
       }
-    });
+    }
   }
 
   function toggleChat(): void {
@@ -602,28 +626,23 @@
    * (guards against re-entry via onStateChange callbacks).
    */
   function disconnectPeer(remote_peer_id: string): void {
-    if (!peer_managers.has(remote_peer_id)) {
+    if (!peers.has(remote_peer_id)) {
       return;
     }
-    const manager = peer_managers.get(remote_peer_id)!;
+    const peer = peers.get(remote_peer_id)!;
     // Delete first to prevent re-entry from the "closed" onStateChange fired by manager.close()
-    peer_managers.delete(remote_peer_id);
-    peer_states.delete(remote_peer_id);
-    yjs_providers.get(remote_peer_id)?.destroy();
-    yjs_providers.delete(remote_peer_id);
-    file_transfer_managers.get(remote_peer_id)?.destroy();
-    file_transfer_managers.delete(remote_peer_id);
-    peer_relay_status.delete(remote_peer_id);
-    any_peer_relayed = Array.from(peer_relay_status.values()).some(Boolean);
+    peers.delete(remote_peer_id);
+    peer.yjs_provider?.destroy();
+    peer.ft_manager?.destroy();
+    any_peer_relayed = Array.from(peers.values()).some((p) => p.relay_status);
     const departed_handle = remote_handles.get(remote_peer_id);
-    data_channels.delete(remote_peer_id);
     const updated_handles = new Map(remote_handles);
     updated_handles.delete(remote_peer_id);
     remote_handles = updated_handles;
     // Clean up voice resources for this peer.
     voice_manager.cleanup_peer(remote_peer_id);
     connection_store.removeRemotePeer(remote_peer_id);
-    manager.close();
+    peer.manager.close();
     if (departed_handle !== undefined) {
       addPeerToast(`Disconnected from ${departed_handle}`);
     }
@@ -648,20 +667,22 @@
         onDataChannel(data_channel) {
           registerDataChannel(remote_peer_id, data_channel);
           const provider = new RTCDataChannelProvider(doc, data_channel);
-          yjs_providers.set(remote_peer_id, provider);
+          const peer = peers.get(remote_peer_id);
+          if (peer !== undefined) { peer.yjs_provider = provider; }
         },
         onFileChannel(file_channel) {
           const ft_manager = new FileTransferManager(
             file_channel,
             makeFileTransferCallbacks(remote_peer_id),
           );
-          file_transfer_managers.set(remote_peer_id, ft_manager);
+          const peer = peers.get(remote_peer_id);
+          if (peer !== undefined) { peer.ft_manager = ft_manager; }
         },
         onStateChange(state) {
-          if (!peer_managers.has(remote_peer_id)) {
+          if (!peers.has(remote_peer_id)) {
             return; // already being cleaned up
           }
-          peer_states.set(remote_peer_id, state);
+          peers.get(remote_peer_id)!.state = state;
           if (state === "connected") {
             was_ever_connected = true;
             connection_store.addRemotePeer(remote_peer_id);
@@ -686,7 +707,8 @@
           updateAggregateState();
         },
         onRelayDetected(is_relay) {
-          peer_relay_status.set(remote_peer_id, is_relay);
+          const peer = peers.get(remote_peer_id);
+          if (peer !== undefined) { peer.relay_status = is_relay; }
           if (is_relay) { any_peer_relayed = true; }
         },
         onError(error) {
@@ -703,8 +725,14 @@
       getEffectiveIceServers(),
     );
 
-    peer_managers.set(remote_peer_id, manager);
-    peer_states.set(remote_peer_id, "connecting");
+    peers.set(remote_peer_id, {
+      manager,
+      yjs_provider: null,
+      ft_manager: null,
+      data_channel: null,
+      state: "connecting",
+      relay_status: false,
+    });
     updateAggregateState();
 
     if (isOfferer(local_peer_id, remote_peer_id)) {
@@ -752,7 +780,7 @@
         disconnectPeer(remote_id);
         // If ws_transport is still alive we're still in the room — stay in "connecting"
         // state so the user sees we're listening, not idle. No action needed on their part.
-        if (ws_transport !== null && peer_states.size === 0) {
+        if (ws_transport !== null && peers.size === 0) {
           connection_store.setPeerState("connecting");
         }
       },
@@ -821,7 +849,7 @@
     // If there's an in-progress QR session that never connected, clean it up first.
     if (
       active_qr_session_id !== null &&
-      peer_states.get(active_qr_session_id) !== "connected"
+      peers.get(active_qr_session_id)?.state !== "connected"
     ) {
       disconnectPeer(active_qr_session_id);
     }
@@ -864,20 +892,22 @@
         onDataChannel(data_channel) {
           registerDataChannel(session_id, data_channel);
           const provider = new RTCDataChannelProvider(doc, data_channel);
-          yjs_providers.set(session_id, provider);
+          const peer = peers.get(session_id);
+          if (peer !== undefined) { peer.yjs_provider = provider; }
         },
         onFileChannel(file_channel) {
           const ft_manager = new FileTransferManager(
             file_channel,
             makeFileTransferCallbacks(session_id),
           );
-          file_transfer_managers.set(session_id, ft_manager);
+          const peer = peers.get(session_id);
+          if (peer !== undefined) { peer.ft_manager = ft_manager; }
         },
         onStateChange(state) {
-          if (!peer_managers.has(session_id)) {
+          if (!peers.has(session_id)) {
             return;
           }
-          peer_states.set(session_id, state);
+          peers.get(session_id)!.state = state;
           if (state === "connected") {
             was_qr_connected = true;
             if (qr_reconnect_timeout_id !== null) {
@@ -907,7 +937,7 @@
               if (qr_reconnect_timeout_id === null) {
                 qr_reconnect_timeout_id = setTimeout(() => {
                   qr_reconnect_timeout_id = null;
-                  if (peer_managers.has(session_id)) {
+                  if (peers.has(session_id)) {
                     disconnectPeer(session_id);
                   }
                 }, 30_000);
@@ -920,7 +950,8 @@
           updateAggregateState();
         },
         onRelayDetected(is_relay) {
-          peer_relay_status.set(session_id, is_relay);
+          const peer = peers.get(session_id);
+          if (peer !== undefined) { peer.relay_status = is_relay; }
           if (is_relay) { any_peer_relayed = true; }
         },
         onError(error) {
@@ -936,11 +967,17 @@
       pc,
     );
 
-    peer_managers.set(session_id, manager);
-    peer_states.set(session_id, "connecting");
+    peers.set(session_id, {
+      manager,
+      yjs_provider: null,
+      ft_manager: null,
+      data_channel: null,
+      state: "connecting",
+      relay_status: false,
+    });
     show_qr_overlay = true;
     // Only switch mode to "qr" if we aren't already connected via another method.
-    if (peer_managers.size === 1) {
+    if (peers.size === 1) {
       connection_store.setMode("qr");
     }
     updateAggregateState();
@@ -951,14 +988,14 @@
     if (active_qr_session_id === null) {
       return;
     }
-    peer_managers.get(active_qr_session_id)?.startAsOfferer();
+    peers.get(active_qr_session_id)?.manager.startAsOfferer();
   }
 
   function startQrAsAnswerer(): void {
     if (active_qr_session_id === null) {
       return;
     }
-    peer_managers.get(active_qr_session_id)?.startAsAnswerer();
+    peers.get(active_qr_session_id)?.manager.startAsAnswerer();
   }
 
   function applyRoomId(new_room_id: string): void {
@@ -1026,11 +1063,11 @@
     active_qr_session_id = null;
     qr_transport = null;
     // Only tear down this QR session — leave any other connected peers intact.
-    if (session_id !== null && peer_states.get(session_id) !== "connected") {
+    if (session_id !== null && peers.get(session_id)?.state !== "connected") {
       disconnectPeer(session_id);
     }
     // If nothing remains, reset to idle.
-    if (peer_managers.size === 0) {
+    if (peers.size === 0) {
       connection_store.setMode("none");
       connection_store.setPeerState("idle");
     }
@@ -1039,7 +1076,7 @@
   function teardown(): void {
     signalling_url = null; // prevent auto-reconnect if WS close event fires after this
     active_qr_session_id = null;
-    Array.from(peer_managers.keys()).forEach((id) => disconnectPeer(id));
+    Array.from(peers.keys()).forEach((id) => disconnectPeer(id));
     ws_transport?.close();
     ws_transport = null;
     qr_transport = null;
@@ -1596,12 +1633,13 @@
       </div>
       <button
         class="copy-btn"
-        class:active={copy_url_feedback}
+        class:active={copy_url_feedback === "success"}
+        class:error={copy_url_feedback === "error"}
         onclick={copyRoomUrl}
-        title={copy_url_feedback ? "Copied!" : "Copy room URL"}
+        title={copy_url_feedback === "success" ? "Copied!" : copy_url_feedback === "error" ? "Copy failed — clipboard access denied" : "Copy room URL"}
         aria-label="Copy room link"
       >
-        <CopyIcon copied={copy_url_feedback} />
+        <CopyIcon copied={copy_url_feedback === "success"} />
       </button>
       <button
         class="copy-btn"
@@ -2153,6 +2191,10 @@
   .copy-btn:hover,
   .copy-btn.active {
     color: var(--color-text);
+  }
+
+  .copy-btn.error {
+    color: var(--color-error, #e53e3e);
   }
 
   .chat-btn-wrapper {
