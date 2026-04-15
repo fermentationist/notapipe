@@ -2462,11 +2462,11 @@
     background: var(--color-bg);
   }
 
-  .room-menu {
+  .connect-menu.room-menu {
     top: calc(100% + 4px);
+    bottom: auto;
     left: 0;
     right: auto;
-    bottom: auto;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
 
