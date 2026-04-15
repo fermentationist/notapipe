@@ -1,5 +1,4 @@
 <script lang="ts">
-  import QRCode from "qrcode";
   import { tick } from "svelte";
   import { scanQr, startCamera, stopCamera } from "../rtc/qr_mode/scanner.ts";
 
@@ -63,10 +62,13 @@
       const base64_string = btoa(
         Array.from(packet, (byte) => String.fromCharCode(byte)).join(""),
       );
-      QRCode.toCanvas(qr_canvas, base64_string, {
-        errorCorrectionLevel: "L",
-        margin: 2,
-        width: 240,
+      const canvas = qr_canvas;
+      import("qrcode").then(({ default: QRCode }) => {
+        QRCode.toCanvas(canvas, base64_string, {
+          errorCorrectionLevel: "L",
+          margin: 2,
+          width: 240,
+        });
       });
     }
   });

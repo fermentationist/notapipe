@@ -1,5 +1,4 @@
 <script lang="ts">
-  import QRCode from "qrcode";
 
   interface Props {
     onclose: () => void;
@@ -10,15 +9,18 @@
   let qr_canvas = $state<HTMLCanvasElement | null>(null);
 
   $effect(() => {
-    if (qr_canvas) {
-      QRCode.toCanvas(qr_canvas, window.location.href, {
-        errorCorrectionLevel: "M",
-        margin: 2,
-        width: 260,
-        color: {
-          dark: "#000000",
-          light: "#ffffff",
-        },
+    const canvas = qr_canvas;
+    if (canvas) {
+      import("qrcode").then(({ default: QRCode }) => {
+        QRCode.toCanvas(canvas, window.location.href, {
+          errorCorrectionLevel: "M",
+          margin: 2,
+          width: 260,
+          color: {
+            dark: "#000000",
+            light: "#ffffff",
+          },
+        });
       });
     }
   });
