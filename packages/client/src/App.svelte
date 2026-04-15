@@ -4,17 +4,13 @@
   import { get } from "svelte/store";
   import {
     generateId,
-    generatePassphrase,
     parseId,
     isValidId,
-    geoId,
     ensureToken,
     roomPath,
   } from "./id/generate.ts";
-  import { GEO_GRID_PRECISION } from "$lib/constants/id.ts";
   import {
     DOC_DB_PREFIX,
-    GEO_PASSPHRASE_PREFIX,
     PERSISTENCE_ENABLED_KEY,
     CHAT_LOG_PREFIX,
   } from "$lib/constants/storage.ts";
@@ -102,7 +98,7 @@
   let show_palette = $state(false);
   let show_theme_panel = $state(false);
   let show_connect_menu = $state(false);
-  let show_find_room_menu = $state(false);
+  let show_room_menu = $state(false);
   let show_actions_menu = $state(false);
   let show_url_qr = $state(false);
   let actions_menu_anchor = $state<{ top: number; right: number } | null>(null);
@@ -135,45 +131,6 @@
   // ---------------------------------------------------------------------------
   // Geo mode state
   // ---------------------------------------------------------------------------
-
-  let geo_mode = $state(false);
-  let geo_coords = $state<{ latitude: number; longitude: number } | null>(null);
-  let geo_passphrase = $state<string>("");
-
-  function geoPassphraseKey(coords: {
-    latitude: number;
-    longitude: number;
-  }): string {
-    const lat = Math.round(coords.latitude / GEO_GRID_PRECISION);
-    const lon = Math.round(coords.longitude / GEO_GRID_PRECISION);
-    return `${GEO_PASSPHRASE_PREFIX}${lat},${lon}`;
-  }
-
-  function loadGeoPassphrase(coords: {
-    latitude: number;
-    longitude: number;
-  }): string | null {
-    return localStorage.getItem(geoPassphraseKey(coords));
-  }
-
-  function saveGeoPassphrase(
-    coords: { latitude: number; longitude: number },
-    passphrase: string,
-  ): void {
-    localStorage.setItem(geoPassphraseKey(coords), passphrase);
-  }
-
-  async function applyGeoRoomId(): Promise<void> {
-    if (geo_coords === null) {
-      return;
-    }
-    const new_id = await geoId(geo_coords);
-    room_id = new_id;
-    room_token = geo_passphrase;
-    history.replaceState(null, "", `${roomPath(new_id)}#${geo_passphrase}`);
-    connection_store.setRoomId(new_id);
-    reinitPersistence();
-  }
 
   // ---------------------------------------------------------------------------
   // Runtime references (not reactive — managed imperatively)
@@ -1407,19 +1364,8 @@
     teardown();
   }
 
-  async function regeneratePassphrase(): Promise<void> {
-    geo_passphrase = generatePassphrase();
-    if (geo_coords !== null) {
-      saveGeoPassphrase(geo_coords, geo_passphrase);
-    }
-    await applyGeoRoomId();
-  }
-
   function selectRandom(): void {
-    show_find_room_menu = false;
-    geo_mode = false;
-    geo_coords = null;
-    geo_passphrase = "";
+    show_room_menu = false;
     teardown();
     const new_room_id = generateId();
     room_id = new_room_id;
@@ -1428,32 +1374,6 @@
     room_token = ensureToken();
     connection_store.setRoomId(new_room_id);
     reinitPersistence();
-  }
-
-  function selectNearby(): void {
-    show_find_room_menu = false;
-    teardown();
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const coords = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        };
-        geo_coords = coords;
-        geo_passphrase = loadGeoPassphrase(coords) ?? "";
-        if (geo_passphrase !== "") {
-          saveGeoPassphrase(coords, geo_passphrase);
-        }
-        geo_mode = true;
-        if (geo_passphrase !== "") {
-          applyGeoRoomId();
-        }
-      },
-      (error) => {
-        connection_store.setError(`Location unavailable: ${error.message}`);
-      },
-      { timeout: 10_000, maximumAge: 60_000 },
-    );
   }
 
   function selectSignalling(): void {
@@ -1524,8 +1444,8 @@
     if (show_connect_menu && !target.closest(".connect-wrapper")) {
       show_connect_menu = false;
     }
-    if (show_find_room_menu && !target.closest(".find-room-wrapper")) {
-      show_find_room_menu = false;
+    if (show_room_menu && !target.closest(".room-name-wrapper")) {
+      show_room_menu = false;
     }
     if (show_actions_menu && !target.closest(".actions-menu-wrapper")) {
       show_actions_menu = false;
@@ -1606,13 +1526,6 @@
       group: "Connect",
       keywords: ["generate", "fresh", "different", "random"],
       action: selectRandom,
-    },
-    {
-      id: "nearby-room",
-      label: "Connect to nearby device",
-      group: "Connect",
-      keywords: ["geo", "location", "proximity", "local"],
-      action: selectNearby,
     },
     {
       id: "disconnect",
@@ -1906,7 +1819,24 @@
     </header>
 
     <div class="room-bar">
-      <span class="room-id">{room_id}</span>
+      <div class="room-name-wrapper">
+        <button
+          class="room-name-btn"
+          onclick={() => { show_room_menu = !show_room_menu; }}
+          title="Room: {room_id} — click to switch rooms"
+          aria-haspopup="menu"
+          aria-expanded={show_room_menu}
+        >{room_id}</button>
+        {#if show_room_menu}
+          <div class="connect-menu room-menu" role="menu">
+            <button
+              class="menu-item"
+              role="menuitem"
+              onclick={selectRandom}
+            >New random room</button>
+          </div>
+        {/if}
+      </div>
       <button
         class="copy-btn"
         class:active={copy_url_feedback}
@@ -1960,58 +1890,7 @@
       >
         <PhoneIcon />
       </button>
-      <div class="find-room-wrapper">
-        <button
-          class="find-room-btn"
-          onclick={() => {
-            show_find_room_menu = !show_find_room_menu;
-          }}
-          aria-haspopup="menu"
-          aria-expanded={show_find_room_menu}
-        >
-          Find a room ▾
-        </button>
-        {#if show_find_room_menu}
-          <div class="connect-menu" role="menu">
-            <button class="menu-item" role="menuitem" onclick={selectNearby}>
-              Nearby
-            </button>
-            <button class="menu-item" role="menuitem" onclick={selectRandom}>
-              Random
-            </button>
-          </div>
-        {/if}
-      </div>
     </div>
-
-    {#if geo_mode}
-      <div class="passphrase-bar">
-        <span class="passphrase-label">📍 passphrase</span>
-        <input
-          class="passphrase-input"
-          class:passphrase-empty={geo_passphrase === ""}
-          type="text"
-          value={geo_passphrase}
-          placeholder="enter passphrase"
-          oninput={(e) => {
-            geo_passphrase = (e.target as HTMLInputElement).value.toLowerCase();
-            if (geo_passphrase !== "" && geo_coords !== null) {
-              saveGeoPassphrase(geo_coords, geo_passphrase);
-              applyGeoRoomId();
-            }
-          }}
-          aria-label="Geo mode passphrase"
-          spellcheck="false"
-          autocomplete="off"
-        />
-        <button
-          class="passphrase-regen-btn"
-          onclick={regeneratePassphrase}
-          title="Generate new passphrase"
-          aria-label="Regenerate passphrase">↺</button
-        >
-      </div>
-    {/if}
   {/if}
 
   <!-- Editor (+ optional preview / chat pane) -->
@@ -2340,7 +2219,7 @@
         onclick={() => {
           show_actions_menu = false;
           showConfirm(
-            "Clear all notapipe settings (theme, persistence, geo passphrases)?",
+            "Clear all notapipe settings (theme, persistence)?",
             clearSettings,
           );
         }}>Clear settings</button
@@ -2493,15 +2372,6 @@
     position: relative;
   }
 
-  .room-id {
-    font-size: 0.85rem;
-    color: var(--color-accent);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    min-width: 0;
-    flex-shrink: 1;
-  }
 
   .copy-btn {
     background: none;
@@ -2572,83 +2442,32 @@
     cursor: not-allowed;
   }
 
-  .passphrase-bar {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.25rem 1rem;
-    border-bottom: 1px solid var(--color-border);
-    background: var(--color-surface);
-    flex-shrink: 0;
-  }
-
-  .passphrase-label {
-    font-size: 0.75rem;
-    color: var(--color-text-muted);
-    white-space: nowrap;
-  }
-
-  .passphrase-input {
-    flex: 1;
-    background: transparent;
-    border: none;
-    border-bottom: 1px solid var(--color-border);
-    color: var(--color-accent);
-    font-family: inherit;
-    font-size: 0.85rem;
-    padding: 0.1rem 0.25rem;
-    outline: none;
-    min-width: 0;
-  }
-
-  .passphrase-input:focus {
-    border-bottom-color: var(--color-accent);
-  }
-
-  .passphrase-input.passphrase-empty {
-    border-bottom-color: var(--color-status-error);
-  }
-
-  .passphrase-input::placeholder {
-    color: var(--color-status-error);
-    font-style: italic;
-    opacity: 0.8;
-  }
-
-  .passphrase-regen-btn {
-    background: none;
-    border: none;
-    color: var(--color-text-muted);
-    cursor: pointer;
-    font-size: 1rem;
-    padding: 0.1rem 0.25rem;
-    line-height: 1;
-  }
-
-  .passphrase-regen-btn:hover {
-    color: var(--color-text);
-  }
-
-  .find-room-wrapper {
+  .room-name-wrapper {
     position: relative;
-    margin-left: auto;
   }
 
-  .find-room-btn {
+  .room-name-btn {
     background: none;
-    border: 1px solid var(--color-border);
+    border: none;
     color: var(--color-text-muted);
     font-family: inherit;
-    font-size: 0.75rem;
-    padding: 0.2rem 0.5rem;
-    border-radius: 4px;
+    font-size: 0.8rem;
+    padding: 0.1rem 0.2rem;
     cursor: pointer;
-    white-space: nowrap;
+    border-radius: 3px;
   }
 
-  .find-room-btn:hover {
+  .room-name-btn:hover {
     color: var(--color-text);
-    border-color: var(--color-text-muted);
+    background: var(--color-bg);
+  }
+
+  .room-menu {
+    top: calc(100% + 4px);
+    left: 0;
+    right: auto;
+    bottom: auto;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
 
   .persist-indicator {
@@ -2920,14 +2739,6 @@
     min-width: 100%;
     overflow: hidden;
     box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
-  }
-
-  .find-room-wrapper .connect-menu {
-    bottom: auto;
-    top: calc(100% + 4px);
-    right: 0;
-    left: auto;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
 
   .menu-item {
