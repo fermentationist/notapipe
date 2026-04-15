@@ -4,35 +4,32 @@
 
 ## What notapipe is for
 
-The modern productivity stack — Google Docs, Slack, Gmail, Zoom — generates a permanent, searchable, subpoenable record of nearly everything you do. notapipe is a suite that systematically replaces those tools for conversations that should not exist in a log:
+The primary use case: you want to move a piece of text, a file, or a password from one device to another — phone to laptop, work machine to personal machine — without emailing yourself, opening a cloud app, or signing into anything. Open the same room URL on both devices, connect, and the content syncs instantly. Close both tabs and it's gone.
 
-- **Sensitive negotiations** — lawyers, executives, M&A discussions where discovery risk is real
-- **Source protection** — journalists communicating with sources without a Slack thread or email chain
-- **Whistleblowing and activist coordination** — communication that must not persist
-- **Password and secret transfer** — send a credential without it passing through Gmail, iMessage, or Slack's servers
-- **Cross-device text transfer** — move a snippet, a link, or a file from your work machine to your personal machine without emailing yourself or signing into anything
-- **Any zero-trace scratchpad** — two people, one shared surface, gone when the tab closes
+notapipe is also useful anywhere you want a conversation or file exchange that doesn't leave a permanent record in a cloud service:
 
-Everything disappears when both tabs close. That is not scope creep — it is the point.
+- **Cross-device transfer** — move a snippet, a link, a file, or a password between your own devices without routing it through email or a cloud drive
+- **Sensitive conversations** — chat and collaborate without the exchange persisting in a server log
+- **Secret or credential sharing** — send a password or API key to someone without it passing through a third-party service
+- **Quick collaboration** — a shared scratchpad with someone nearby, no account or installation required
 
 ---
 
 ## Threat model
 
-**What notapipe protects against:**
+**What notapipe protects:**
 
-- Your document content, chat messages, voice audio, and transferred files reaching any server — in all modes, content travels only peer-to-peer via encrypted WebRTC data channels
-- Server-side logs of what you wrote, said, or sent
-- Persistent records: nothing is stored server-side; browser storage is opt-in and local-only (see below)
+- Document content, chat messages, voice audio, and transferred files never reach any server — content travels only peer-to-peer over encrypted WebRTC data channels
+- Nothing is stored server-side; browser storage is opt-in and local-only
 
 **What you should know:**
 
-- **Signalling mode contacts a server.** The default connection method uses a signalling server to broker the WebRTC handshake. The server sees only the room ID and WebRTC metadata (SDP/ICE candidates) — never document content. If even that contact is unacceptable, use **QR mode** (see below), which is fully serverless.
-- **The room URL contains two pieces: a path and a fragment.** Your room is identified by a full URL like `notapipe.app/autumn-river-moon#HwDW_XR2pDI`. Connecting requires *both* — the path alone is not enough. The `#fragment` (after the `#`) is the authentication token; it is verified during the WebRTC handshake and never sent to any server (browsers never include fragments in HTTP requests). The path portion *is* visible to servers, but it is meaningless without the fragment. If you share the full URL via Gmail, Slack, or iMessage, those platforms receive both pieces and could theoretically be used to join your room. For high-sensitivity use, share the URL out-of-band (in person, via an already-secure channel), or skip URL sharing entirely by using **QR mode**.
-- **Persistence is ephemeral by default — but opt-in storage is not.** If you enable "Save document" in Settings, content is written to your browser's IndexedDB and **survives tab close and browser restart**. A hard-drive icon in the header indicates when this is active. If you enabled it and forgot, your document is no longer ephemeral. Disable it in Settings → Storage to return to ephemeral mode.
-- **No formal security audit has been performed.** notapipe is appropriate for operational security hygiene and reducing your exposure to routine discovery and surveillance. It has not been independently audited and should not be treated as the sole protection in a high-stakes adversarial threat environment.
+- **Signalling mode contacts a server.** The default connection method uses a signalling server to broker the WebRTC handshake. The server sees only the room ID and connection metadata — never document content. If even that contact is unacceptable, use **QR mode** (see below), which is fully serverless.
+- **Sharing the room URL through a third-party service.** Your room is identified by a full URL like `notapipe.app/autumn-river-moon#HwDW_XR2pDI`. Connecting requires *both* the path and the `#fragment` — the fragment is the access token and is never sent to any server (browsers never include fragments in HTTP requests). However, if you paste the full URL into Gmail, Slack, or iMessage to arrange a session, those services receive both pieces. For sensitive use, share the URL in person or via an already-trusted channel — or use QR mode to skip URL sharing entirely.
+- **Enabling persistence breaks ephemerality.** If you enable "Save document" in Settings, content is written to your browser's IndexedDB and survives tab close and browser restart. A hard-drive icon in the header indicates when this is active. Disable it in Settings → Storage to return to ephemeral mode.
+- **No independent security audit has been performed.**
 
-**QR mode is the most private connection method.** It encodes the full WebRTC handshake into a QR code — no server contact whatsoever, not even for the initial handshake. If you are in the same physical location as your peer, QR mode is the recommended path for sensitive use.
+**QR mode is the most private connection method.** It encodes the full WebRTC handshake into a QR code — no server contact whatsoever. If you are in the same physical location as your peer, this is the recommended approach.
 
 ---
 
@@ -48,7 +45,7 @@ Everything disappears when both tabs close. That is not scope creep — it is th
 - **Code editor mode** — syntax highlighting for 14 languages, bracket matching, line commands
 - **Theming** — built-in light/dark themes plus a fully customisable token editor (⌘K → Theme)
 - **Focus mode** — distraction-free writing (⌘F)
-- **Local persistence** — opt-in `localStorage`/IndexedDB save; off by default; never synced to a server
+- **Local persistence** — opt-in IndexedDB/localStorage save; off by default; never synced to a server
 - **PWA** — installable on desktop and mobile; works offline after first load
 
 ---
@@ -59,7 +56,7 @@ Two or more peers open the same URL — identified by a memorable 3-word path li
 
 **Signalling mode** (default): A lightweight WebSocket server brokers the WebRTC handshake. The server sees the room ID and connection metadata only — never document content. Once connected, the server is no longer involved.
 
-**QR mode** (most private): The WebRTC offer/answer is compressed into a binary QR code — typically ~78 bytes — and exchanged by scanning. No server contact at all. Recommended for sensitive use when peers are physically co-located.
+**QR mode** (most private): The WebRTC offer/answer is compressed into a binary QR code — typically ~78 bytes — and exchanged by scanning. No server contact at all. Recommended when peers are physically co-located.
 
 After the handshake, all data — text, chat, voice, files — flows directly between browsers over encrypted WebRTC data channels.
 
@@ -115,7 +112,7 @@ VITE_SIGNAL_URL=wss://signal.example.com/ws vp build
 
 The signalling server is a plain Node.js process — run it behind a reverse proxy (nginx, Caddy) that terminates TLS and forwards `/ws` as a WebSocket upgrade.
 
-**Self-hosting note:** For high-sensitivity deployments, self-hosting both the client and signalling server means no third party handles even the WebRTC metadata. QR mode eliminates the signalling server entirely.
+**Self-hosting:** For privacy-sensitive deployments, self-hosting both the client and signalling server means no third party handles even the WebRTC metadata. QR mode eliminates the signalling server entirely.
 
 ## Credits
 
