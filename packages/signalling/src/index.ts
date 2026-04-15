@@ -189,3 +189,5 @@ wss.on("connection", (socket: WebSocket, request: IncomingMessage) => {
 http_server.listen(PORT, () => {
   console.log(`notapipe signalling server listening on port ${PORT}`);
 });
+
+export default http_server;
