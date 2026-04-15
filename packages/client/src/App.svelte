@@ -1654,7 +1654,6 @@
   const voice_connecting = $derived(voice_active && peers_with_audio.size === 0);
   // True once audio is actually flowing from at least one peer.
   const voice_call_active = $derived(voice_active && peers_with_audio.size > 0);
-  const show_actions = $derived(!$focus_mode_store && !code_mode);
   // Preview is suppressed in focus mode and code mode
   const show_preview = $derived(
     $preview_store && !$focus_mode_store && !code_mode,
@@ -1921,7 +1920,46 @@
       ondismisssent={dismissSent}
       onsendfile={sendFileToAllPeers}
     />
-    <div class="bottom-right-btns">
+  </main>
+
+  <!-- Bottom bar — always visible -->
+  <div class="bottom-bar" class:chat-open={show_chat}>
+    <div class="bottom-left">
+      {#if !$focus_mode_store && !code_mode}
+        {#if is_connected}
+          <button class="action-btn" onclick={connectViaQr} title="Add peer via QR">
+            <QrCodeIcon size={14} />
+            <span class="btn-text">Add peer via QR</span>
+          </button>
+          <button class="action-btn" onclick={handleDisconnect} title="Disconnect">
+            <DisconnectIcon />
+            <span class="btn-text">Disconnect</span>
+          </button>
+        {:else}
+          <div class="connect-wrapper">
+            <button
+              class="action-btn primary"
+              onclick={() => { show_connect_menu = !show_connect_menu; }}
+              aria-haspopup="menu"
+              aria-expanded={show_connect_menu}
+            >
+              Connect to peer ▾
+            </button>
+            {#if show_connect_menu}
+              <div class="connect-menu" role="menu">
+                <button class="menu-item" role="menuitem" onclick={selectSignalling}>
+                  Use signalling server
+                </button>
+                <button class="menu-item" role="menuitem" onclick={selectQr}>
+                  Use QR code (air-gapped)
+                </button>
+              </div>
+            {/if}
+          </div>
+        {/if}
+      {/if}
+    </div>
+    <div class="bottom-right">
       <button
         class="corner-btn"
         onclick={copyEditorContent}
@@ -1943,14 +1981,9 @@
       {:else}
         <button
           class="corner-btn"
-          onclick={() => {
-            focus_mode_store.toggle();
-            code_mode = false;
-          }}
+          onclick={() => { focus_mode_store.toggle(); code_mode = false; }}
           title={$focus_mode_store ? "Exit focus mode" : "Enter focus mode"}
-          aria-label={$focus_mode_store
-            ? "Exit focus mode"
-            : "Enter focus mode"}
+          aria-label={$focus_mode_store ? "Exit focus mode" : "Enter focus mode"}
         >
           {$focus_mode_store ? "✕" : "⛶"}
         </button>
@@ -1958,62 +1991,14 @@
       <button
         class="corner-btn"
         class:active={code_mode}
-        onclick={() => {
-          code_mode = !code_mode;
-          if (code_mode) {
-            focus_mode_store.disable();
-          }
-        }}
+        onclick={() => { code_mode = !code_mode; if (code_mode) { focus_mode_store.disable(); } }}
         title={code_mode ? "Exit code mode" : "Code editor mode"}
         aria-label={code_mode ? "Exit code mode" : "Code editor mode"}
       >
         {code_mode ? "✕" : "</>"}
       </button>
     </div>
-  </main>
-
-  <!-- Connection actions (hidden in focus mode) -->
-  {#if show_actions}
-    <div class="actions">
-      {#if is_connected}
-        <button class="action-btn" onclick={connectViaQr} title="Add peer via QR">
-          <QrCodeIcon size={14} />
-          <span class="btn-text">Add peer via QR</span>
-        </button>
-        <button class="action-btn" onclick={handleDisconnect} title="Disconnect">
-          <DisconnectIcon />
-          <span class="btn-text">Disconnect</span>
-        </button>
-      {:else}
-        <div class="connect-wrapper">
-          <button
-            class="action-btn primary"
-            onclick={() => {
-              show_connect_menu = !show_connect_menu;
-            }}
-            aria-haspopup="menu"
-            aria-expanded={show_connect_menu}
-          >
-            Connect to peer ▾
-          </button>
-          {#if show_connect_menu}
-            <div class="connect-menu" role="menu">
-              <button
-                class="menu-item"
-                role="menuitem"
-                onclick={selectSignalling}
-              >
-                Use signalling server
-              </button>
-              <button class="menu-item" role="menuitem" onclick={selectQr}>
-                Use QR code (air-gapped)
-              </button>
-            </div>
-          {/if}
-        </div>
-      {/if}
-    </div>
-  {/if}
+  </div>
 
   <!-- Overlays -->
   {#if show_qr_overlay}
@@ -2658,12 +2643,33 @@
     position: relative;
   }
 
-  .actions {
+  .bottom-bar {
     display: flex;
-    gap: 0.5rem;
+    align-items: center;
+    justify-content: space-between;
     padding: 0.75rem 1rem;
     border-top: 1px solid var(--color-border);
     flex-shrink: 0;
+    gap: 0.5rem;
+  }
+
+  @media (max-width: 767px) {
+    .bottom-bar.chat-open {
+      display: none;
+    }
+  }
+
+  .bottom-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .bottom-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: auto;
   }
 
   .action-btn {
@@ -2749,16 +2755,6 @@
     background-color: var(--color-focus-bg);
   }
 
-  .bottom-right-btns {
-    position: fixed;
-    bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
-    right: 1.25rem;
-    display: flex;
-    flex-direction: row;
-    gap: 0.5rem;
-    z-index: 20;
-  }
-
   .corner-btn {
     background: var(--color-surface);
     border: 1px solid var(--color-border);
@@ -2771,14 +2767,12 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    opacity: 0.55;
     transition: opacity 0.15s;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
     padding: 0;
   }
 
   .corner-btn:hover {
-    opacity: 1;
+    opacity: 0.7;
   }
 
   .corner-btn.active {
@@ -2805,27 +2799,15 @@
     opacity: 1;
   }
 
-  @media (hover: none) {
-    .corner-btn {
-      opacity: 0.85;
-    }
-  }
-
   :global(.focus-mode) .corner-btn {
     background: var(--color-focus-bg);
     border-color: var(--color-focus-rule);
     color: var(--color-focus-text);
-    opacity: 0.7;
   }
 
-  :global(.focus-mode) .corner-btn:hover {
-    opacity: 1;
-  }
-
-  @media (hover: none) {
-    :global(.focus-mode) .corner-btn {
-      opacity: 0.9;
-    }
+  :global(.focus-mode) .bottom-bar {
+    background: var(--color-focus-bg);
+    border-color: var(--color-focus-rule);
   }
 
   /* Grain texture in focus mode — SVG noise pseudo-element */
