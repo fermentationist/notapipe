@@ -12,15 +12,13 @@ export function generateHandle(): string {
   return capitalize(adj) + capitalize(noun);
 }
 
-/** Load handle from localStorage, generating and persisting one if absent. */
+/** Load handle from localStorage, generating a temporary one if absent. */
 export function loadHandle(): string {
   const stored = localStorage.getItem(HANDLE_STORAGE_KEY);
   if (stored !== null && stored.trim().length > 0) {
     return stored;
   }
-  const generated = generateHandle();
-  localStorage.setItem(HANDLE_STORAGE_KEY, generated);
-  return generated;
+  return generateHandle();
 }
 
 export function saveHandle(handle: string): void {
