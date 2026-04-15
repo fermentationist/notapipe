@@ -141,6 +141,10 @@
         margin-bottom: 1.5rem;
       }
 
+      .hero-text {
+        min-height: 150px; /* Prevent layout shift when second line appears */
+      }
+
       .hero-line {
         display: block;
       }
@@ -770,7 +774,7 @@
 
     <!-- HERO -->
     <section id="hero">
-      <h1 class="hero-hed">
+      <h1 class="hero-hed hero-text">
         <span class="hero-line" id="hero-line1">Move text between your devices.</span>
         <span class="hero-line" id="hero-line2"></span>
       </h1>
