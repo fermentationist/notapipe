@@ -11,7 +11,6 @@
   } from "./id/generate.ts";
   import {
     DOC_DB_PREFIX,
-    PERSISTENCE_ENABLED_KEY,
     CHAT_LOG_PREFIX,
   } from "$lib/constants/storage.ts";
   import { ICE_SERVERS } from "$lib/constants/rtc.ts";
@@ -43,7 +42,6 @@
   import QrOverlay from "./components/QrOverlay.svelte";
   import SettingsPanel from "./components/SettingsPanel.svelte";
   import ConfirmDialog from "./components/ConfirmDialog.svelte";
-  import FileTransferBar from "./components/FileTransferBar.svelte";
   import HandleWidget from "./components/HandleWidget.svelte";
   import PeerList from "./components/PeerList.svelte";
   import PeerToastBar, { type PeerToast } from "./components/PeerToastBar.svelte";
@@ -51,10 +49,10 @@
   import InfoModal from "./components/InfoModal.svelte";
   import UrlQrModal from "./components/UrlQrModal.svelte";
   import CommandPalette, { type PaletteCommand } from "./components/CommandPalette.svelte";
+  import FileTransferBar, { type PeerEntry as FtPeerEntry } from "./components/FileTransferBar.svelte";
   import ThemePanel from "./components/ThemePanel.svelte";
   import CopyIcon from "./components/CopyIcon.svelte";
   import UserIcon from "./components/UserIcon.svelte";
-  import LockIcon from "./components/LockIcon.svelte";
   import HardDriveIcon from "./components/HardDriveIcon.svelte";
   import SunIcon from "./components/SunIcon.svelte";
   import MoonIcon from "./components/MoonIcon.svelte";
@@ -156,16 +154,6 @@
   let peer_toasts = $state<PeerToast[]>([]);
 
   // ---------------------------------------------------------------------------
-  // Room lock
-  // ---------------------------------------------------------------------------
-
-  let room_locked = $state(false);
-
-  function toggleRoomLock(): void {
-    room_locked = !room_locked;
-  }
-
-  // ---------------------------------------------------------------------------
   // Peer count alert (flashes briefly when a new peer joins)
   // ---------------------------------------------------------------------------
 
@@ -240,7 +228,6 @@
     new Map<string, { url: string; filename: string }>(),
   );
   // Each outgoing strip shows the filename and the handle of the specific recipient.
-  type FtPeerEntry = { filename: string; handle: string };
   let ft_sent = $state(new Map<string, FtPeerEntry>()); // transfer_id → {filename, handle}
   let ft_sending = $state(new Map<string, FtPeerEntry>()); // transfer_id → {filename, handle}
   let ft_pending_sent = $state(new Map<string, FtPeerEntry>()); // transfer_id → {filename, handle}
@@ -970,7 +957,6 @@
         }
       },
       onPeerJoined(remote_id) {
-        if (room_locked) { return; }
         startWebRtc(remote_id);
       },
       onPeerLeft(remote_id) {
@@ -1535,13 +1521,6 @@
       disabled: !is_connected,
       action: handleDisconnect,
     },
-    {
-      id: "lock-room",
-      label: room_locked ? "Unlock room" : "Lock room",
-      group: "Connect",
-      keywords: ["lock", "secure", "block", "prevent", "join", "unlock"],
-      action: toggleRoomLock,
-    },
     // Document
     {
       id: "copy-text",
@@ -1709,15 +1688,11 @@
         <div
           class="peer-count"
           class:alert={peer_count_alert}
-          class:locked={room_locked}
-          title="{remote_handles.size} peer{remote_handles.size === 1 ? '' : 's'} connected{room_locked ? ' · room locked' : ''}"
-          aria-label="{remote_handles.size} peer{remote_handles.size === 1 ? '' : 's'} connected{room_locked ? ', room locked' : ''}"
+          title="{remote_handles.size} peer{remote_handles.size === 1 ? '' : 's'} connected"
+          aria-label="{remote_handles.size} peer{remote_handles.size === 1 ? '' : 's'} connected"
         >
           <UserIcon size={11} />
           <span class="peer-count-num">{remote_handles.size}</span>
-          {#if room_locked}
-            <LockIcon size={10} />
-          {/if}
         </div>
       </div>
       <div class="header-right">
@@ -2355,10 +2330,6 @@
   .peer-count.alert {
     color: var(--color-accent);
     background: color-mix(in srgb, var(--color-accent) 12%, transparent);
-  }
-
-  .peer-count.locked {
-    color: color-mix(in srgb, #f59e0b 80%, var(--color-text-muted));
   }
 
   .peer-count-num {

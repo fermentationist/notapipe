@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { IncomingOffer } from "../rtc/file_transfer.ts";
 
-  type PeerEntry = { filename: string; handle: string };
+  export type PeerEntry = { filename: string; handle: string };
 
   interface Props {
     connected: boolean;

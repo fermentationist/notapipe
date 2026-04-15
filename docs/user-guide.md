@@ -59,7 +59,7 @@ The interface has four main regions:
 **Header** (top bar)
 
 - App name (`notapipe`) on the left
-- Connection status indicator and **peer count badge** in the centre — the badge shows how many peers are currently connected and flashes when someone joins; a padlock icon appears when the room is locked
+- Connection status indicator and **peer count badge** in the centre — the badge shows how many peers are currently connected and flashes when someone joins
 - On the right: a **hard-drive icon** (only visible when document persistence is on — click it to open storage settings), an **ⓘ** info button, a **sun/moon** theme toggle, a **⚙** settings button, and a **⌘K** command palette button
 
 **Room bar** (below the header)
@@ -172,16 +172,12 @@ Commands are organised into groups:
 
 | Group        | Commands                                                                                                                                           |
 | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Connect**  | Connect via signalling server, Connect via QR code, New random room, Disconnect, Lock/Unlock room                                                  |
+| **Connect**  | Connect via signalling server, Connect via QR code, New random room, Disconnect                                                                    |
 | **Document** | Copy all text, Send file, Show/hide markdown preview, Enter/exit code mode, Import text file, Export as text file, Share room link, Clear document |
 | **Chat**     | Open/close chat                                                                                                                                    |
 | **Voice**    | Start/join/end voice call                                                                                                                          |
 | **View**     | Enter/exit focus mode, Enable/exit wide layout, Switch to light/dark mode, Customize theme                                                         |
 | **App**      | Open settings, User guide, About notapipe                                                                                                          |
-
-### Locking the room
-
-**Lock room** (in the Connect group) prevents new peers from joining via the signalling server. Existing connections are not affected. A padlock icon appears on the peer count badge while the room is locked. Run **Unlock room** to allow new peers again.
 
 ---
 
