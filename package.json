@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "pnpm -r --parallel run dev",
     "build": "cd packages/client && pnpm run build",
-    "start": "cd packages/signalling && pnpm run start",
+    "start": "node --experimental-strip-types dist/index.js",
     "test": "vp test",
     "check": "vp check",
     "kill:port": "sh -c 'lsof -ti :$0 | xargs kill -9'"
