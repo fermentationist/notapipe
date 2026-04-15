@@ -13,12 +13,7 @@
     DOC_DB_PREFIX,
     CHAT_LOG_PREFIX,
   } from "$lib/constants/storage.ts";
-  import {
-    ICE_SERVERS,
-    RELAY_FILE_SIZE_LIMIT_BYTES,
-    VOICE_CALL_MAX_MS,
-    VOICE_CALL_WARNING_MS,
-  } from "$lib/constants/rtc.ts";
+  import { ICE_SERVERS } from "$lib/constants/rtc.ts";
   import { rtc_config_store } from "./stores/rtc_config.ts";
   import { USER_GUIDE_CONTENT, ABOUT_CONTENT } from "$lib/constants/docs.ts";
   import { IndexeddbPersistence } from "y-indexeddb";
@@ -67,6 +62,8 @@
   import { preview_store } from "./stores/preview.ts";
   import { wide_mode_store } from "./stores/wide_mode.ts";
   import { theme_store } from "./stores/theme.ts";
+  import { VoiceCallManager } from "./rtc/voice_manager.ts";
+  import { FileTransferUIManager } from "./rtc/file_transfer_ui.ts";
 
   // ---------------------------------------------------------------------------
   // Yjs document (single shared text type)
@@ -209,194 +206,98 @@
   let chat_unread = $state(0);
 
   // ---------------------------------------------------------------------------
-  // Voice call state
+  // Voice call state (reactive vars — mutated exclusively by voice_manager)
   // ---------------------------------------------------------------------------
 
   let voice_active = $state(false);
-  let local_voice_stream: MediaStream | null = null;
-  // Maps peer_id → HTMLAudioElement for playing remote audio.
-  const remote_audio_nodes = new Map<string, HTMLAudioElement>();
-  // Tracks peers where the answerer's mic has been added via beforeAnswer,
-  // to prevent duplicate addTrack calls on subsequent renegotiations.
-  const answerer_voice_added = new Set<string>();
-  // Reactive: remote peers who currently have voice active (peer_id → handle).
   let remote_voice_active = $state(new Map<string, string>());
-  // Reactive: peers from whom we have received at least one audio track in the
-  // current call cycle. Used to distinguish "connecting" from "active".
   let peers_with_audio = $state(new Set<string>());
-  // Voice call hard cap: warn at 3 h 45 min, disconnect at 4 h.
   let voice_warning_visible = $state(false);
-  let voice_warning_timeout_id: ReturnType<typeof setTimeout> | null = null;
-  let voice_max_timeout_id: ReturnType<typeof setTimeout> | null = null;
+
+  const voice_manager = new VoiceCallManager({
+    get_local_handle: () => local_handle,
+    get_data_channels: () => data_channels,
+    get_peer_managers: () => peer_managers,
+    get_peer_states: () => peer_states,
+    get_voice_active: () => voice_active,
+    get_remote_voice_active: () => remote_voice_active,
+    get_peers_with_audio: () => peers_with_audio,
+    set_voice_active: (v) => { voice_active = v; },
+    set_voice_warning_visible: (v) => { voice_warning_visible = v; },
+    set_remote_voice_active: (m) => { remote_voice_active = m; },
+    set_peers_with_audio: (s) => { peers_with_audio = s; },
+    add_peer_toast: (msg) => addPeerToast(msg),
+    set_error: (msg) => connection_store.setError(msg),
+    trigger_renegotiation: (peer_id) => {
+      const manager = peer_managers.get(peer_id);
+      if (manager?.getIsOfferer() === true && voice_active) {
+        manager.sendRenegotiationOffer();
+      }
+    },
+  });
 
   // ---------------------------------------------------------------------------
-  // File transfer UI state (reactive so the bar re-renders)
+  // File transfer UI state (reactive vars — mutated exclusively by ft_ui)
   // ---------------------------------------------------------------------------
 
   let ft_incoming_offers = $state(new Map<string, IncomingOffer>());
-  let ft_progress = $state(
-    new Map<string, { received: number; total: number }>(),
-  );
-  let ft_completed = $state(
-    new Map<string, { url: string; filename: string }>(),
-  );
-  // Each outgoing strip shows the filename and the handle of the specific recipient.
-  let ft_sent = $state(new Map<string, FtPeerEntry>()); // transfer_id → {filename, handle}
-  let ft_sending = $state(new Map<string, FtPeerEntry>()); // transfer_id → {filename, handle}
-  let ft_pending_sent = $state(new Map<string, FtPeerEntry>()); // transfer_id → {filename, handle}
-  // Non-reactive maps for outgoing transfer tracking.
-  // ft_outgoing_names: transfer_id → filename (for callbacks that receive only transfer_id)
-  // ft_transfer_to_peer: transfer_id → peer_id (so cancelTransfer hits the right manager)
-  const ft_outgoing_names = new Map<string, string>();
-  const ft_transfer_to_peer = new Map<string, string>();
+  let ft_progress = $state(new Map<string, { received: number; total: number }>());
+  let ft_completed = $state(new Map<string, { url: string; filename: string }>());
+  let ft_sent = $state(new Map<string, FtPeerEntry>());
+  let ft_sending = $state(new Map<string, FtPeerEntry>());
+  let ft_pending_sent = $state(new Map<string, FtPeerEntry>());
+
+  const ft_ui = new FileTransferUIManager({
+    get_incoming_offers: () => ft_incoming_offers,
+    get_progress: () => ft_progress,
+    get_completed: () => ft_completed,
+    get_sent: () => ft_sent,
+    get_sending: () => ft_sending,
+    get_pending_sent: () => ft_pending_sent,
+    set_incoming_offers: (v) => { ft_incoming_offers = v; },
+    set_progress: (v) => { ft_progress = v; },
+    set_completed: (v) => { ft_completed = v; },
+    set_sent: (v) => { ft_sent = v; },
+    set_sending: (v) => { ft_sending = v; },
+    set_pending_sent: (v) => { ft_pending_sent = v; },
+    get_file_transfer_managers: () => file_transfer_managers,
+    get_peer_relay_status: (peer_id) => peer_relay_status.get(peer_id) === true,
+    has_custom_turn: () => $rtc_config_store.turn_url !== "",
+    get_remote_handle: (peer_id) => remote_handles.get(peer_id) ?? peer_id,
+    add_peer_toast: (msg) => addPeerToast(msg),
+    set_error: (msg) => connection_store.setError(msg),
+  });
+
+  // ---------------------------------------------------------------------------
+  // File transfer actions — delegated to FileTransferUIManager
+  // ---------------------------------------------------------------------------
 
   function makeFileTransferCallbacks(peer_id: string) {
-    return {
-      onIncomingOffer(offer: IncomingOffer) {
-        ft_incoming_offers = new Map(ft_incoming_offers).set(
-          offer.transfer_id,
-          offer,
-        );
-      },
-      onProgress(transfer_id: string, received: number, total: number) {
-        const next = new Map(ft_progress);
-        next.set(transfer_id, { received, total });
-        ft_progress = next;
-        // Remove from incoming once we start receiving chunks
-        if (ft_incoming_offers.has(transfer_id)) {
-          const offers = new Map(ft_incoming_offers);
-          offers.delete(transfer_id);
-          ft_incoming_offers = offers;
-        }
-      },
-      onFileReceived(transfer_id: string, blob: Blob, filename: string) {
-        const url = URL.createObjectURL(blob);
-        const progress = new Map(ft_progress);
-        progress.delete(transfer_id);
-        ft_progress = progress;
-        ft_completed = new Map(ft_completed).set(transfer_id, {
-          url,
-          filename,
-        });
-      },
-      onTransferAccepted(transfer_id: string) {
-        const filename = ft_outgoing_names.get(transfer_id) ?? "file";
-        const handle = remote_handles.get(peer_id) ?? peer_id;
-        const pending = new Map(ft_pending_sent);
-        pending.delete(transfer_id);
-        ft_pending_sent = pending;
-        ft_sending = new Map(ft_sending).set(transfer_id, { filename, handle });
-      },
-      onFileSent(transfer_id: string) {
-        const sending_entry = ft_sending.get(transfer_id);
-        const filename = ft_outgoing_names.get(transfer_id) ?? sending_entry?.filename ?? "file";
-        const handle = sending_entry?.handle ?? remote_handles.get(peer_id) ?? peer_id;
-        ft_transfer_to_peer.delete(transfer_id);
-        ft_outgoing_names.delete(transfer_id);
-        ft_sending = (() => { const m = new Map(ft_sending); m.delete(transfer_id); return m; })();
-        ft_sent = new Map(ft_sent).set(transfer_id, { filename, handle });
-      },
-      onTransferCancelled(transfer_id: string) {
-        // Clean up incoming-side state (for the receiver of this transfer).
-        const offers = new Map(ft_incoming_offers);
-        offers.delete(transfer_id);
-        ft_incoming_offers = offers;
-        const progress = new Map(ft_progress);
-        progress.delete(transfer_id);
-        ft_progress = progress;
-        // Clean up outgoing-side state (for the sender, remote peer cancelled).
-        ft_transfer_to_peer.delete(transfer_id);
-        ft_outgoing_names.delete(transfer_id);
-        ft_sending = (() => { const m = new Map(ft_sending); m.delete(transfer_id); return m; })();
-        const pending = new Map(ft_pending_sent);
-        pending.delete(transfer_id);
-        ft_pending_sent = pending;
-      },
-      onError(message: string) {
-        connection_store.setError(message);
-      },
-    };
+    return ft_ui.make_callbacks(peer_id);
   }
 
   function acceptTransfer(transfer_id: string): void {
-    for (const manager of file_transfer_managers.values()) {
-      manager.acceptTransfer(transfer_id);
-    }
-    const offers = new Map(ft_incoming_offers);
-    offers.delete(transfer_id);
-    ft_incoming_offers = offers;
+    ft_ui.accept(transfer_id);
   }
 
   function declineTransfer(transfer_id: string): void {
-    for (const manager of file_transfer_managers.values()) {
-      manager.declineTransfer(transfer_id);
-    }
-    const offers = new Map(ft_incoming_offers);
-    offers.delete(transfer_id);
-    ft_incoming_offers = offers;
+    ft_ui.decline(transfer_id);
   }
 
   function cancelTransfer(transfer_id: string): void {
-    const peer_id = ft_transfer_to_peer.get(transfer_id);
-    if (peer_id !== undefined) {
-      // Outgoing: cancel only the specific peer's manager.
-      file_transfer_managers.get(peer_id)?.cancelTransfer(transfer_id);
-      ft_transfer_to_peer.delete(transfer_id);
-      ft_outgoing_names.delete(transfer_id);
-      const pending = new Map(ft_pending_sent);
-      pending.delete(transfer_id);
-      ft_pending_sent = pending;
-      ft_sending = (() => { const m = new Map(ft_sending); m.delete(transfer_id); return m; })();
-    } else {
-      // Incoming: cancel across all managers (receiver doesn't track which one owns it).
-      for (const manager of file_transfer_managers.values()) {
-        manager.cancelTransfer(transfer_id);
-      }
-      const progress = new Map(ft_progress);
-      progress.delete(transfer_id);
-      ft_progress = progress;
-    }
+    ft_ui.cancel(transfer_id);
   }
 
   function dismissCompleted(transfer_id: string): void {
-    const completed = new Map(ft_completed);
-    const entry = completed.get(transfer_id);
-    if (entry) {
-      URL.revokeObjectURL(entry.url);
-    }
-    completed.delete(transfer_id);
-    ft_completed = completed;
+    ft_ui.dismiss_completed(transfer_id);
   }
 
   function sendFileToAllPeers(file: File): void {
-    const has_custom_turn = $rtc_config_store.turn_url !== "";
-    let showed_relay_warning = false;
-    for (const [peer_id, manager] of file_transfer_managers) {
-      const is_relayed = peer_relay_status.get(peer_id) === true;
-      if (!has_custom_turn && is_relayed && file.size > RELAY_FILE_SIZE_LIMIT_BYTES) {
-        if (!showed_relay_warning) {
-          addPeerToast(
-            `File too large for relayed connection (limit: ${RELAY_FILE_SIZE_LIMIT_BYTES / 1_048_576} MB). ` +
-            "Add a TURN server in Settings → Connection to remove this limit.",
-          );
-          showed_relay_warning = true;
-        }
-        continue;
-      }
-      const transfer_id = manager.sendFile(file);
-      if (transfer_id !== null) {
-        const handle = remote_handles.get(peer_id) ?? peer_id;
-        ft_outgoing_names.set(transfer_id, file.name);
-        ft_transfer_to_peer.set(transfer_id, peer_id);
-        ft_pending_sent = new Map(ft_pending_sent).set(transfer_id, { filename: file.name, handle });
-      }
-    }
+    ft_ui.send_to_all_peers(file);
   }
 
   function dismissSent(transfer_id: string): void {
-    const sent = new Map(ft_sent);
-    sent.delete(transfer_id);
-    ft_sent = sent;
+    ft_ui.dismiss_sent(transfer_id);
   }
 
   let ws_transport: WebSocketTransport | null = null;
@@ -554,8 +455,9 @@
     const send_initial_state = (): void => {
       channel.send(JSON.stringify({ type: "identity", handle: local_handle }));
       // Let the new peer know our current voice state immediately.
-      if (voice_active) {
-        channel.send(JSON.stringify({ type: "voice-start", handle: local_handle }));
+      const voice_msg = voice_manager.initial_channel_voice_message();
+      if (voice_msg !== null) {
+        channel.send(voice_msg);
       }
     };
 
@@ -583,42 +485,8 @@
           if (is_new) {
             addPeerToast(`Connected to ${msg.handle}`);
           }
-        } else if (msg.type === "voice-start" && typeof msg.handle === "string") {
-          const was_anyone_calling = remote_voice_active.size > 0;
-          remote_voice_active = new Map(remote_voice_active).set(remote_peer_id, msg.handle);
-          // Reset so beforeAnswer can add our mic again on the next renegotiation.
-          answerer_voice_added.delete(remote_peer_id);
-          if (!was_anyone_calling && !voice_active) {
-            addPeerToast(`${msg.handle} started a voice call`);
-          }
-          // If we are the offerer and already in a call, the answerer just joined.
-          // Our original offer was sent before they had voice_active=true, so
-          // beforeAnswerAddVoice returned early without adding their mic. Send a
-          // fresh offer now so beforeAnswerAddVoice gets another chance to run.
-          const joining_manager = peer_managers.get(remote_peer_id);
-          if (joining_manager?.getIsOfferer() === true && voice_active) {
-            joining_manager.sendRenegotiationOffer();
-          }
-        } else if (msg.type === "voice-stop") {
-          const updated = new Map(remote_voice_active);
-          updated.delete(remote_peer_id);
-          remote_voice_active = updated;
-          // Reset so the next call cycle can add our mic cleanly.
-          answerer_voice_added.delete(remote_peer_id);
-          // If we are the offerer for this peer, trigger a renegotiation to remove
-          // the answerer's audio from the SDP. Without this, the answerer's removeTrack()
-          // fires onnegotiationneeded on their side where there is no handler, leaving
-          // the SDP out of sync.
-          const manager = peer_managers.get(remote_peer_id);
-          if (manager?.getIsOfferer() === true) {
-            manager.removeAudioTracks();
-          }
-          // If this was the last peer in the call, auto-stop so our icon returns to
-          // inactive. Without this, voice_active stays true and the icon stays green
-          // even though there is nobody left to talk to.
-          if (updated.size === 0 && voice_active) {
-            stopVoice();
-          }
+        } else if (msg.type === "voice-start" || msg.type === "voice-stop") {
+          voice_manager.handle_data_message(remote_peer_id, msg);
         } else if (
           msg.type === "chat" &&
           typeof msg.text === "string" &&
@@ -708,128 +576,11 @@
   }
 
   // ---------------------------------------------------------------------------
-  // Voice call
+  // Voice call — logic delegated to VoiceCallManager (see src/rtc/voice_manager.ts)
   // ---------------------------------------------------------------------------
 
-  async function startVoice(): Promise<void> {
-    try {
-      local_voice_stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-    } catch {
-      connection_store.setError("Microphone permission denied or unavailable");
-      return;
-    }
-    voice_active = true;
-    // Start hard cap timers: warn at 3 h 45 min, auto-disconnect at 4 h.
-    voice_warning_timeout_id = setTimeout(() => {
-      voice_warning_visible = true;
-      voice_warning_timeout_id = null;
-    }, VOICE_CALL_WARNING_MS);
-    voice_max_timeout_id = setTimeout(() => {
-      voice_max_timeout_id = null;
-      stopVoice();
-      addPeerToast("Voice call ended automatically after 4 hours.");
-    }, VOICE_CALL_MAX_MS);
-    // Notify all connected peers that we're starting a voice call.
-    const voice_start_msg = JSON.stringify({ type: "voice-start", handle: local_handle });
-    data_channels.forEach((channel) => {
-      if (channel.readyState === "open") {
-        channel.send(voice_start_msg);
-      }
-    });
-    // Add mic track to each connected peer where we are the offerer —
-    // adding a track triggers onnegotiationneeded, which creates a new offer.
-    // Answerer peers get their own mic added via the beforeAnswer hook.
-    for (const [peer_id, manager] of peer_managers) {
-      if (peer_states.get(peer_id) === "connected" && manager.getIsOfferer()) {
-        for (const track of local_voice_stream.getTracks()) {
-          manager.addTrack(track, local_voice_stream);
-        }
-      }
-    }
-  }
-
-  function stopVoice(): void {
-    voice_active = false;
-    voice_warning_visible = false;
-    if (voice_warning_timeout_id !== null) {
-      clearTimeout(voice_warning_timeout_id);
-      voice_warning_timeout_id = null;
-    }
-    if (voice_max_timeout_id !== null) {
-      clearTimeout(voice_max_timeout_id);
-      voice_max_timeout_id = null;
-    }
-    // Notify all connected peers that we're ending the voice call.
-    const voice_stop_msg = JSON.stringify({ type: "voice-stop" });
-    data_channels.forEach((channel) => {
-      if (channel.readyState === "open") {
-        channel.send(voice_stop_msg);
-      }
-    });
-    // Remove all audio tracks from every peer connection — covers both the
-    // offerer (tracks added via addTrack) and answerer (tracks added via beforeAnswer).
-    for (const manager of peer_managers.values()) {
-      manager.removeAudioTracks();
-    }
-    answerer_voice_added.clear();
-    // Clear remote voice active state so the icon returns to inactive (not ringing).
-    remote_voice_active = new Map();
-    // Clear audio-received tracking so the next call starts in "connecting" state.
-    peers_with_audio = new Set();
-    // Stop the local mic.
-    local_voice_stream?.getTracks().forEach((track) => track.stop());
-    local_voice_stream = null;
-    // Detach remote audio.
-    for (const audio_el of remote_audio_nodes.values()) {
-      audio_el.srcObject = null;
-      audio_el.remove();
-    }
-    remote_audio_nodes.clear();
-  }
-
   async function toggleVoice(): Promise<void> {
-    if (voice_active) {
-      stopVoice();
-    } else {
-      await startVoice();
-    }
-  }
-
-  function handleRemoteTrack(peer_id: string, event: RTCTrackEvent): void {
-    if (event.streams.length === 0) {
-      return;
-    }
-    let audio_el = remote_audio_nodes.get(peer_id);
-    if (audio_el === undefined) {
-      audio_el = document.createElement("audio");
-      audio_el.autoplay = true;
-      document.body.appendChild(audio_el);
-      remote_audio_nodes.set(peer_id, audio_el);
-    }
-    audio_el.srcObject = event.streams[0];
-    // Mark this peer as having delivered audio — transitions icon from connecting → active.
-    peers_with_audio = new Set(peers_with_audio).add(peer_id);
-  }
-
-  async function beforeAnswerAddVoice(peer_id: string, pc: RTCPeerConnection): Promise<void> {
-    // Only add our mic when:
-    // 1. We have voice active (user clicked the phone button)
-    // 2. The remote peer also has voice active (they sent voice-start)
-    //    — this prevents auto-adding during a hang-up renegotiation where the
-    //    offerer removed their tracks but voice-stop already cleared remote_voice_active
-    // 3. We haven't already added our mic for this peer in the current call cycle
-    if (
-      !voice_active ||
-      local_voice_stream === null ||
-      !remote_voice_active.has(peer_id) ||
-      answerer_voice_added.has(peer_id)
-    ) {
-      return;
-    }
-    for (const track of local_voice_stream.getTracks()) {
-      pc.addTrack(track, local_voice_stream);
-    }
-    answerer_voice_added.add(peer_id);
+    await voice_manager.toggle();
   }
 
   // ---------------------------------------------------------------------------
@@ -870,23 +621,7 @@
     updated_handles.delete(remote_peer_id);
     remote_handles = updated_handles;
     // Clean up voice resources for this peer.
-    answerer_voice_added.delete(remote_peer_id);
-    if (remote_voice_active.has(remote_peer_id)) {
-      const updated = new Map(remote_voice_active);
-      updated.delete(remote_peer_id);
-      remote_voice_active = updated;
-    }
-    if (peers_with_audio.has(remote_peer_id)) {
-      const updated = new Set(peers_with_audio);
-      updated.delete(remote_peer_id);
-      peers_with_audio = updated;
-    }
-    const audio_el = remote_audio_nodes.get(remote_peer_id);
-    if (audio_el !== undefined) {
-      audio_el.srcObject = null;
-      audio_el.remove();
-      remote_audio_nodes.delete(remote_peer_id);
-    }
+    voice_manager.cleanup_peer(remote_peer_id);
     connection_store.removeRemotePeer(remote_peer_id);
     manager.close();
     if (departed_handle !== undefined) {
@@ -958,10 +693,10 @@
           connection_store.setError(error.message);
         },
         onTrack(event) {
-          handleRemoteTrack(remote_peer_id, event);
+          voice_manager.handle_remote_track(remote_peer_id, event);
         },
         async beforeAnswer(pc) {
-          await beforeAnswerAddVoice(remote_peer_id, pc);
+          await voice_manager.before_answer(remote_peer_id, pc);
         },
       },
       undefined,
@@ -1195,7 +930,7 @@
           handleRemoteTrack(session_id, event);
         },
         async beforeAnswer(pc_arg) {
-          await beforeAnswerAddVoice(session_id, pc_arg);
+          await voice_manager.before_answer(session_id, pc_arg);
         },
       },
       pc,
