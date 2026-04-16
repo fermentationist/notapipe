@@ -1,22 +1,21 @@
 # notapipe
 
->---
+> ---
 >
->**Move data between devices. No storage. No trail.**
->*It's like AirDrop – but ephemeral, cross-platform, and serverless.*
+> **Move data between devices. No storage. No trail.**
+> _It's like AirDrop – but ephemeral, cross-platform, and serverless._
 >
->---
+> ---
 
 [notapipe](https://notapipe.app) is a peer-to-peer data bridge for transferring information directly between devices—without uploading it, saving it, or leaving a record.
 
-*No accounts.*
-*No backend.*
-*No history.*
+_No accounts._
+_No backend._
+_No history._
 
 Your data exists only while you’re using it.
 
 ---
-
 
 ## Why this exists
 
@@ -24,11 +23,11 @@ Most tools turn everything into a file, a document, or a message.
 
 But sometimes you just need to:
 
-- move data between work and personal devices  
-- transfer files without email or cloud storage  
-- share something sensitive without leaving a record  
-- use a shared or temporary machine safely  
-- collaborate briefly without creating artifacts  
+- move data between work and personal devices
+- transfer files without email or cloud storage
+- share something sensitive without leaving a record
+- use a shared or temporary machine safely
+- collaborate briefly without creating artifacts
 
 notapipe is built for those moments.
 
@@ -38,9 +37,9 @@ notapipe is built for those moments.
 
 #### Ephemeral by default
 
-- Sessions are not stored  
-- There is no backend database  
-- Closing the session destroys the data  
+- Sessions are not stored
+- There is no backend database
+- Closing the session destroys the data
 
 If you don’t explicitly save it, it doesn’t exist.
 
@@ -48,9 +47,9 @@ If you don’t explicitly save it, it doesn’t exist.
 
 #### Direct device-to-device transfer
 
-- Peer-to-peer connections over WebRTC  
-- End-to-end encrypted  
-- No server ever sees your data  
+- Peer-to-peer connections over WebRTC
+- End-to-end encrypted
+- No server ever sees your data
 
 Optional QR mode can eliminate even the need for a signalling server.
 
@@ -58,9 +57,9 @@ Optional QR mode can eliminate even the need for a signalling server.
 
 #### Works with text and files
 
-- Paste or type text  
-- Drag and drop files between devices  
-- Transfer structured or unstructured data  
+- Paste or type text
+- Drag and drop files between devices
+- Transfer structured or unstructured data
 
 The editor is just the interface—the goal is moving data.
 
@@ -68,9 +67,9 @@ The editor is just the interface—the goal is moving data.
 
 #### Local-first execution
 
-- All operations happen locally  
-- Instant updates using CRDTs (Yjs)  
-- No waiting on a server once connected  
+- All operations happen locally
+- Instant updates using CRDTs (Yjs)
+- No waiting on a server once connected
 
 ---
 
@@ -78,15 +77,15 @@ The editor is just the interface—the goal is moving data.
 
 notapipe has no access to your data.
 
-- No accounts  
-- No telemetry  
-- No cloud storage  
+- No accounts
+- No telemetry
+- No cloud storage
 
 Don’t trust it?
 
-- Inspect the code  
-- Run your own signalling server  
-- Use QR mode  
+- Inspect the code
+- Run your own signalling server
+- Use QR mode
 
 There is nothing hidden because there is nowhere for your data to go.
 
@@ -96,9 +95,9 @@ There is nothing hidden because there is nowhere for your data to go.
 
 You decide if anything persists:
 
-- Default: ephemeral sessions  
-- Optional: local persistence (IndexedDB)  
-- Export your data anytime  
+- Default: ephemeral sessions
+- Optional: local persistence (IndexedDB)
+- Export your data anytime
 
 Your data exists only when—and where—you choose.
 
@@ -108,11 +107,11 @@ Your data exists only when—and where—you choose.
 
 notapipe is designed to outlive its original host.
 
-- Installable as a PWA  
-- Works independently of notapipe.app once installed  
-- Uses open standards (WebRTC, IndexedDB)  
-- Signalling and TURN servers are fully configurable  
-- Open source (MIT), self-hostable, forkable  
+- Installable as a PWA
+- Works independently of notapipe.app once installed
+- Uses open standards (WebRTC, IndexedDB)
+- Signalling and TURN servers are fully configurable
+- Open source (MIT), self-hostable, forkable
 
 If the original service disappears, the app—and your workflow—can continue.
 
@@ -120,10 +119,10 @@ If the original service disappears, the app—and your workflow—can continue.
 
 ## How it works (high level)
 
-- A session creates a shared state (CRDT via Yjs)  
+- A session creates a shared state (CRDT via Yjs)
 - Peers connect using WebRTC
-- Two connection methods:  
-  - Signalling mode: lightweight signalling (WebSocket) server brokers the handshake; never sees content  
+- Two connection methods:
+  - Signalling mode: lightweight signalling (WebSocket) server brokers the handshake; never sees content
   - QR mode: full handshake encoded in a binary QR code; no server contact at all
 - Data flows directly between devices whenever possible, and is relayed only to establish connectivity—not to store or process content, and remains end-to-end encrypted in transit
 
@@ -133,23 +132,22 @@ If the original service disappears, the app—and your workflow—can continue.
 
 ## Use cases
 
-- Move data between work and personal devices  
-- Transfer files without cloud storage or email  
-- Share sensitive information without leaving a trail  
-- Use on shared or temporary machines  
-- Quick, disposable collaboration  
-- Cross-device copy/paste that disappears when done  
+- Move data between work and personal devices
+- Transfer files without cloud storage or email
+- Share sensitive information without leaving a trail
+- Use on shared or temporary machines
+- Quick, disposable collaboration
+- Cross-device copy/paste that disappears when done
 
 ---
 
-# Philosophy
+## Philosophy
 
-[notapipe](https://notapipe.app) is inspired by the principles of [*local-first software*](https://www.inkandswitch.com/essay/local-first/
-).
+[notapipe](https://notapipe.app) is inspired by the principles of [_local-first software_](https://www.inkandswitch.com/essay/local-first/).
 
 It prioritizes local execution, peer-to-peer communication, and user control over both data and infrastructure.
 
-## Local-first principles
+### Local-first principles
 
 - **Local-first execution**  
   All edits happen locally using CRDTs. Once connected, changes are instant and do not depend on a server.
@@ -164,14 +162,14 @@ It prioritizes local execution, peer-to-peer communication, and user control ove
   No accounts, no lock-in, open source (MIT), and fully self-hostable.
 
 - **The Long Now**  
-  [notapipe](https://notapipe.app) does not depend on any single service or vendor.  
-  - It can be installed as a PWA and run independently of [notapipe](https://notapipe.app).app  
-  - Signalling and TURN servers are configurable  
+  [notapipe](https://notapipe.app) does not depend on any single service or vendor.
+  - It can be installed as a PWA and run independently of [notapipe](https://notapipe.app).app
+  - Signalling and TURN servers are configurable
   - It uses open web standards (WebRTC, IndexedDB)
 
   Your ability to use the software—and access your data—does not depend on the continued existence of the original host.
 
-## Data lifecycle: fully user-controlled
+### Data lifecycle: fully user-controlled
 
 [notapipe](https://notapipe.app) gives you explicit control over whether data persists:
 
@@ -273,7 +271,6 @@ pnpm check --fix    # auto-fix format/lint issues
 ## Documentation
 
 - [User Guide](docs/user-guide.md) — UI walkthrough, connection workflows, theming, PWA installation
-- [Architecture](docs/architecture.md) — system design and implementation blueprint
 - [QR Mode Deep-Dive](docs/qr-mode.md) — air-gapped WebRTC via QR codes
 
 ## Deployment
@@ -305,3 +302,5 @@ The 3-word room ID wordlist is derived from the [EFF Long Wordlist](https://www.
 MIT — see [LICENSE](LICENSE).
 
 Third-party notices (including Apache 2.0 components) — see [NOTICES](NOTICES).
+
+©2026 [Dennis Hodges](https://dennishodges.com) All rights reserved.

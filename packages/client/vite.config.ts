@@ -37,7 +37,7 @@ export default defineConfig({
     basicSsl(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["icons/*.png"],
+      includeAssets: ["app_icons/*.png"],
       manifest: {
         name: "notapipe",
         short_name: "notapipe",
@@ -50,19 +50,19 @@ export default defineConfig({
         start_url: base,
         icons: [
           {
-            src: "icons/icon-192x192.png",
+            src: "app_icons/icon-192x192.png",
             sizes: "192x192",
             type: "image/png",
             purpose: "any",
           },
           {
-            src: "icons/icon-512x512.png",
+            src: "app_icons/icon-512x512.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "any",
           },
           {
-            src: "icons/icon-512x512.png",
+            src: "app_icons/icon-512x512.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "maskable",
@@ -70,7 +70,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,svg,woff2}", "icons/*.png"],
+        globPatterns: ["**/*.{js,css,html,svg,woff2}", "app_icons/*.png"],
         navigateFallback: `${base}index.html`,
         navigateFallbackDenylist: [/^\/ws/, /^\/info/],
       },
