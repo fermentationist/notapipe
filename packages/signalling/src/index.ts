@@ -21,6 +21,8 @@ const MIME_TYPES: Record<string, string> = {
   ".json": "application/json",
   ".webmanifest": "application/manifest+json",
   ".txt": "text/plain; charset=utf-8",
+  ".mp4": "video/mp4",
+  ".webm": "video/webm",
 };
 
 async function serveStatic(request: IncomingMessage, response: ServerResponse): Promise<boolean> {

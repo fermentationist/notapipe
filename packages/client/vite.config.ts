@@ -72,7 +72,7 @@ export default defineConfig({
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,woff2}", "app_icons/*.png"],
         navigateFallback: `${base}index.html`,
-        navigateFallbackDenylist: [/^\/ws/, /^\/info/],
+        navigateFallbackDenylist: [/^\/ws/, /^\/info/, /^\/videos\//],
       },
       devOptions: {
         enabled: true,
