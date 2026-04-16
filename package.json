@@ -1,14 +1,15 @@
 {
   "name": "notapipe",
   "version": "0.1.0",
+  "type": "module",
   "private": false,
   "description": "Ephemeral, peer-to-peer text, voice, and file sharing. No servers ever see your content.",
   "scripts": {
     "dev": "pnpm -r --parallel run dev",
     "build": "cd packages/client && pnpm run build",
     "start": "node --experimental-strip-types ./packages/signalling/src/index.ts",
-    "test": "vp test",
-    "check": "vp check",
+    "test": "pnpm test",
+    "check": "pnpm check",
     "kill:port": "sh -c 'lsof -ti :$0 | xargs kill -9'"
   },
   "dependencies": {

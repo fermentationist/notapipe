@@ -92,6 +92,10 @@
         color: var(--text);
       }
 
+      .mt-40 {
+        margin-top: 40px;
+      }
+
       .btn {
         font-family: var(--mono);
         font-size: 0.78rem;
@@ -285,6 +289,17 @@
       }
       .good .txt {
         color: var(--text);
+      }
+
+      .text-emphasized {
+        color: var(--accent);
+        font-weight: 600;
+      }
+
+      .local-first-link {
+        color: var(--accent);
+        text-decoration: underline;
+        text-underline-offset: 3px;
       }
 
       /* ── DEMO ─────────────────────────────────────────────── */
@@ -1062,7 +1077,7 @@
       <h2 class="section-hed">Design Philosophy</h2>
       <div class="philosophy-inner">
         <p class="section-sub">
-          notapipe is built in the spirit of *local-first software*:
+          notapipe is built in the spirit of <span class="text-emphasized"><a href="https://www.inkandswitch.com/essay/local-first/" class="local-first-link" target="_blank" rel="noopener noreferrer">local-first software</a></span>:
         </p>
         <div class="philosophy-list-container">
           <ul class="plist good philosophy-list">
@@ -1163,26 +1178,16 @@
     <section id="privacy">
       <div class="privacy-box">
         <p>
-          <strong>notapipe does not:</strong><br />
+          <strong>notapipe does NOT:</strong><br />
           collect your text, store your files, log your sessions, require an account, or know who
           you are.
         </p>
         <p>
-          The signalling server sees: the room ID and connection metadata — never your content,
-          never the room token. Once the handshake completes, it is no longer involved.
+          <strong>The signalling server sees:</strong><br />
+          the room ID and connection metadata — never your content and never the room token. Once the handshake completes, it is no longer involved.
         </p>
-        <p>In QR mode, it sees nothing at all.</p>
-        <p>
-          <strong>Three things worth knowing.</strong> If you paste a room URL into Gmail, Slack, or
-          iMessage to arrange a session, those services receive the full URL including the access
-          token. For sensitive use, share the link in person or use QR mode to skip URL sharing
-          entirely. Also: enabling "Save document" in Settings writes content to your browser's
-          local storage — opt-in, local-only, but it does break ephemerality. Finally: if you
-          configure a TURN relay server in Settings → Connection (to work through a restrictive
-          firewall), your traffic is forwarded by that server. Traffic is encrypted in transit
-          (DTLS) and the relay cannot decrypt your content, but it is in the network path and can
-          observe packet sizes and timing. TURN is off by default and entirely opt-in.
-        </p>
+        <strong>In QR mode, it sees nothing at all.</strong><br />
+        <a href="../../" data-app-link class="btn mt-40">Open App →</a>
       </div>
     </section>
 

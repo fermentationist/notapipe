@@ -1,25 +1,151 @@
 # notapipe
 
-**[notapipe.app](https://notapipe.app)** — try it now, no account required.
+>---
+>
+>**Move data between devices. No storage. No trail.**
+>*It's like AirDrop – but ephemeral, cross-platform, and serverless.*
+>
+>---
 
-> Ephemeral, peer-to-peer text, voice, and file sharing. No server stores or can read your content.
+[notapipe](https://notapipe.app) is a peer-to-peer data bridge for transferring information directly between devices—without uploading it, saving it, or leaving a record.
 
-## What notapipe is for
+*No accounts.*
+*No backend.*
+*No history.*
 
-The primary use case: you want to move a piece of text, a file, or a password from one device to another — phone to laptop, work machine to personal machine — without emailing yourself, opening a cloud app, or signing into anything. Open the same room URL on both devices, connect, and the content syncs instantly. Close both tabs and it's gone.
+Your data exists only while you’re using it.
 
-notapipe is also useful anywhere you want a conversation or file exchange that doesn't leave a permanent record in a cloud service:
+---
 
-- **Cross-device transfer** — move a snippet, a link, a file, or a password between your own devices without routing it through email or a cloud drive
-- **Sensitive conversations** — chat and collaborate without the exchange persisting in a server log
-- **Secret or credential sharing** — send a password or API key to someone without it passing through a third-party service
-- **Quick collaboration** — a shared scratchpad with someone nearby, no account or installation required
+
+## Why this exists
+
+Most tools turn everything into a file, a document, or a message.
+
+But sometimes you just need to:
+
+- move data between work and personal devices  
+- transfer files without email or cloud storage  
+- share something sensitive without leaving a record  
+- use a shared or temporary machine safely  
+- collaborate briefly without creating artifacts  
+
+notapipe is built for those moments.
+
+---
+
+## Core properties
+
+#### Ephemeral by default
+
+- Sessions are not stored  
+- There is no backend database  
+- Closing the session destroys the data  
+
+If you don’t explicitly save it, it doesn’t exist.
+
+---
+
+#### Direct device-to-device transfer
+
+- Peer-to-peer connections over WebRTC  
+- End-to-end encrypted  
+- No server ever sees your data  
+
+Optional QR mode can eliminate even the need for a signalling server.
+
+---
+
+#### Works with text and files
+
+- Paste or type text  
+- Drag and drop files between devices  
+- Transfer structured or unstructured data  
+
+The editor is just the interface—the goal is moving data.
+
+---
+
+#### Local-first execution
+
+- All operations happen locally  
+- Instant updates using CRDTs (Yjs)  
+- No waiting on a server once connected  
+
+---
+
+#### No trust required
+
+notapipe has no access to your data.
+
+- No accounts  
+- No telemetry  
+- No cloud storage  
+
+Don’t trust it?
+
+- Inspect the code  
+- Run your own signalling server  
+- Use QR mode  
+
+There is nothing hidden because there is nowhere for your data to go.
+
+---
+
+#### You stay in control
+
+You decide if anything persists:
+
+- Default: ephemeral sessions  
+- Optional: local persistence (IndexedDB)  
+- Export your data anytime  
+
+Your data exists only when—and where—you choose.
+
+---
+
+#### Longevity
+
+notapipe is designed to outlive its original host.
+
+- Installable as a PWA  
+- Works independently of notapipe.app once installed  
+- Uses open standards (WebRTC, IndexedDB)  
+- Signalling and TURN servers are fully configurable  
+- Open source (MIT), self-hostable, forkable  
+
+If the original service disappears, the app—and your workflow—can continue.
+
+---
+
+## How it works (high level)
+
+- A session creates a shared state (CRDT via Yjs)  
+- Peers connect using WebRTC
+- Two connection methods:  
+  - Signalling mode: lightweight signalling (WebSocket) server brokers the handshake; never sees content  
+  - QR mode: full handshake encoded in a binary QR code; no server contact at all
+- Data flows directly between devices whenever possible, and is relayed only to establish connectivity—not to store or process content, and remains end-to-end encrypted in transit
+
+**No central server ever stores your data.**
+
+---
+
+## Use cases
+
+- Move data between work and personal devices  
+- Transfer files without cloud storage or email  
+- Share sensitive information without leaving a trail  
+- Use on shared or temporary machines  
+- Quick, disposable collaboration  
+- Cross-device copy/paste that disappears when done  
 
 ---
 
 # Philosophy
 
-notapipe is built in the spirit of *local-first software*.
+[notapipe](https://notapipe.app) is inspired by the principles of [*local-first software*](https://www.inkandswitch.com/essay/local-first/
+).
 
 It prioritizes local execution, peer-to-peer communication, and user control over both data and infrastructure.
 
@@ -38,16 +164,16 @@ It prioritizes local execution, peer-to-peer communication, and user control ove
   No accounts, no lock-in, open source (MIT), and fully self-hostable.
 
 - **The Long Now**  
-  notapipe does not depend on any single service or vendor.  
-  - It can be installed as a PWA and run independently of notapipe.app  
-  - Signaling and TURN servers are configurable  
+  [notapipe](https://notapipe.app) does not depend on any single service or vendor.  
+  - It can be installed as a PWA and run independently of [notapipe](https://notapipe.app).app  
+  - Signalling and TURN servers are configurable  
   - It uses open web standards (WebRTC, IndexedDB)
 
   Your ability to use the software—and access your data—does not depend on the continued existence of the original host.
 
 ## Data lifecycle: fully user-controlled
 
-notapipe gives you explicit control over whether data persists:
+[notapipe](https://notapipe.app) gives you explicit control over whether data persists:
 
 - By default, sessions are **ephemeral**
 - You can enable **local persistence** (IndexedDB)
@@ -66,7 +192,7 @@ https://www.inkandswitch.com/essay/local-first/
 
 ## Threat model
 
-**What notapipe protects:**
+**What [notapipe](https://notapipe.app) protects:**
 
 - No server can read your content — all data is end-to-end encrypted over WebRTC. By default, content flows directly peer-to-peer. If you configure a TURN relay server, packets are forwarded by that server but remain encrypted and unreadable to it.
 - Nothing is stored server-side; browser storage is opt-in and local-only
@@ -74,7 +200,7 @@ https://www.inkandswitch.com/essay/local-first/
 **What you should know:**
 
 - **Signalling mode contacts a server.** The default connection method uses a signalling server to broker the WebRTC handshake. The server sees only the room ID and connection metadata — never document content. If even that contact is unacceptable, use **QR mode** (see below), which is fully serverless.
-- **TURN relay routes encrypted traffic through a third party.** By default, notapipe uses STUN only — connections are direct. If you configure a TURN server in Settings → Connection (to traverse a restrictive firewall), traffic is relayed through that server. Traffic is encrypted in transit (DTLS) and the relay cannot decrypt your content, but it is in the network path and can observe packet sizes and timing. File transfers over relayed connections are limited to 5 MB; you can remove this limit by supplying your own TURN credentials.
+- **TURN relay routes encrypted traffic through a third party.** By default, [notapipe](https://notapipe.app) uses STUN only — connections are direct. If you configure a TURN server in Settings → Connection (to traverse a restrictive firewall), traffic is relayed through that server. Traffic is encrypted in transit (DTLS) and the relay cannot decrypt your content, but it is in the network path and can observe packet sizes and timing. File transfers over relayed connections are limited to 5 MB; you can remove this limit by supplying your own TURN credentials.
 - **Sharing the room URL through a third-party service.** Your room is identified by a full URL like `notapipe.app/autumn-river-moon#HwDW_XR2pDI`. The `#fragment` is a randomly generated access token (~96 bits of entropy) that browsers never include in HTTP requests, so it never reaches any server. However, if you paste the full URL into Gmail, Slack, or iMessage to arrange a session, those services receive both the path and the token. For sensitive use, share the URL in person or via an already-trusted channel — or use QR mode to skip URL sharing entirely.
 - **Enabling persistence breaks ephemerality.** If you enable "Save document" in Settings, content is written to your browser's IndexedDB and survives tab close and browser restart. A hard-drive icon in the header indicates when this is active. Disable it in Settings → Storage to return to ephemeral mode.
 - **No independent security audit has been performed.**
@@ -112,29 +238,29 @@ After the handshake, all data — text, chat, voice, files — is end-to-end enc
 
 ---
 
-## Quick start
+## Development
+
+### Quick start
 
 You will need Node.js 18+ and pnpm installed globally.
 
 ```bash
-# Install vite-plus CLI (build tool used by this project)
-npm install -g vite-plus
 
 # Install all workspace dependencies
-vp install
+pnpm install
 
 # Run client dev server + signalling server concurrently
-vp dev
+pnpm dev
 ```
 
 The client runs at `https://localhost:5173`.  
-The signalling server runs at `ws://localhost:3001`.
+The signalling server runs at `wss://localhost:3001/ws`.
 
 ```bash
-vp build          # production build
-vp test           # run unit tests
-vp check          # format + lint + type-check
-vp check --fix    # auto-fix format/lint issues
+pnpm build          # production build
+pnpm test           # run unit tests
+pnpm check          # format + lint + type-check
+pnpm check --fix    # auto-fix format/lint issues
 ```
 
 ## Packages
