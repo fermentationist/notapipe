@@ -12,6 +12,7 @@
   import {
     DOC_DB_PREFIX,
     CHAT_LOG_PREFIX,
+    LAST_ROOM_KEY,
   } from "$lib/constants/storage.ts";
   import { ICE_SERVERS } from "$lib/constants/rtc.ts";
   import { rtc_config_store } from "./stores/rtc_config.ts";
@@ -387,10 +388,19 @@
     if (parsed !== null && isValidId(parsed)) {
       room_id = parsed;
     } else {
-      room_id = generateId();
-      history.replaceState(null, "", roomPath(room_id));
+      // No room in URL — restore the last room or generate a fresh one.
+      const saved_raw = localStorage.getItem(LAST_ROOM_KEY);
+      const saved = saved_raw !== null ? (JSON.parse(saved_raw) as { room_id: string; token: string }) : null;
+      if (saved !== null && isValidId(saved.room_id) && saved.token !== "") {
+        room_id = saved.room_id;
+        history.replaceState(null, "", `${roomPath(room_id)}#${saved.token}`);
+      } else {
+        room_id = generateId();
+        history.replaceState(null, "", roomPath(room_id));
+      }
     }
     room_token = ensureToken();
+    localStorage.setItem(LAST_ROOM_KEY, JSON.stringify({ room_id, token: room_token }));
     connection_store.setRoomId(room_id);
     reinitPersistence();
     loadChatLog();
@@ -1044,6 +1054,7 @@
   function applyRoomId(new_room_id: string): void {
     room_id = new_room_id;
     history.replaceState(null, "", `${roomPath(new_room_id)}#${room_token}`);
+    localStorage.setItem(LAST_ROOM_KEY, JSON.stringify({ room_id, token: room_token }));
     connection_store.setRoomId(new_room_id);
     reinitPersistence();
   }
@@ -1051,6 +1062,7 @@
   function applyToken(new_token: string): void {
     room_token = new_token;
     history.replaceState(null, "", `${window.location.pathname}#${new_token}`);
+    localStorage.setItem(LAST_ROOM_KEY, JSON.stringify({ room_id, token: room_token }));
     qr_transport?.setToken(new_token);
   }
 
@@ -1221,6 +1233,7 @@
     // Clear the fragment so ensureToken() generates a fresh random token.
     history.replaceState(null, "", roomPath(new_room_id));
     room_token = ensureToken();
+    localStorage.setItem(LAST_ROOM_KEY, JSON.stringify({ room_id, token: room_token }));
     connection_store.setRoomId(new_room_id);
     reinitPersistence();
   }
