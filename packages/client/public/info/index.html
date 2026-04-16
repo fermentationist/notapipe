@@ -3,10 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>notapipe — Send secrets between devices. No server stores or reads your content.</title>
+    <link rel="icon" type="image/png" href="/icons/icon-192x192.png" />
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+    <title>notapipe — Move data between devices. No storage. No trail.</title>
     <meta
       name="description"
-      content="Ephemeral peer-to-peer text and file sharing over WebRTC. No account. No stored data. No permanent record."
+      content="A peer-to-peer data bridge for transferring text and files directly between devices—without uploading, saving, or leaving a record."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -629,6 +631,17 @@
         margin-bottom: 0.45rem;
       }
 
+      .connection-methods {
+        font-family: var(--mono);
+        font-size: 0.68rem;
+        font-weight: 600;
+        color: var(--accent);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        margin-bottom: 0.45rem;
+        text-align: center;
+      }
+
       .step-title {
         font-family: var(--mono);
         font-size: 0.88rem;
@@ -665,6 +678,14 @@
         color: var(--text);
         font-family: var(--mono);
       }
+
+      .mono-center {
+        font-family: var(--mono);
+        font-size: 0.82rem;
+        line-height: 1.65;
+        text-align: center;
+      }
+
       .callout a {
         color: var(--accent);
         text-decoration: underline;
@@ -676,7 +697,7 @@
 
       /* ── PHILOSOPHY ────────────────────────────────────────── */
 
-            .philosophy-p {
+      .philosophy-p {
         display: flex;
         flex-direction: column;
         gap: 0.8rem;
@@ -811,6 +832,17 @@
         color: var(--text);
       }
 
+      /* ── TRUST ───────────────────────────────────────────── */
+      #trust {
+        padding: 4.5rem 1.5rem;
+        border-top: 1px solid var(--border);
+      }
+
+      /* ── LONGEVITY ────────────────────────────────────-──── */
+      #built-to-last {
+        padding: 4.5rem 1.5rem;
+      }
+
       /* ── FOOTER ───────────────────────────────────────────── */
       footer {
         padding: 2rem 1.5rem;
@@ -841,9 +873,23 @@
       .foot-r .cta {
         color: var(--accent);
       }
+      .background-video {
+        position: fixed;
+        top: 0;
+        left: 0;
+        min-width: 100%;
+        min-height: 100%;
+        object-fit: cover;
+        z-index: -1;
+        opacity: 0.15;
+      }
     </style>
   </head>
   <body>
+    <!-- Background video -->
+    <video autoplay muted loop playsinline class="background-video">
+      <source src="/public/videos/notapipe_ascii_loop_compressed.mp4" type="video/mp4" />
+    </video>
     <!-- NAV -->
     <nav>
       <a href="#" class="nav-brand">notapipe</a>
@@ -862,42 +908,21 @@
     <!-- HERO -->
     <section id="hero">
       <h1 class="hero-hed hero-heading">
-        <span class="hero-line" id="hero-line1">Send a secret to your other machine.</span>
+        <span class="hero-line" id="hero-line1">Move data between devices.</span>
         <span class="hero-line" id="hero-line2"></span>
       </h1>
       <p class="hero-sub">
-        Paste a password, token, or file directly to another device — peer-to-peer, no cloud in the
-        middle. No account. Nothing stored on a server. Close the tab and it's gone.
+        A peer-to-peer data bridge for transferring text and files directly between devices—without
+        uploading, saving, or leaving a record.
       </p>
       <div class="hero-ctas">
         <a href="../../" data-app-link class="hero-cta">Open App →</a>
         <a href="#demo" class="hero-scroll">See how it works ↓</a>
       </div>
-      <p class="hero-try">
+      <!-- <p class="hero-try">
         Try it: open <code>notapipe.app</code>, share the full URL (including <code>#token</code>)
         to a second device, then click Connect to peer on both.
-      </p>
-    </section>
-
-    <!-- PROBLEM -->
-    <section id="problem">
-      <div class="problem-inner">
-        <ul class="plist bad">
-          <li><span class="mk">✗</span><span class="txt">Paste into Slack</span></li>
-          <li><span class="mk">✗</span><span class="txt">Email yourself</span></li>
-          <li><span class="mk">✗</span><span class="txt">Drop into Google Drive</span></li>
-          <li><span class="mk">✗</span><span class="txt">Screenshot and AirDrop</span></li>
-          <li><span class="mk">✗</span><span class="txt">Pray your clipboard syncs</span></li>
-        </ul>
-        <ul class="plist good">
-          <li>
-            <span class="mk">✓</span
-            ><span class="txt">Open the same URL, click Connect on both</span>
-          </li>
-          <li><span class="mk">✓</span><span class="txt">Text syncs instantly</span></li>
-          <li><span class="mk">✓</span><span class="txt">Close the tab. It's gone.</span></li>
-        </ul>
-      </div>
+      </p> -->
     </section>
 
     <!-- DEMO -->
@@ -1020,9 +1045,241 @@
       </div>
     </section>
 
+    <!-- PROBLEM -->
+    <section id="problem">
+      <div class="problem-inner">
+        <div>
+          <h2 class="section-hed">What it does</h2>
+          <p class="section-sub">
+            notapipe lets you move data from one device to another instantly.
+          </p>
+          <br />
+          <ul class="plist good">
+            <li><span class="mk">✓</span><span class="txt">Open a session</span></li>
+            <li>
+              <span class="mk">✓</span
+              ><span class="txt">Join from another device (link or QR code)</span>
+            </li>
+            <li>
+              <span class="mk">✓</span><span class="txt">Paste, type, or drag and drop files</span>
+            </li>
+            <li>
+              <span class="mk">✓</span><span class="txt">Close the session and it disappears</span>
+            </li>
+          </ul>
+        </div>
+        <div>
+          <h2 class="section-hed">Direct peer-to-peer transfer</h2>
+          <p class="section-sub">
+            Everything happens directly between devices. No cloud. No backend.
+          </p>
+          <br />
+          <ul class="plist good">
+            <li>
+              <span class="mk">✓</span
+              ><span class="txt">No server stores or reads your content</span>
+            </li>
+            <li><span class="mk">✓</span><span class="txt">No account required</span></li>
+            <li>
+              <span class="mk">✓</span><span class="txt">Close the session and data is gone</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- PHILOSOPHY -->
+    <section id="philosophy">
+      <h2 class="section-hed">Why it exists</h2>
+      <div class="philosophy-inner">
+        <p class="section-sub">
+          Most tools turn everything into a file, message, or document. But sometimes you just need
+          to:
+        </p>
+        <div class="philosophy-list-container">
+          <ul class="plist good philosophy-list">
+            <li>
+              <span class="mk">✓</span
+              ><span class="txt">Move data between work and personal devices</span>
+            </li>
+            <li>
+              <span class="mk">✓</span
+              ><span class="txt">Transfer files without email or cloud storage</span>
+            </li>
+            <li><span class="mk">✓</span><span class="txt">Share something sensitive</span></li>
+            <li>
+              <span class="mk">✓</span><span class="txt">Use a shared or temporary machine</span>
+            </li>
+            <li><span class="mk">✓</span><span class="txt">Leave no trace</span></li>
+          </ul>
+        </div>
+        <div class="philosophy-p">
+          <p class="philosophy-desc">
+            Sessions are ephemeral by default, but you can enable local storage or export your data
+            at any time. There is no server-side database — your data only exists if you choose to
+            keep it.
+          </p>
+          <p class="philosophy-desc">
+            Installed as a PWA, notapipe can run independently of notapipe.app, and can be
+            configured to use your own signaling and TURN infrastructure.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section id="how">
+      <div class="how-inner">
+        <h2 class="section-hed">How it works</h2>
+        <div class="steps">
+          <div class="step">
+            <div class="step-n">Step 1</div>
+            <div class="step-title">Peer-to-peer connection</div>
+            <p class="step-desc">
+              Devices connect directly over WebRTC. The session starts with a shared link or a QR
+              code, then the peers establish a private connection between them.
+            </p>
+          </div>
+          <div class="step">
+            <div class="step-n">Step 2</div>
+            <div class="step-title">Encrypted transport</div>
+            <p class="step-desc">
+              All traffic is end-to-end encrypted. Only the connected peers can read the data, and
+              no server ever sees the shared content.
+            </p>
+          </div>
+          <div class="step">
+            <div class="step-n">Step 3</div>
+            <div class="step-title">Local-first sync</div>
+            <p class="step-desc">
+              Text and files sync using local CRDT state over the encrypted channel. There is no
+              server-side storage unless you explicitly enable persistence.
+            </p>
+          </div>
+        </div>
+        <br />
+        <div class="callout">
+          <div class="connection-methods">Connection Options</div>
+          <p>
+            <img
+              src="/public/info/qr_icon.svg"
+              alt="QR code icon"
+              width="16"
+              height="16"
+              style="vertical-align: middle; margin-right: 0.35rem"
+            />
+            <strong> QR code (recommended for maximum privacy): </strong>
+            The connection details are encoded in a QR code, so the devices can connect directly
+            without any server involvement at all.
+          </p>
+          <p class="mono-center">- or -</p>
+          <p>
+            <img
+              src="/public/info/radio_tower_icon.svg"
+              alt="Link icon"
+              width="16"
+              height="16"
+              style="vertical-align: middle; margin-right: 0.35rem"
+            />
+            <strong>Signalling server:</strong>
+            A signalling server is only used to establish the initial connection. You can configure
+            or replace it, and once the peers are connected the data flows directly between devices.
+          </p>
+        </div>
+        <br />
+        <div class="mono-center mt-30">
+          <strong> No server ever sees your data. </strong>
+        </div>
+      </div>
+    </section>
+
+    <!-- USE CASES -->
+    <section id="use-cases">
+      <div class="uc-wrap">
+        <h2 class="section-hed">Built for moments like these</h2>
+        <ul class="uc-list">
+          <li>
+            <span class="arr">→</span>Moving a password between your work and personal machine
+          </li>
+          <li>
+            <span class="arr">→</span>Sharing a deploy key with a teammate without Slack or email
+          </li>
+          <li>
+            <span class="arr">→</span>Sending a draft to someone in the same room, no account
+            required
+          </li>
+          <li>
+            <span class="arr">→</span>Transferring a file between phone and laptop without routing
+            it through a cloud service
+          </li>
+          <li>
+            <span class="arr">→</span>Pairing with a friend to edit a note together in real time
+          </li>
+          <li>
+            <span class="arr">→</span>Moving a snippet or link from your phone to your laptop
+            without cloud clipboard sync
+          </li>
+          <li>
+            <span class="arr">→</span>Talking with someone when you don't want the conversation
+            logged anywhere
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- PRIVACY -->
+    <section id="privacy">
+      <div class="privacy-box">
+        <h2 class="section-hed">Your data, your rules</h2>
+        <p>By default, everything is ephemeral.</p>
+        <p>
+          Close the session → data is gone.<br />
+          Enable persistence → stored locally (IndexedDB).<br />
+          Export anytime.
+        </p>
+        <p>There is no server-side storage. Your data only exists if you choose it to.</p>
+        <p>
+          <strong>notapipe does NOT:</strong><br />
+          collect your text, store your files, log your sessions, require an account, or know who
+          you are.
+        </p>
+        <!-- <p>
+          <strong>The signalling server sees:</strong><br />
+          the room ID and connection metadata — never your content and never the room token. Once the handshake completes, it is no longer involved.
+        </p>
+        <strong>In QR mode, it sees nothing at all.</strong><br /> -->
+        <a href="../../" data-app-link class="btn mt-40">Open App →</a>
+      </div>
+    </section>
+
+    <!-- NO TRUST REQUIRED -->
+    <section id="trust">
+      <div class="privacy-box">
+        <h2 class="section-hed">No trust required</h2>
+        <p>notapipe cannot access your data.</p>
+        <p>No accounts. No telemetry. No backend database.</p>
+        <p>
+          You can inspect the code, self-host, or use your own signaling and TURN infrastructure.
+        </p>
+        <p>There is nothing to trust because there is nowhere for your data to go.</p>
+      </div>
+    </section>
+
+    <!-- BUILT TO LAST -->
+    <section id="built-to-last">
+      <div class="privacy-box">
+        <h2 class="section-hed">Built to last</h2>
+        <p>Install as a PWA and run independently.</p>
+        <p>Works without notapipe.app once installed.</p>
+        <p>Configurable signaling and TURN servers.</p>
+        <p>Open source (MIT).</p>
+        <p>If the original service disappears, the app can keep working.</p>
+      </div>
+    </section>
+
     <!-- FEATURES -->
     <section id="features">
-      <h2 class="section-hed">Everything you need. Nothing you don't.</h2>
+      <h2 class="section-hed">High Utility, Low Friction.</h2>
       <div class="f-grid">
         <div class="card">
           <span class="card-icon">🔒</span>
@@ -1069,134 +1326,25 @@
             read or log your messages.
           </p>
         </div>
-      </div>
-    </section>
-
-    <!-- PHILOSOPHY -->
-    <section id="philosophy">
-      <h2 class="section-hed">Design Philosophy</h2>
-      <div class="philosophy-inner">
-        <p class="section-sub">
-          notapipe is built in the spirit of <span class="text-emphasized"><a href="https://www.inkandswitch.com/essay/local-first/" class="local-first-link" target="_blank" rel="noopener noreferrer">local-first software</a></span>:
-        </p>
-        <div class="philosophy-list-container">
-          <ul class="plist good philosophy-list">
-            <li><span class="mk">✓</span><span class="txt">Edits happen locally and sync peer-to-peer</span></li>
-            <li><span class="mk">✓</span><span class="txt">Connections are end-to-end encrypted</span></li>
-            <li><span class="mk">✓</span><span class="txt">No accounts or cloud storage</span></li>
-            <li><span class="mk">✓</span><span class="txt">Open source and self-hostable</span></li>
-          </ul>
-        </div>
-        <div class="philosophy-p">
-          <p class="philosophy-desc">
-            Sessions are ephemeral by default, but you can enable local storage or export your data at any time. There is no server-side database — your data is only stored if you choose to store it.
-          </p>
-          <p class="philosophy-desc">
-            Installed as a PWA, notapipe can run independently of notapipe.app, and can be configured to use your own signaling and TURN infrastructure.
+        <div class="card">
+          <span class="card-icon">🏗️</span>
+          <div class="card-title">Built to last</div>
+          <p class="card-desc">
+            Install as a PWA and keep using it independently of notapipe.app. Configure your own
+            signalling and TURN servers, and inspect or self-host the MIT-licensed source.
           </p>
         </div>
-      </div>
-    </section>
-
-    <!-- HOW IT WORKS -->
-    <section id="how">
-      <div class="how-inner">
-        <h2 class="section-hed">How it actually works</h2>
-        <div class="steps">
-          <div class="step">
-            <div class="step-n">Step 1</div>
-            <div class="step-title">Room ID</div>
-            <p class="step-desc">
-              Your browser generates a 3-word room ID — like <code>apple-river-moon</code> — plus a
-              random access token in the URL <code>#fragment</code>. Browsers never send
-              <code>#</code> fragments in HTTP requests, so the token never reaches any server.
-            </p>
-          </div>
-          <div class="step">
-            <div class="step-n">Step 2</div>
-            <div class="step-title">Handshake</div>
-            <p class="step-desc">
-              Connection is always explicit — notapipe never connects automatically. In signalling
-              mode, a server brokers the WebRTC handshake; it sees the room ID and connection
-              metadata, never your content. In QR mode, no signalling server is involved.
-            </p>
-          </div>
-          <div class="step">
-            <div class="step-n">Step 3</div>
-            <div class="step-title">Sync</div>
-            <p class="step-desc">
-              Text syncs via Yjs CRDTs over an encrypted WebRTC data channel. No server can read
-              your content. Close the tab and nothing persists unless you opted in to local storage.
-            </p>
-          </div>
-        </div>
-        <div class="callout">
-          <strong>Open source.</strong> The signalling server does what it says and nothing more.
-          Read the code:
-          <a href="https://github.com/fermentationist/notapipe" target="_blank" rel="noopener"
-            >github.com/fermentationist/notapipe</a
-          >
-        </div>
-      </div>
-    </section>
-
-    <!-- USE CASES -->
-    <section id="use-cases">
-      <div class="uc-wrap">
-        <h2 class="section-hed">Built for moments like these</h2>
-        <ul class="uc-list">
-          <li>
-            <span class="arr">→</span>Moving a password between your work and personal machine
-          </li>
-          <li>
-            <span class="arr">→</span>Sharing a deploy key with a teammate without Slack or email
-          </li>
-          <li>
-            <span class="arr">→</span>Sending a draft to someone in the same room, no account
-            required
-          </li>
-          <li>
-            <span class="arr">→</span>Transferring a file between phone and laptop without routing
-            it through a cloud service
-          </li>
-          <li>
-            <span class="arr">→</span>Pairing with a friend to edit a note together in real time
-          </li>
-          <li>
-            <span class="arr">→</span>Moving a snippet or link from your phone to your laptop
-            without cloud clipboard sync
-          </li>
-          <li>
-            <span class="arr">→</span>Talking with someone when you don't want the conversation
-            logged anywhere
-          </li>
-        </ul>
-      </div>
-    </section>
-
-    <!-- PRIVACY -->
-    <section id="privacy">
-      <div class="privacy-box">
-        <p>
-          <strong>notapipe does NOT:</strong><br />
-          collect your text, store your files, log your sessions, require an account, or know who
-          you are.
-        </p>
-        <p>
-          <strong>The signalling server sees:</strong><br />
-          the room ID and connection metadata — never your content and never the room token. Once the handshake completes, it is no longer involved.
-        </p>
-        <strong>In QR mode, it sees nothing at all.</strong><br />
-        <a href="../../" data-app-link class="btn mt-40">Open App →</a>
       </div>
     </section>
 
     <!-- FOOTER -->
     <footer>
       <div class="foot-l">
-        <span>notapipe</span>
+        <a href="../../">notapipe</a>
         <span>MIT License</span>
-        <span>© 2025</span>
+        <a href="https://dennishodges.com" target="_blank" rel="noopener">
+          <span>©2026 Dennis Hodges</span>
+        </a>
         <span>PWA — works on desktop and mobile</span>
       </div>
       <div class="foot-r">
@@ -1228,19 +1376,28 @@
       hl2.appendChild(heroCursor);
 
       const PHRASES = [
-        "Send a secret to your other machine.",
-        "Move text between your devices.",
-        "Share a password without a third party.",
+        "Move data between devices.",
+        "Share a link without a third party.",
         "Chat without leaving a trace.",
         "Send files directly, peer-to-peer.",
+        "A data bridge for your devices.",
+        "Create a private connection in seconds.",
+        "Move text between your devices.",
+        "Share sensitive credentials without email or cloud storage.",
+        "Make a quick voice call without an extra app or an account.",
       ];
       let phraseIdx = 0;
 
       const PHRASES2 = [
-        "No server can read it.",
-        "Servers see nothing.",
-        "Zero server visibility.",
+        "A server never sees your content.",
         "Always encrypted in transit.",
+        "No accounts. No logs. No cloud.",
+        "Your data, your rules.",
+        "Close the session and it's gone.",
+        "Peer-to-peer, end-to-end encrypted.",
+        "Zero server visibility.",
+        "Built for privacy and simplicity.",
+        "No storage. No history. No footprints.",
       ];
       let phrase2Idx = 0;
 

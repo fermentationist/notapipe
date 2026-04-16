@@ -343,9 +343,10 @@ You can send any file (up to 100 MB) to all connected peers over WebRTC — no s
 
 ### Sending a file
 
-1. Make sure you are connected to at least one peer
-2. Click `···` → **⌂ Send file**, or use **⌘K → Send file**
-3. Choose a file from the file picker
+There are two ways to send a file:
+
+- **Drag and drop** — drag a file from your desktop or file manager directly onto the notapipe window while connected. A green drop zone appears to confirm the target.
+- **File picker** — click `···` → **⌂ Send file**, or use **⌘K → Send file**, then choose a file.
 
 The file is offered to each connected peer individually.
 

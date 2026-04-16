@@ -316,6 +316,49 @@
     ft_ui.send_to_all_peers(file);
   }
 
+  // ---------------------------------------------------------------------------
+  // Drag-and-drop file send
+  // ---------------------------------------------------------------------------
+
+  let drag_over = $state(false);
+  // Counter tracks nested dragenter/dragleave events so we don't flicker when
+  // the pointer moves over a child element.
+  let drag_depth = 0;
+
+  function handleDragEnter(e: DragEvent): void {
+    if (!is_connected) { return; }
+    if (!e.dataTransfer?.types.includes("Files")) { return; }
+    e.preventDefault();
+    drag_depth += 1;
+    drag_over = true;
+  }
+
+  function handleDragOver(e: DragEvent): void {
+    if (!is_connected) { return; }
+    if (!e.dataTransfer?.types.includes("Files")) { return; }
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+  }
+
+  function handleDragLeave(): void {
+    drag_depth -= 1;
+    if (drag_depth <= 0) {
+      drag_depth = 0;
+      drag_over = false;
+    }
+  }
+
+  function handleDrop(e: DragEvent): void {
+    e.preventDefault();
+    drag_depth = 0;
+    drag_over = false;
+    if (!is_connected) { return; }
+    const file = e.dataTransfer?.files[0];
+    if (file) {
+      sendFileToAllPeers(file);
+    }
+  }
+
   function dismissSent(transfer_id: string): void {
     ft_ui.dismiss_sent(transfer_id);
   }
@@ -1713,7 +1756,22 @@
   {/if}
 
   <!-- Editor (+ optional preview / chat pane) -->
-  <main class:preview-split={show_preview && !show_chat} class:chat-split={show_chat}>
+  <main
+    class:preview-split={show_preview && !show_chat}
+    class:chat-split={show_chat}
+    ondragenter={handleDragEnter}
+    ondragover={handleDragOver}
+    ondragleave={handleDragLeave}
+    ondrop={handleDrop}
+  >
+    {#if drag_over}
+      <div class="drop-overlay" aria-hidden="true">
+        <div class="drop-overlay-inner">
+          <span class="drop-overlay-icon">⇩</span>
+          <span class="drop-overlay-label">Drop to send file</span>
+        </div>
+      </div>
+    {/if}
     <!-- On narrow screens hide editor when preview or chat is active -->
     <div class="editor-pane" class:hidden-narrow={show_preview || show_chat}>
       <Editor
@@ -2463,6 +2521,39 @@
     flex-direction: column;
     min-height: 0;
     position: relative;
+  }
+
+  .drop-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 50;
+    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+    border: 2px dashed var(--color-accent);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
+
+  .drop-overlay-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .drop-overlay-icon {
+    font-size: 2.5rem;
+    color: var(--color-accent);
+    line-height: 1;
+  }
+
+  .drop-overlay-label {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-accent);
+    letter-spacing: 0.02em;
   }
 
   /* Split-pane layout on wide screens */
