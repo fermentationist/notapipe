@@ -390,7 +390,12 @@
     } else {
       // No room in URL — restore the last room or generate a fresh one.
       const saved_raw = localStorage.getItem(LAST_ROOM_KEY);
-      const saved = saved_raw !== null ? (JSON.parse(saved_raw) as { room_id: string; token: string }) : null;
+      let saved: { room_id: string; token: string } | null = null;
+      try {
+        saved = saved_raw !== null ? (JSON.parse(saved_raw) as { room_id: string; token: string }) : null;
+      } catch {
+        saved = null;
+      }
       if (saved !== null && isValidId(saved.room_id) && saved.token !== "") {
         room_id = saved.room_id;
         history.replaceState(null, "", `${roomPath(room_id)}#${saved.token}`);
