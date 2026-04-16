@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/png" href="/icons/icon-192x192.png" />
-    <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+    <link rel="icon" type="image/png" href="/app_icons/icon-192x192.png" />
+    <link rel="apple-touch-icon" href="/app_icons/icon-192x192.png" />
     <title>notapipe — Move data between devices. No storage. No trail.</title>
     <meta
       name="description"
@@ -496,7 +496,38 @@
       }
 
       .dev-corner-btn.copied {
-        color: #e8e3d8;
+        color: #4ade80;
+      }
+
+      /* Fixed-size icon wrapper prevents layout shift when swapping copy↔check */
+      .copy-icon-wrap {
+        position: relative;
+        display: inline-flex;
+        width: 12px;
+        height: 12px;
+        flex-shrink: 0;
+      }
+
+      .copy-icon-wrap img,
+      .copy-icon-wrap .check-svg {
+        position: absolute;
+        inset: 0;
+        width: 12px;
+        height: 12px;
+        transition: opacity 0.15s;
+      }
+
+      .copy-icon-wrap .check-svg {
+        opacity: 0;
+        stroke: #4ade80;
+      }
+
+      .dev-corner-btn.copied .copy-icon-wrap img {
+        opacity: 0;
+      }
+
+      .dev-corner-btn.copied .copy-icon-wrap .check-svg {
+        opacity: 1;
       }
 
       .demo-caption {
@@ -942,21 +973,7 @@
               <div class="dev-room-bar">
                 <span class="dev-room-id">apple-river-moon</span>
                 <button class="dev-icon-btn" tabindex="-1" aria-hidden="true">
-                  <svg
-                    width="11"
-                    height="12"
-                    viewBox="0 0 13 14"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.6"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <rect x="4" y="4" width="8" height="9" rx="1.5"></rect>
-                    <path
-                      d="M2 10H1.5A1.5 1.5 0 0 1 0 8.5v-7A1.5 1.5 0 0 1 1.5 0h7A1.5 1.5 0 0 1 10 1.5V2"
-                    ></path>
-                  </svg>
+                  <img src="/svg_icons/copy_icon.svg" width="11" height="11" alt="" />
                 </button>
               </div>
               <div class="dev-editor">
@@ -964,21 +981,7 @@
               </div>
               <div class="dev-actions">
                 <button class="dev-corner-btn" tabindex="-1" aria-hidden="true">
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 13 14"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.6"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <rect x="4" y="4" width="8" height="9" rx="1.5"></rect>
-                    <path
-                      d="M2 10H1.5A1.5 1.5 0 0 1 0 8.5v-7A1.5 1.5 0 0 1 1.5 0h7A1.5 1.5 0 0 1 10 1.5V2"
-                    ></path>
-                  </svg>
+                  <img src="/svg_icons/copy_icon.svg" width="12" height="12" alt="" />
                 </button>
               </div>
             </div>
@@ -997,21 +1000,7 @@
               <div class="dev-room-bar">
                 <span class="dev-room-id">apple-river-moon</span>
                 <button class="dev-icon-btn" tabindex="-1" aria-hidden="true">
-                  <svg
-                    width="11"
-                    height="12"
-                    viewBox="0 0 13 14"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.6"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <rect x="4" y="4" width="8" height="9" rx="1.5"></rect>
-                    <path
-                      d="M2 10H1.5A1.5 1.5 0 0 1 0 8.5v-7A1.5 1.5 0 0 1 1.5 0h7A1.5 1.5 0 0 1 10 1.5V2"
-                    ></path>
-                  </svg>
+                  <img src="/svg_icons/copy_icon.svg" width="11" height="11" alt="" />
                 </button>
               </div>
               <div class="dev-editor">
@@ -1019,23 +1008,21 @@
               </div>
               <div class="dev-actions">
                 <button class="dev-corner-btn" id="copybtn" tabindex="-1" aria-hidden="true">
-                  <svg
-                    id="cbicon"
-                    width="12"
-                    height="12"
-                    viewBox="0 0 13 14"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.6"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <rect x="4" y="4" width="8" height="9" rx="1.5"></rect>
-                    <path
-                      d="M2 10H1.5A1.5 1.5 0 0 1 0 8.5v-7A1.5 1.5 0 0 1 1.5 0h7A1.5 1.5 0 0 1 10 1.5V2"
-                    ></path>
-                  </svg>
-                  <span id="cbcheck" hidden>✓</span>
+                  <span class="copy-icon-wrap">
+                    <img src="/svg_icons/copy_icon.svg" width="12" height="12" alt="" />
+                    <svg
+                      class="check-svg"
+                      width="12"
+                      height="12"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      stroke-width="2.2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <polyline points="1.5,6 4.5,9.5 10.5,2.5"></polyline>
+                    </svg>
+                  </span>
                 </button>
               </div>
             </div>
@@ -1162,7 +1149,7 @@
           <div class="connection-methods">Connection Options</div>
           <p>
             <img
-              src="/public/info/qr_icon.svg"
+              src="/public/svg_icons/qr_icon.svg"
               alt="QR code icon"
               width="16"
               height="16"
@@ -1175,7 +1162,7 @@
           <p class="mono-center">- or -</p>
           <p>
             <img
-              src="/public/info/radio_tower_icon.svg"
+              src="/public/svg_icons/radio_tower_icon.svg"
               alt="Link icon"
               width="16"
               height="16"
@@ -1464,8 +1451,6 @@
       const lc = document.getElementById("lcontent");
       const pc = document.getElementById("pcontent");
       const copyBtn = document.getElementById("copybtn");
-      const cbicon = document.getElementById("cbicon");
-      const cbcheck = document.getElementById("cbcheck");
       const ldot = document.getElementById("ldot");
       const pdot = document.getElementById("pdot");
       const llbl = document.getElementById("llbl");
@@ -1481,8 +1466,6 @@
         lc.style.opacity = "1";
         pc.textContent = "";
         pc.style.opacity = "1";
-        cbicon.hidden = false;
-        cbcheck.hidden = true;
         copyBtn.classList.remove("copied");
         ldot.classList.remove("on");
         pdot.classList.remove("on");
@@ -1516,14 +1499,10 @@
 
                   // Copy feedback: show ✓
                   setTimeout(() => {
-                    cbicon.hidden = true;
-                    cbcheck.hidden = false;
                     copyBtn.classList.add("copied");
 
                     // Hold, then reset and loop
                     setTimeout(() => {
-                      cbicon.hidden = false;
-                      cbcheck.hidden = true;
                       copyBtn.classList.remove("copied");
                       setTimeout(() => {
                         lc.style.opacity = "0";
