@@ -13,6 +13,7 @@
     DOC_DB_PREFIX,
     CHAT_LOG_PREFIX,
     LAST_ROOM_KEY,
+    SECRET_PLACEHOLDER,
   } from "$lib/constants/storage.ts";
   import { ICE_SERVERS } from "$lib/constants/rtc.ts";
   import { rtc_config_store } from "./stores/rtc_config.ts";
@@ -580,6 +581,7 @@
             text: msg.text.trim(),
             timestamp: typeof msg.timestamp === "number" ? msg.timestamp : Date.now(),
             is_local: false,
+            secret: msg.secret === true,
           };
           // Deduplicate by id in case the message is echoed
           if (!chat_messages.some((m) => m.id === incoming.id)) {
@@ -619,16 +621,20 @@
     if (!$chat_persistence_store) {
       return;
     }
-    localStorage.setItem(`${CHAT_LOG_PREFIX}${room_id}`, JSON.stringify(chat_messages));
+    const to_save = chat_messages.map((m) =>
+      m.secret ? { ...m, text: SECRET_PLACEHOLDER } : m
+    );
+    localStorage.setItem(`${CHAT_LOG_PREFIX}${room_id}`, JSON.stringify(to_save));
   }
 
-  function sendChatMessage(text: string): void {
+  function sendChatMessage(text: string, secret: boolean = false): void {
     const message: ChatMessage = {
       id: crypto.randomUUID(),
       handle: local_handle,
       text,
       timestamp: Date.now(),
       is_local: true,
+      secret,
     };
     chat_messages = [...chat_messages, message];
     saveChatLog();
@@ -638,6 +644,7 @@
       handle: message.handle,
       text: message.text,
       timestamp: message.timestamp,
+      secret: message.secret,
     });
     for (const p of peers.values()) {
       if (p.data_channel?.readyState === "open") {

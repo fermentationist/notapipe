@@ -1,5 +1,8 @@
 <script lang="ts">
   import { tick, onMount } from "svelte";
+  import LockIcon from "./LockIcon.svelte";
+  import CopyIcon from "./CopyIcon.svelte";
+  import { SECRET_PLACEHOLDER } from "$lib/constants/storage.ts";
 
   export interface ChatMessage {
     id: string;
@@ -7,6 +10,7 @@
     text: string;
     timestamp: number;
     is_local: boolean;
+    secret?: boolean;
   }
 
   interface Props {
@@ -14,14 +18,17 @@
     local_handle: string;
     connected: boolean;
     onclose: () => void;
-    onsend: (text: string) => void;
+    onsend: (text: string, secret: boolean) => void;
   }
 
   let { messages, local_handle, connected, onclose, onsend }: Props = $props();
 
-  let input_el: HTMLTextAreaElement = $state() as HTMLTextAreaElement;
+  let textarea_el: HTMLTextAreaElement = $state() as HTMLTextAreaElement;
+  let password_el: HTMLInputElement = $state() as HTMLInputElement;
   let scroll_el: HTMLDivElement = $state() as HTMLDivElement;
   let draft = $state("");
+  let secret_mode = $state(false);
+  let copied_id = $state<string | null>(null);
 
   function formatTime(ts: number): string {
     const d = new Date(ts);
@@ -35,16 +42,31 @@
     if (text.length === 0 || !connected) {
       return;
     }
-    onsend(text);
+    onsend(text, secret_mode);
     draft = "";
-    // Re-focus after send
-    tick().then(() => input_el?.focus());
+    secret_mode = false;
+    tick().then(() => textarea_el?.focus());
   }
 
   function handleKeydown(event: KeyboardEvent): void {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
       send();
+    }
+  }
+
+  function toggleSecretMode(): void {
+    secret_mode = !secret_mode;
+    tick().then(() => (secret_mode ? password_el : textarea_el)?.focus());
+  }
+
+  async function copySecret(msg: ChatMessage): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(msg.text);
+      copied_id = msg.id;
+      setTimeout(() => { copied_id = null; }, 1500);
+    } catch {
+      // Clipboard access denied — nothing to do
     }
   }
 
@@ -100,24 +122,66 @@
           <div class="meta">
             <span class="handle">{msg.is_local ? local_handle : msg.handle}</span>
             <span class="time">{formatTime(msg.timestamp)}</span>
+            {#if msg.secret}
+              <span class="secret-label"><LockIcon size={9} /> secret</span>
+            {/if}
           </div>
-          <div class="bubble">{msg.text}</div>
+          {#if msg.secret}
+            <div class="bubble secret-bubble">
+              <span class="secret-dots">••••••••</span>
+              {#if msg.text !== SECRET_PLACEHOLDER}
+                <button
+                  class="copy-secret-btn"
+                  onclick={() => copySecret(msg)}
+                  aria-label="Copy secret to clipboard"
+                  title="Copy secret"
+                >
+                  <CopyIcon copied={copied_id === msg.id} size={12} />
+                </button>
+              {/if}
+            </div>
+          {:else}
+            <div class="bubble">{msg.text}</div>
+          {/if}
         </div>
       {/each}
     {/if}
   </div>
 
   <div class="input-row">
-    <textarea
-      bind:this={input_el}
-      class="chat-input"
-      bind:value={draft}
-      onkeydown={handleKeydown}
-      placeholder={connected ? "Message… (Enter to send)" : "Not connected"}
-      disabled={!connected}
-      rows="2"
-      aria-label="Chat message"
-    ></textarea>
+    <button
+      class="secret-toggle"
+      class:active={secret_mode}
+      onclick={toggleSecretMode}
+      title={secret_mode ? "Secret mode on — click to disable" : "Send a secret (e.g. password)"}
+      aria-label={secret_mode ? "Disable secret mode" : "Enable secret mode"}
+      aria-pressed={secret_mode}
+    >
+      <LockIcon size={13} />
+    </button>
+    {#if secret_mode}
+      <input
+        bind:this={password_el}
+        type="password"
+        class="chat-input"
+        bind:value={draft}
+        onkeydown={handleKeydown}
+        placeholder="Secret message… (Enter to send)"
+        disabled={!connected}
+        aria-label="Secret chat message"
+      />
+    {:else}
+      <textarea
+        bind:this={textarea_el}
+        class="chat-input"
+        bind:value={draft}
+        onkeydown={handleKeydown}
+        placeholder={connected ? "Message… (Enter to send)" : "Not connected"}
+        disabled={!connected}
+        rows="2"
+        aria-label="Chat message"
+      ></textarea>
+    {/if}
     <button
       class="send-btn"
       onclick={send}
@@ -244,6 +308,44 @@
     border-radius: 12px 12px 12px 4px;
   }
 
+  .secret-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 0.6rem;
+    color: var(--color-text-muted);
+    opacity: 0.8;
+  }
+
+  .secret-bubble {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .secret-dots {
+    letter-spacing: 0.1em;
+    color: var(--color-text-muted);
+    user-select: none;
+  }
+
+  .copy-secret-btn {
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    padding: 0.1rem 0.2rem;
+    display: flex;
+    align-items: center;
+    line-height: 1;
+    border-radius: 3px;
+  }
+
+  .copy-secret-btn:hover {
+    color: var(--color-text);
+    background: var(--color-border);
+  }
+
   .input-row {
     display: flex;
     align-items: flex-end;
@@ -251,6 +353,30 @@
     padding: 0.5rem 0.75rem;
     border-top: 1px solid var(--color-border);
     flex-shrink: 0;
+  }
+
+  .secret-toggle {
+    background: none;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    padding: 0.35rem 0.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    min-height: 36px;
+  }
+
+  .secret-toggle:hover {
+    color: var(--color-text);
+  }
+
+  .secret-toggle.active {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: #fff;
   }
 
   .chat-input {
