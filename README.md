@@ -95,7 +95,7 @@ There is nothing hidden because there is nowhere for your data to go.
 
 You decide if anything persists:
 
-- Default: ephemeral sessions
+- Default: ephemeral content — your room address is remembered so you return to the same room on next visit, but content is not saved
 - Optional: local persistence (IndexedDB)
 - Export your data anytime
 
@@ -173,7 +173,7 @@ It prioritizes local execution, peer-to-peer communication, and user control ove
 
 [notapipe](https://notapipe.app) gives you explicit control over whether data persists:
 
-- By default, sessions are **ephemeral**
+- By default, content is **ephemeral** — your room address is remembered across visits, but document content is not saved
 - You can enable **local persistence** (IndexedDB)
 - You can **export** your data at any time
 

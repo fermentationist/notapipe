@@ -94,14 +94,14 @@ Every notapipe session is identified by a **3-word room ID** — a phrase like `
 https://notapipe.app/marble-cloud-seven#k7mX9qPw
 ```
 
-- When you open notapipe without a path, a new random room ID and token are generated for you
+- When you open notapipe without a path, you are returned to your last room. If no previous room is found (first visit, or after clearing storage), a new random room ID and token are generated
 - **Share the full URL** — both the path and the `#token` are required to connect. Two devices that share only the same room ID but have different tokens will not be matched
 - The token is never sent to the signalling server (browsers strip `#` fragments from HTTP requests); it is only exchanged between peers as part of the WebRTC handshake
 - In QR mode the token is embedded in the QR code, so the scanning device adopts it automatically
 
 ### Switching rooms
 
-Click the **room name** in the room bar to open the room menu. Select **New random room** to generate a fresh room ID and token. This disconnects any active session and navigates to the new room.
+Click the **room name** in the room bar to open the room menu. Select **New random room** to generate a fresh room ID and token. This disconnects any active session, navigates to the new room, and saves it as your new default room for future visits.
 
 ---
 
