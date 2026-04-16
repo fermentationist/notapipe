@@ -56,6 +56,7 @@
   import SunIcon from "./components/SunIcon.svelte";
   import MoonIcon from "./components/MoonIcon.svelte";
   import QrCodeIcon from "./components/QrCodeIcon.svelte";
+  import ShareIcon from "./components/ShareIcon.svelte";
   import DocumentIcon from "./components/DocumentIcon.svelte";
   import ChatIcon from "./components/ChatIcon.svelte";
   import PhoneIcon from "./components/PhoneIcon.svelte";
@@ -102,6 +103,8 @@
   let show_actions_menu = $state(false);
   let show_url_qr = $state(false);
   let actions_menu_anchor = $state<{ top: number; right: number } | null>(null);
+  let show_share_menu = $state(false);
+  let share_menu_anchor = $state<{ top: number; right: number } | null>(null);
   let show_info_menu = $state(false);
   let info_menu_anchor = $state<{ top: number; right: number } | null>(null);
   let show_user_guide = $state(false);
@@ -1181,7 +1184,8 @@
   }
 
   async function shareDocument(): Promise<void> {
-    show_actions_menu = false;
+    show_share_menu = false;
+    share_menu_anchor = null;
     const content = ytext.toString();
     const file = new File([content], `${room_id}.txt`, { type: "text/plain" });
     if (navigator.canShare?.({ files: [file] })) {
@@ -1192,7 +1196,8 @@
   }
 
   async function shareRoomLink(): Promise<void> {
-    show_actions_menu = false;
+    show_share_menu = false;
+    share_menu_anchor = null;
     const url = window.location.href;
     if (navigator.share !== void 0) {
       await navigator.share({
@@ -1324,6 +1329,10 @@
     if (show_actions_menu && !target.closest(".actions-menu-wrapper")) {
       show_actions_menu = false;
       actions_menu_anchor = null;
+    }
+    if (show_share_menu && !target.closest(".share-menu-wrapper")) {
+      show_share_menu = false;
+      share_menu_anchor = null;
     }
     if (show_info_menu && !target.closest(".info-menu-wrapper")) {
       show_info_menu = false;
@@ -1628,6 +1637,28 @@
             <MoonIcon />
           {/if}
         </button>
+        <div class="share-menu-wrapper">
+          <button
+            class="icon-btn"
+            onclick={(e) => {
+              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+              share_menu_anchor = {
+                top: rect.bottom + 4,
+                right: window.innerWidth - rect.right,
+              };
+              show_share_menu = !show_share_menu;
+              if (!show_share_menu) {
+                share_menu_anchor = null;
+              }
+            }}
+            title="Share"
+            aria-label="Share"
+            aria-haspopup="menu"
+            aria-expanded={show_share_menu}
+          >
+            <ShareIcon size={14} />
+          </button>
+        </div>
         <button
           class="icon-btn settings-btn"
           onclick={() => {
@@ -1974,6 +2005,23 @@
     </div>
   {/if}
 
+  {#if show_share_menu && share_menu_anchor !== null}
+    <div
+      class="connect-menu share-menu"
+      role="menu"
+      style="position: fixed; top: {share_menu_anchor.top}px; right: {share_menu_anchor.right}px; z-index: 200;"
+    >
+      <button class="menu-item" role="menuitem" onclick={shareRoomLink}>
+        Share room link
+      </button>
+      {#if can_share}
+        <button class="menu-item" role="menuitem" onclick={shareDocument}>
+          Share document as file
+        </button>
+      {/if}
+    </div>
+  {/if}
+
   {#if show_actions_menu && actions_menu_anchor !== null}
     <div
       class="connect-menu actions-menu"
@@ -2058,15 +2106,6 @@
       >
         ⌂ Send file{!is_connected ? " (not connected)" : ""}
       </button>
-      <div class="menu-divider" role="separator"></div>
-      <button class="menu-item" role="menuitem" onclick={shareRoomLink}>
-        Share room link
-      </button>
-      {#if can_share}
-        <button class="menu-item" role="menuitem" onclick={shareDocument}>
-          Share document as file
-        </button>
-      {/if}
       <div class="menu-divider" role="separator"></div>
       <button
         class="menu-item"

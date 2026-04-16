@@ -367,7 +367,7 @@ When a peer sends you a file, a notification strip appears near the bottom of th
 
 ## Sharing
 
-From the `···` actions menu:
+Click the **share icon** (box with upward arrow) in the header:
 
 - **Share room link** — opens your device's native share sheet (if available) or copies the room URL to the clipboard
 - **Share document as file** — shares the current document content as a `.txt` file via the native share sheet (only shown if your device supports file sharing through the browser)
