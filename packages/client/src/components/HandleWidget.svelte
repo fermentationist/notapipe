@@ -8,13 +8,14 @@
 
   let show_modal = $state(false);
   let draft = $state(handle);
-  let input_el: HTMLInputElement = $state() as HTMLInputElement;
-  let modal_input_el: HTMLInputElement = $state() as HTMLInputElement;
 
   // Keep draft in sync when handle changes externally (e.g. on first load).
   $effect(() => {
     draft = handle;
   });
+
+  // Size the input to its content — at least 6 chars, at most 20.
+  const input_size = $derived(Math.min(Math.max(draft.length + 1, 6), 20));
 
   function commit(value: string): void {
     const trimmed = value.trim();
@@ -56,7 +57,7 @@
   }
 </script>
 
-<!-- Inline input — shown on wide screens via CSS -->
+<!-- Inline input — wide screens only -->
 <div class="handle-inline">
   <span class="handle-icon" aria-hidden="true">
     <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
@@ -64,20 +65,20 @@
     </svg>
   </span>
   <input
-    bind:this={input_el}
     class="handle-input"
     type="text"
     value={draft}
+    size={input_size}
     maxlength="32"
     aria-label="Your handle"
-    title="Your handle (visible to peers)"
+    title="Your handle (click to edit)"
     oninput={(e) => { draft = (e.currentTarget as HTMLInputElement).value; }}
     onblur={(e) => commit((e.currentTarget as HTMLInputElement).value)}
     onkeydown={handleKeydown}
   />
 </div>
 
-<!-- Icon button — shown on narrow screens via CSS -->
+<!-- Icon button — narrow screens only -->
 <button
   class="handle-icon-btn"
   onclick={openModal}
@@ -101,7 +102,6 @@
     <div class="modal-panel" role="dialog" aria-modal="true" aria-label="Edit handle">
       <p class="modal-label">Your handle</p>
       <input
-        bind:this={modal_input_el}
         class="modal-input"
         type="text"
         bind:value={draft}
@@ -118,12 +118,28 @@
 {/if}
 
 <style>
-  /* Inline — visible only on wide screens */
+  /* Inline — wide screens only */
   .handle-inline {
     display: none;
     align-items: center;
     gap: 4px;
     color: var(--color-text-muted);
+  }
+
+  /* Icon button — narrow screens only */
+  .handle-icon-btn {
+    display: flex;
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    padding: 0.25rem;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .handle-icon-btn:hover {
+    color: var(--color-text);
   }
 
   @media (min-width: 600px) {
@@ -149,31 +165,14 @@
     font-family: inherit;
     font-size: 0.8rem;
     padding: 1px 4px;
-    width: 9ch;
-    min-width: 6ch;
-    max-width: 14ch;
     outline: none;
     transition: border-color 0.15s;
+    min-width: 6ch;
+    max-width: 20ch;
   }
 
   .handle-input:focus {
     border-bottom-color: var(--color-accent);
-  }
-
-  /* Icon button — visible only on narrow screens */
-  .handle-icon-btn {
-    background: none;
-    border: none;
-    color: var(--color-text-muted);
-    cursor: pointer;
-    padding: 0.25rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .handle-icon-btn:hover {
-    color: var(--color-text);
   }
 
   /* Modal */

@@ -1355,6 +1355,9 @@
   ];
 
   const is_connected = $derived($connection_store.peer_state === "connected");
+  const is_waiting_for_peer = $derived(
+    $connection_store.peer_state === "connecting" && $connection_store.mode === "signalling",
+  );
   // True when a remote peer has started a voice call but we haven't joined yet.
   const incoming_voice_call = $derived(remote_voice_active.size > 0 && !voice_active);
   const is_dark_theme = $derived($theme_store["name"] === "dark");
@@ -1856,6 +1859,11 @@
           <button class="action-btn" onclick={handleDisconnect} title="Disconnect">
             <DisconnectIcon />
             <span class="btn-text">Disconnect</span>
+          </button>
+        {:else if is_waiting_for_peer}
+          <button class="action-btn" onclick={handleDisconnect} title="Stop waiting for peer">
+            <DisconnectIcon />
+            <span class="btn-text">Stop waiting</span>
           </button>
         {:else}
           <div class="connect-wrapper">
