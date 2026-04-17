@@ -41,6 +41,7 @@
   import QrOverlay from "./components/QrOverlay.svelte";
   import SettingsPanel from "./components/SettingsPanel.svelte";
   import ConfirmDialog from "./components/ConfirmDialog.svelte";
+  import FilenameDialog from "./components/FilenameDialog.svelte";
   import HandleWidget from "./components/HandleWidget.svelte";
   import PeerList from "./components/PeerList.svelte";
   import PeerToastBar, { type PeerToast } from "./components/PeerToastBar.svelte";
@@ -108,6 +109,8 @@
   let info_menu_anchor = $state<{ top: number; right: number } | null>(null);
   let show_user_guide = $state(false);
   let show_about = $state(false);
+  let show_share_filename_dialog = $state(false);
+  let share_default_filename = $state("");
   let confirm_dialog = $state<{
     message: string;
     onconfirm: () => void;
@@ -1160,15 +1163,27 @@
     URL.revokeObjectURL(url);
   }
 
-  async function shareDocument(): Promise<void> {
+  function shareDocument(): void {
     show_share_menu = false;
     share_menu_anchor = null;
+    share_default_filename = `${room_id}.txt`;
+    show_share_filename_dialog = true;
+  }
+
+  async function confirmShareDocument(filename: string): Promise<void> {
+    show_share_filename_dialog = false;
     const content = ytext.toString();
-    const file = new File([content], `${room_id}.txt`, { type: "text/plain" });
+    const file = new File([content], filename, { type: "text/plain" });
     if (navigator.canShare?.({ files: [file] })) {
       await navigator.share({ files: [file] });
     } else {
-      exportDocument(); // fall back to download
+      // Fall back to download with the user-supplied filename
+      const url = URL.createObjectURL(file);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      anchor.click();
+      URL.revokeObjectURL(url);
     }
   }
 
@@ -2193,6 +2208,16 @@
 
   {#if show_url_qr}
     <UrlQrModal onclose={() => { show_url_qr = false; }} />
+  {/if}
+
+  {#if show_share_filename_dialog}
+    <FilenameDialog
+      default_filename={share_default_filename}
+      label="Filename"
+      confirm_label="Share"
+      onconfirm={confirmShareDocument}
+      oncancel={() => { show_share_filename_dialog = false; }}
+    />
   {/if}
 </div>
 
