@@ -1335,6 +1335,7 @@
   );
   let code_mode = $state(false);
   let code_language = $state("javascript");
+  let preview_fullscreen = $state(false);
 
   const CODE_LANGUAGES: { value: string; label: string }[] = [
     { value: "javascript", label: "JS" },
@@ -1536,6 +1537,13 @@
     $preview_store && !$focus_mode_store && !code_mode,
   );
   const show_chat = $derived(chat_open && !$focus_mode_store && !code_mode);
+
+  // Reset fullscreen preview when the preview panel is hidden.
+  $effect(() => {
+    if (!show_preview) {
+      preview_fullscreen = false;
+    }
+  });
 </script>
 
 <svelte:window
@@ -1783,6 +1791,7 @@
   <!-- Editor (+ optional preview / chat pane) -->
   <main
     class:preview-split={show_preview && !show_chat}
+    class:preview-fullscreen={show_preview && !show_chat && preview_fullscreen}
     class:chat-split={show_chat}
     ondragenter={handleDragEnter}
     ondragover={handleDragOver}
@@ -1816,6 +1825,13 @@
           onclick={() => preview_store.toggle()}
           aria-label="Back to editor">← Edit</button
         >
+        <!-- Wide: toggle full-width preview -->
+        <button
+          class="preview-expand-btn"
+          onclick={() => { preview_fullscreen = !preview_fullscreen; }}
+          aria-label={preview_fullscreen ? "Back to split view" : "Full-width preview"}
+          title={preview_fullscreen ? "Back to split view" : "Full-width preview"}
+        >{preview_fullscreen ? "⊟ Split" : "⤢ Full"}</button>
         <MarkdownPreview content={preview_content} />
       </div>
     {/if}
@@ -2612,6 +2628,36 @@
     .preview-back-btn {
       display: none;
     }
+
+    /* Full-width preview: hide editor, give preview the full width */
+    main.preview-fullscreen .editor-pane {
+      display: none;
+    }
+
+    main.preview-fullscreen .preview-pane {
+      flex: 1;
+      border-left: none;
+    }
+
+    .preview-expand-btn {
+      position: absolute;
+      top: 0.35rem;
+      right: 0.5rem;
+      z-index: 10;
+      background: none;
+      border: none;
+      color: var(--color-text-muted);
+      font-family: var(--font-mono, monospace);
+      font-size: 0.72rem;
+      padding: 0.2rem 0.4rem;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: color 0.15s;
+    }
+
+    .preview-expand-btn:hover {
+      color: var(--color-text);
+    }
   }
 
   /* Narrow: toggle between editor and preview */
@@ -2625,6 +2671,10 @@
     }
 
     .editor-pane.hidden-narrow {
+      display: none;
+    }
+
+    .preview-expand-btn {
       display: none;
     }
 
@@ -2664,9 +2714,6 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
-  }
-
-  .editor-pane {
     position: relative;
   }
 

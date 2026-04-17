@@ -129,9 +129,8 @@
     let theme_style: HTMLStyleElement | null = null;
 
     (async () => {
-      const [{ createEditor }, { loadTheme }, { matchBrackets }, { highlightBracketPairs }, { defaultCommands }] = await Promise.all([
+      const [{ createEditor }, { matchBrackets }, { highlightBracketPairs }, { defaultCommands }] = await Promise.all([
         import("prism-code-editor"),
-        import("prism-code-editor/themes"),
         import("prism-code-editor/match-brackets"),
         import("prism-code-editor/highlight-brackets"),
         import("prism-code-editor/commands"),
@@ -140,9 +139,12 @@
 
       if (cleanup_called || code_container === undefined) return;
 
-      // Load theme matching the active color scheme
+      // Load only the two themes actually used — bypasses the full theme barrel
+      // so Vite doesn't bundle all 13 themes as lazy chunks.
       const is_dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      const theme_css = await loadTheme(is_dark ? "github-dark" : "github-light");
+      const { default: theme_css } = is_dark
+        ? await import("prism-code-editor/themes/github-dark.css?inline")
+        : await import("prism-code-editor/themes/github-light.css?inline");
 
       if (cleanup_called || code_container === undefined) return;
 
