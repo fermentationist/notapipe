@@ -110,7 +110,11 @@ test.describe("Dropdown menus", () => {
 
   test("clicking Use QR code opens the QR overlay with role selection", async ({ page }) => {
     const errors: string[] = [];
-    page.on("pageerror", (err) => { if (!SW_NOISE_PATTERN.test(err.message)) { errors.push(err.message); } });
+    page.on("pageerror", (err) => {
+      if (!SW_NOISE_PATTERN.test(err.message)) {
+        errors.push(err.message);
+      }
+    });
 
     await page.goto("/");
     await page.waitForLoadState("networkidle");
@@ -127,7 +131,11 @@ test.describe("Dropdown menus", () => {
 
   test("QR canvas renders after choosing offerer role", async ({ page }) => {
     const errors: string[] = [];
-    page.on("pageerror", (err) => { if (!SW_NOISE_PATTERN.test(err.message)) { errors.push(err.message); } });
+    page.on("pageerror", (err) => {
+      if (!SW_NOISE_PATTERN.test(err.message)) {
+        errors.push(err.message);
+      }
+    });
 
     await page.goto("/");
     await page.waitForLoadState("networkidle");
@@ -168,7 +176,11 @@ test.describe("Dropdown menus", () => {
 
   test("choosing answerer role opens the camera immediately", async ({ page }) => {
     const errors: string[] = [];
-    page.on("pageerror", (err) => { if (!SW_NOISE_PATTERN.test(err.message)) { errors.push(err.message); } });
+    page.on("pageerror", (err) => {
+      if (!SW_NOISE_PATTERN.test(err.message)) {
+        errors.push(err.message);
+      }
+    });
 
     await page.goto("/");
     await page.waitForLoadState("networkidle");
@@ -193,7 +205,12 @@ test.describe("Dropdown menus", () => {
 
     await page.getByRole("button", { name: "Actions" }).click();
 
-    const items = ["Clear current document", "Clear all documents", "Clear settings", "Clear everything"];
+    const items = [
+      "Clear current document",
+      "Clear all documents",
+      "Clear settings",
+      "Clear everything",
+    ];
 
     for (const name of items) {
       await expect(page.getByRole("menuitem", { name })).toBeVisible();
