@@ -142,15 +142,24 @@ test.describe("Dropdown menus", () => {
     const qr_canvas = page.locator(".qr-canvas");
     await expect(qr_canvas).toBeVisible({ timeout: 20_000 });
 
-    // Verify the canvas has actually been painted (not just blank white pixels)
+    // Verify the canvas has QR content: a rendered QR code has both light and dark regions.
+    // Comparing raw bytes to data[0] is a false-positive if the background is non-white
+    // (e.g. #f5f0e8 → R≠G, so data[1] would differ from data[0] on a blank canvas).
+    // Instead, check that some pixel's brightness differs significantly from the first pixel.
     const has_content = await qr_canvas.evaluate((canvas: HTMLCanvasElement) => {
       const ctx = canvas.getContext("2d");
       if (ctx === null) {
         return false;
       }
       const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const first_pixel = data[0];
-      return Array.from(data).some((byte) => byte !== first_pixel);
+      const bg_brightness = (data[0] + data[1] + data[2]) / 3;
+      for (let i = 0; i < data.length; i += 4) {
+        const px_brightness = (data[i] + data[i + 1] + data[i + 2]) / 3;
+        if (Math.abs(px_brightness - bg_brightness) > 50) {
+          return true;
+        }
+      }
+      return false;
     });
 
     expect(has_content, "QR canvas should have rendered content, not a blank image").toBe(true);
