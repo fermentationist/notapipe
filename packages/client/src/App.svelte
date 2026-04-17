@@ -1171,13 +1171,22 @@
   }
 
   async function confirmShareDocument(filename: string): Promise<void> {
-    show_share_filename_dialog = false;
     const content = ytext.toString();
     const file = new File([content], filename, { type: "text/plain" });
     if (navigator.canShare?.({ files: [file] })) {
-      await navigator.share({ files: [file] });
+      // navigator.share() must be called before any state mutations.
+      // Browsers (especially Safari) invalidate the user-gesture token after
+      // microtasks queued by Svelte's DOM scheduler, so mutating state first
+      // causes a NotAllowedError. Close the dialog in the finally block instead.
+      try {
+        await navigator.share({ files: [file] });
+      } finally {
+        show_share_filename_dialog = false;
+      }
     } else {
-      // Fall back to download with the user-supplied filename
+      // Fall back to download with the user-supplied filename.
+      // Close the dialog first — no gesture constraint here.
+      show_share_filename_dialog = false;
       const url = URL.createObjectURL(file);
       const anchor = document.createElement("a");
       anchor.href = url;

@@ -1,12 +1,11 @@
 import { test, expect } from "@playwright/test";
 
-// Inject a stub navigator.share so the "Share document as file" menu item
-// is visible (it is gated behind `"share" in navigator`).  The stub also
-// records what it was called with so we can assert on the filename.
-async function stubNavigatorShare(page: import("@playwright/test").Page): Promise<void> {
+type PageType = import("@playwright/test").Page;
+
+// Stub navigator.share with canShare → false (download fallback path).
+// Used by most tests to intercept the download event.
+async function stubNavigatorShareFallback(page: PageType): Promise<void> {
   await page.addInitScript(() => {
-    // Minimal stub: canShare always returns false so the app falls back to
-    // the anchor-download path, which we can intercept via the download event.
     Object.defineProperty(navigator, "share", {
       value: async () => { /* no-op — tests use the download fallback */ },
       writable: false,
@@ -19,6 +18,30 @@ async function stubNavigatorShare(page: import("@playwright/test").Page): Promis
     });
   });
 }
+
+// Stub navigator.share with canShare → true (native share-sheet path).
+// Records calls in window.__share_calls so tests can assert on them.
+async function stubNavigatorShareNative(page: PageType): Promise<void> {
+  await page.addInitScript(() => {
+    (window as unknown as Record<string, unknown>).__share_calls = [];
+    Object.defineProperty(navigator, "share", {
+      value: async (data: ShareData) => {
+        const filenames = data.files ? data.files.map((f: File) => f.name) : [];
+        ((window as unknown as Record<string, unknown>).__share_calls as unknown[]).push({ filenames });
+      },
+      writable: false,
+      configurable: true,
+    });
+    Object.defineProperty(navigator, "canShare", {
+      value: () => true,
+      writable: false,
+      configurable: true,
+    });
+  });
+}
+
+// Keep the old name as an alias so existing tests don't need updating.
+const stubNavigatorShare = stubNavigatorShareFallback;
 
 async function openShareMenu(page: import("@playwright/test").Page): Promise<void> {
   await page.getByRole("button", { name: "Share", exact: true }).click();
@@ -128,5 +151,33 @@ test.describe("FilenameDialog — Share document as file", () => {
 
     const download = await download_promise;
     expect(download.suggestedFilename()).toBe("export.md");
+  });
+
+  // Regression: when canShare returns true, navigator.share() must be called
+  // BEFORE any state mutations (closing the dialog).  Mutating state first
+  // causes Svelte to queue a DOM microtask that some browsers (notably Safari)
+  // use to invalidate the user-gesture token, resulting in a NotAllowedError
+  // and a share sheet that never appears.
+  test("regression: navigator.share() is invoked when canShare returns true", async ({ page }) => {
+    await stubNavigatorShareNative(page);
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    await openShareMenu(page);
+    await page.getByRole("menuitem", { name: "Share document as file" }).click();
+
+    const dialog = page.getByRole("dialog", { name: "Set filename" });
+    await dialog.locator("#filename-input").fill("notes.md");
+    await dialog.getByRole("button", { name: "Share" }).click();
+
+    // Dialog should close after share resolves
+    await expect(dialog).not.toBeVisible({ timeout: 2000 });
+
+    // navigator.share() must have been called with the correct filename
+    const share_calls = await page.evaluate(
+      () => (window as unknown as Record<string, unknown>).__share_calls,
+    ) as Array<{ filenames: string[] }>;
+    expect(share_calls).toHaveLength(1);
+    expect(share_calls[0].filenames).toEqual(["notes.md"]);
   });
 });
