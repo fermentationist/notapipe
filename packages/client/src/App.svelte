@@ -2500,7 +2500,8 @@
     position: relative;
   }
 
-  /* Overrides the .connect-menu defaults — rendered at app root with fixed positioning */
+  /* Overrides the .connect-menu defaults — rendered at app root with fixed positioning.
+     Add any new fixed-position menus here or they will render behind other elements. */
   .actions-menu,
   .info-menu,
   .share-menu {
