@@ -1,14 +1,20 @@
 import { test, expect, type Page, type ConsoleMessage } from "@playwright/test";
 
+// Service worker registration fails with SSL errors on self-signed certs (dev/test only).
+// These are not app bugs — filter them so they don't mask real errors.
+const SW_NOISE_PATTERN = /SSL certificate error|service worker|ServiceWorker/i;
+
 async function collectConsoleErrors(page: Page): Promise<string[]> {
   const errors: string[] = [];
   page.on("console", (msg: ConsoleMessage) => {
-    if (msg.type() === "error") {
+    if (msg.type() === "error" && !SW_NOISE_PATTERN.test(msg.text())) {
       errors.push(msg.text());
     }
   });
   page.on("pageerror", (err: Error) => {
-    errors.push(`[pageerror] ${err.message}`);
+    if (!SW_NOISE_PATTERN.test(err.message)) {
+      errors.push(`[pageerror] ${err.message}`);
+    }
   });
   return errors;
 }
@@ -39,8 +45,8 @@ test.describe("Page load", () => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
     const path = new URL(page.url()).pathname.replace(/^\//, "");
-    await expect(page.locator(".room-id")).toBeVisible();
-    await expect(page.locator(".room-id")).toHaveText(path);
+    await expect(page.locator(".room-name-btn")).toBeVisible();
+    await expect(page.locator(".room-name-btn")).toHaveText(path);
   });
 
   test("preserves room ID from URL on reload", async ({ page }) => {
@@ -54,39 +60,34 @@ test.describe("Page load", () => {
 });
 
 test.describe("Dropdown menus", () => {
-  test("Find a room menu opens and items are visible", async ({ page }) => {
+  test("Room menu opens and shows New random room item", async ({ page }) => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
-    await page.getByRole("button", { name: /Find a room/ }).click();
+    await page.locator(".room-name-btn").click();
 
-    const nearby = page.getByRole("menuitem", { name: "Nearby" });
-    const random = page.getByRole("menuitem", { name: "Random" });
-
-    await expect(nearby).toBeVisible();
-    await expect(random).toBeVisible();
+    await expect(page.getByRole("menuitem", { name: "New random room" })).toBeVisible();
   });
 
-  test("Find a room menu closes on backdrop click", async ({ page }) => {
+  test("Room menu closes on backdrop click", async ({ page }) => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
-    await page.getByRole("button", { name: /Find a room/ }).click();
-    await expect(page.getByRole("menuitem", { name: "Nearby" })).toBeVisible();
+    await page.locator(".room-name-btn").click();
+    await expect(page.getByRole("menuitem", { name: "New random room" })).toBeVisible();
 
-    await page.keyboard.press("Escape");
     // backdrop click — click outside the menu
     await page.mouse.click(10, 10);
-    await expect(page.getByRole("menuitem", { name: "Nearby" })).not.toBeVisible();
+    await expect(page.getByRole("menuitem", { name: "New random room" })).not.toBeVisible();
   });
 
-  test("Selecting Random generates a new room and updates the URL", async ({ page }) => {
+  test("Selecting New random room generates a new room and updates the URL", async ({ page }) => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
     const original_path = new URL(page.url()).pathname;
 
-    await page.getByRole("button", { name: /Find a room/ }).click();
-    await page.getByRole("menuitem", { name: "Random" }).click();
+    await page.locator(".room-name-btn").click();
+    await page.getByRole("menuitem", { name: "New random room" }).click();
 
     // URL should change to a new random room
     await expect(async () => {
@@ -109,7 +110,7 @@ test.describe("Dropdown menus", () => {
 
   test("clicking Use QR code opens the QR overlay with role selection", async ({ page }) => {
     const errors: string[] = [];
-    page.on("pageerror", (err) => errors.push(err.message));
+    page.on("pageerror", (err) => { if (!SW_NOISE_PATTERN.test(err.message)) { errors.push(err.message); } });
 
     await page.goto("/");
     await page.waitForLoadState("networkidle");
@@ -126,7 +127,7 @@ test.describe("Dropdown menus", () => {
 
   test("QR canvas renders after choosing offerer role", async ({ page }) => {
     const errors: string[] = [];
-    page.on("pageerror", (err) => errors.push(err.message));
+    page.on("pageerror", (err) => { if (!SW_NOISE_PATTERN.test(err.message)) { errors.push(err.message); } });
 
     await page.goto("/");
     await page.waitForLoadState("networkidle");
@@ -158,7 +159,7 @@ test.describe("Dropdown menus", () => {
 
   test("choosing answerer role opens the camera immediately", async ({ page }) => {
     const errors: string[] = [];
-    page.on("pageerror", (err) => errors.push(err.message));
+    page.on("pageerror", (err) => { if (!SW_NOISE_PATTERN.test(err.message)) { errors.push(err.message); } });
 
     await page.goto("/");
     await page.waitForLoadState("networkidle");
@@ -181,9 +182,9 @@ test.describe("Dropdown menus", () => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
-    await page.getByRole("button", { name: "Clear data" }).click();
+    await page.getByRole("button", { name: "Actions" }).click();
 
-    const items = ["Clear current doc", "Clear all docs", "Clear settings", "Clear everything"];
+    const items = ["Clear current document", "Clear all documents", "Clear settings", "Clear everything"];
 
     for (const name of items) {
       await expect(page.getByRole("menuitem", { name })).toBeVisible();
@@ -194,8 +195,8 @@ test.describe("Dropdown menus", () => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
-    await page.getByRole("button", { name: "Clear data" }).click();
-    await page.getByRole("menuitem", { name: "Clear current doc" }).click();
+    await page.getByRole("button", { name: "Actions" }).click();
+    await page.getByRole("menuitem", { name: "Clear current document" }).click();
 
     // Confirm dialog should appear — proves menu item was not covered by another element
     await expect(page.getByRole("alertdialog")).toBeVisible({ timeout: 2000 });
@@ -205,8 +206,8 @@ test.describe("Dropdown menus", () => {
     await page.goto("/");
     await page.locator("textarea").fill("do not delete me");
 
-    await page.getByRole("button", { name: "Clear data" }).click();
-    await page.getByRole("menuitem", { name: "Clear current doc" }).click();
+    await page.getByRole("button", { name: "Actions" }).click();
+    await page.getByRole("menuitem", { name: "Clear current document" }).click();
     await page.getByRole("button", { name: "Cancel" }).click();
 
     await expect(page.getByRole("alertdialog")).not.toBeVisible();
@@ -217,8 +218,8 @@ test.describe("Dropdown menus", () => {
     await page.goto("/");
     await page.locator("textarea").fill("delete me");
 
-    await page.getByRole("button", { name: "Clear data" }).click();
-    await page.getByRole("menuitem", { name: "Clear current doc" }).click();
+    await page.getByRole("button", { name: "Actions" }).click();
+    await page.getByRole("menuitem", { name: "Clear current document" }).click();
     await page.getByRole("button", { name: "Confirm" }).click();
 
     await expect(page.getByRole("alertdialog")).not.toBeVisible();
@@ -274,7 +275,7 @@ test.describe("Settings panel", () => {
   test("persistence toggle is present and off by default", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "Settings" }).click();
-    const toggle = page.getByRole("checkbox", { name: /localStorage/ });
+    const toggle = page.getByRole("checkbox", { name: /Save document/ });
     await expect(toggle).toBeVisible();
     await expect(toggle).not.toBeChecked();
   });
