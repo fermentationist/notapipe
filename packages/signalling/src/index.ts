@@ -1,6 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "http";
 import { createReadStream } from "fs";
-import { readFile, access, stat } from "fs/promises";
+import { readFile, stat } from "fs/promises";
 import { join, extname, resolve } from "path";
 import { WebSocketServer, type WebSocket } from "ws";
 import type { ClientMessage } from "./types.ts";
@@ -43,9 +43,11 @@ async function serveStatic(request: IncomingMessage, response: ServerResponse): 
   let resolved_path: string | null = null;
   for (const file_path of candidates) {
     try {
-      await access(file_path);
-      resolved_path = file_path;
-      break;
+      const file_stat = await stat(file_path);
+      if (file_stat.isFile()) {
+        resolved_path = file_path;
+        break;
+      }
     } catch {
       // try next candidate
     }
