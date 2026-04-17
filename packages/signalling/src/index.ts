@@ -1,5 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "http";
-import { readFile, access } from "fs/promises";
+import { createReadStream } from "fs";
+import { readFile, access, stat } from "fs/promises";
 import { join, extname, resolve } from "path";
 import { WebSocketServer, type WebSocket } from "ws";
 import type { ClientMessage } from "./types.ts";
@@ -37,28 +38,59 @@ async function serveStatic(request: IncomingMessage, response: ServerResponse): 
     return true;
   }
 
-  // Try the exact path, then the exact path + /index.html, then SPA fallback
+  // Find the first candidate that exists: exact path, then /index.html suffix, then SPA fallback
   const candidates = [candidate, join(candidate, "index.html"), join(CLIENT_DIST, "index.html")];
-
+  let resolved_path: string | null = null;
   for (const file_path of candidates) {
     try {
       await access(file_path);
-      const content = await readFile(file_path);
-      const ext = extname(file_path);
-      const content_type = MIME_TYPES[ext] ?? "application/octet-stream";
-      // Cache hashed assets aggressively; everything else no-cache
-      const cache_control = file_path.includes("/assets/")
-        ? "public, max-age=31536000, immutable"
-        : "no-cache";
-      response.writeHead(200, { "Content-Type": content_type, "Cache-Control": cache_control });
-      response.end(content);
-      return true;
+      resolved_path = file_path;
+      break;
     } catch {
-      // File not found — try next candidate
+      // try next candidate
+    }
+  }
+  if (resolved_path === null) {
+    return false;
+  }
+
+  const ext = extname(resolved_path);
+  const content_type = MIME_TYPES[ext] ?? "application/octet-stream";
+  // Cache hashed assets aggressively; everything else no-cache
+  const cache_control = resolved_path.includes("/assets/")
+    ? "public, max-age=31536000, immutable"
+    : "no-cache";
+
+  // Safari requires Range request support for video — it won't play without it.
+  // Advertise Accept-Ranges on every response so the browser knows to ask.
+  const range_header = request.headers["range"];
+  if (range_header !== undefined) {
+    const { size: file_size } = await stat(resolved_path);
+    const match = /bytes=(\d*)-(\d*)/.exec(range_header);
+    if (match !== null) {
+      const start = match[1] ? parseInt(match[1], 10) : 0;
+      const end = match[2] ? Math.min(parseInt(match[2], 10), file_size - 1) : file_size - 1;
+      const chunk_size = end - start + 1;
+      response.writeHead(206, {
+        "Content-Type": content_type,
+        "Content-Range": `bytes ${start}-${end}/${file_size}`,
+        "Accept-Ranges": "bytes",
+        "Content-Length": String(chunk_size),
+        "Cache-Control": cache_control,
+      });
+      createReadStream(resolved_path, { start, end }).pipe(response);
+      return true;
     }
   }
 
-  return false;
+  const content = await readFile(resolved_path);
+  response.writeHead(200, {
+    "Content-Type": content_type,
+    "Cache-Control": cache_control,
+    "Accept-Ranges": "bytes",
+  });
+  response.end(content);
+  return true;
 }
 
 // ---------------------------------------------------------------------------
