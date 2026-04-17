@@ -51,7 +51,6 @@
   import FileTransferBar, { type PeerEntry as FtPeerEntry } from "./components/FileTransferBar.svelte";
   import ThemePanel from "./components/ThemePanel.svelte";
   import CopyIcon from "./components/CopyIcon.svelte";
-  import UserIcon from "./components/UserIcon.svelte";
   import HardDriveIcon from "./components/HardDriveIcon.svelte";
   import SunIcon from "./components/SunIcon.svelte";
   import MoonIcon from "./components/MoonIcon.svelte";
@@ -165,28 +164,6 @@
   let peer_toasts = $state<PeerToast[]>([]);
 
   // ---------------------------------------------------------------------------
-  // Peer count alert (flashes briefly when a new peer joins)
-  // ---------------------------------------------------------------------------
-
-  let peer_count_alert = $state(false);
-  let peer_count_alert_timeout: ReturnType<typeof setTimeout> | null = null;
-  // Non-reactive; compared against current size each effect run.
-  let prev_peer_count = 0;
-
-  $effect(() => {
-    const count = remote_handles.size;
-    if (count > prev_peer_count) {
-      if (peer_count_alert_timeout !== null) {
-        clearTimeout(peer_count_alert_timeout);
-      }
-      peer_count_alert = true;
-      peer_count_alert_timeout = setTimeout(() => {
-        peer_count_alert = false;
-        peer_count_alert_timeout = null;
-      }, 2000);
-    }
-    prev_peer_count = count;
-  });
 
   // Show a one-time notice when the user enables document persistence,
   // so they understand the privacy implication (content survives tab close).
@@ -1578,18 +1555,7 @@
     <header>
       <div class="header-left">
         <span class="app-name">notapipe</span>
-      </div>
-      <div class="header-center">
         <ConnectionStatus />
-        <div
-          class="peer-count"
-          class:alert={peer_count_alert}
-          title="{remote_handles.size} peer{remote_handles.size === 1 ? '' : 's'} connected"
-          aria-label="{remote_handles.size} peer{remote_handles.size === 1 ? '' : 's'} connected"
-        >
-          <UserIcon size={11} />
-          <span class="peer-count-num">{remote_handles.size}</span>
-        </div>
       </div>
       <div class="header-right">
         {#if $persistence_store}
@@ -2225,9 +2191,12 @@
 
   /* On narrow phones, hide non-essential header buttons — use ⌘K via actions menu */
   @media (max-width: 600px) {
-    .info-menu-wrapper,
     .theme-toggle-btn,
     .palette-trigger {
+      display: none;
+    }
+    /* Keep the status dot next to the logo but hide the verbose text label */
+    :global(.status-label) {
       display: none;
     }
   }
@@ -2246,12 +2215,9 @@
 
   .header-left {
     flex: 1;
-  }
-
-  .header-center {
     display: flex;
     align-items: center;
-    gap: 0.25rem;
+    gap: 0.4rem;
   }
 
   .header-right {
@@ -2264,28 +2230,7 @@
   .app-name {
     font-size: 0.9rem;
     color: var(--color-text-muted);
-  }
-
-  .peer-count {
-    display: flex;
-    align-items: center;
-    gap: 3px;
-    font-size: 0.72rem;
-    font-variant-numeric: tabular-nums;
-    color: var(--color-text-muted);
-    padding: 0.15rem 0.4rem;
-    border-radius: 4px;
-    transition: color 0.15s, background 0.15s;
-    user-select: none;
-  }
-
-  .peer-count.alert {
-    color: var(--color-accent);
-    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
-  }
-
-  .peer-count-num {
-    font-family: "IBM Plex Mono", monospace;
+    flex-shrink: 0;
   }
 
   .room-bar {
