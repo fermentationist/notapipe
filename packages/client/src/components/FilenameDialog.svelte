@@ -21,9 +21,11 @@
   $effect(() => {
     if (input_el) {
       input_el.focus();
-      // Select the name portion only (before the extension)
-      const dot = input_value.lastIndexOf(".");
-      input_el.setSelectionRange(0, dot > 0 ? dot : input_value.length);
+      // Select the name portion only (before the extension).
+      // Use default_filename — not input_value — so this effect only runs
+      // once on mount and does not re-select on every keystroke.
+      const dot = default_filename.lastIndexOf(".");
+      input_el.setSelectionRange(0, dot > 0 ? dot : default_filename.length);
     }
   });
 
