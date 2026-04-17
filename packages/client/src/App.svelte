@@ -2502,7 +2502,8 @@
 
   /* Overrides the .connect-menu defaults — rendered at app root with fixed positioning */
   .actions-menu,
-  .info-menu {
+  .info-menu,
+  .share-menu {
     position: fixed !important;
     bottom: auto !important;
     left: auto !important;
