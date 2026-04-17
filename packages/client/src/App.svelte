@@ -2819,7 +2819,7 @@
     position: absolute;
     bottom: calc(100% + 4px);
     left: 0;
-    z-index: 11;
+    z-index: 60;
     background: var(--color-bg);
     border: 1px solid var(--color-border);
     border-radius: 4px;
