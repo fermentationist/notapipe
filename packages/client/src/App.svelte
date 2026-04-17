@@ -1203,7 +1203,7 @@
       await navigator.share({
         url,
         title: "notapipe",
-        text: `A notapipe document has been shared with you. After clicking the link, click "Connect" to join the document. \n\nTo learn more about the notapipe project and to view the source code, visit github.com/fermentationist/notapipe`,
+        text: `You've been invited to a notapipe room. Open the link and click "Connect" to join. \n\nnotapipe is an ephemeral peer-to-peer data bridge — no server stores your content. Learn more or view the source at github.com/fermentationist/notapipe`,
       });
     } else {
       await navigator.clipboard.writeText(url);
