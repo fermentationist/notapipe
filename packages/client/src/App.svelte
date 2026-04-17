@@ -1173,26 +1173,29 @@
   async function confirmShareDocument(filename: string): Promise<void> {
     const content = ytext.toString();
     const file = new File([content], filename, { type: "text/plain" });
-    if (navigator.canShare?.({ files: [file] })) {
-      // navigator.share() must be called before any state mutations.
-      // Browsers (especially Safari) invalidate the user-gesture token after
-      // microtasks queued by Svelte's DOM scheduler, so mutating state first
-      // causes a NotAllowedError. Close the dialog in the finally block instead.
-      try {
-        await navigator.share({ files: [file] });
-      } finally {
-        show_share_filename_dialog = false;
+    try {
+      // Call navigator.share() unconditionally — skipping the canShare() pre-flight
+      // entirely. canShare() can return false (or not exist) even on browsers that
+      // fully support share(), causing the fallback path to run silently and the
+      // share sheet to never appear. Let share() itself throw if unsupported.
+      // Must be called before any state mutations to preserve the user-gesture token.
+      await navigator.share({ files: [file] });
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        // User dismissed the share sheet — nothing to do.
+      } else {
+        // share() genuinely unsupported or not allowed — download as fallback.
+        const url = URL.createObjectURL(file);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = filename;
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+        setTimeout(() => URL.revokeObjectURL(url), 0);
       }
-    } else {
-      // Fall back to download with the user-supplied filename.
-      // Close the dialog first — no gesture constraint here.
+    } finally {
       show_share_filename_dialog = false;
-      const url = URL.createObjectURL(file);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = filename;
-      anchor.click();
-      URL.revokeObjectURL(url);
     }
   }
 
