@@ -230,6 +230,34 @@ export class RTCPeerManager {
     }
   }
 
+  /**
+   * Trigger an ICE restart by creating a new offer with `iceRestart: true`.
+   * Only the offerer can restart ICE. No-op for the answerer or when the
+   * connection is closed / not yet in a stable signalling state.
+   */
+  async restartIce(): Promise<void> {
+    const pc = this.peer_connection;
+    if (pc === null || !this.is_offerer) {
+      return;
+    }
+    if (pc.connectionState === "closed") {
+      return;
+    }
+    if (pc.signalingState !== "stable") {
+      return;
+    }
+    try {
+      const offer = await pc.createOffer({ iceRestart: true });
+      if (pc.signalingState !== "stable") {
+        return;
+      }
+      await pc.setLocalDescription(offer);
+      this.transport.sendOffer({ type: offer.type, sdp: offer.sdp ?? "" });
+    } catch (err) {
+      console.error("[RTCPeerManager] restartIce failed:", err);
+    }
+  }
+
   /** Remove all audio senders from the peer connection (used to end a voice call). */
   removeAudioTracks(): void {
     if (this.peer_connection === null) {

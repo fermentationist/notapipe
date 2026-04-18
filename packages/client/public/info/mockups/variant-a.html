@@ -39,7 +39,9 @@
         --r: 8px;
       }
 
-      html { scroll-behavior: smooth; }
+      html {
+        scroll-behavior: smooth;
+      }
 
       body {
         background: var(--bg);
@@ -50,7 +52,10 @@
         -webkit-font-smoothing: antialiased;
       }
 
-      a { color: inherit; text-decoration: none; }
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
 
       /* ── NAV ──────────────────────────────────────────────── */
       nav {
@@ -68,14 +73,30 @@
         border-bottom: 1px solid var(--border);
       }
 
-      .nav-brand { font-family: var(--mono); font-weight: 500; font-size: 0.9rem; }
+      .nav-brand {
+        font-family: var(--mono);
+        font-weight: 500;
+        font-size: 0.9rem;
+      }
 
-      .nav-right { display: flex; align-items: center; gap: 1.25rem; }
+      .nav-right {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+      }
 
-      .nav-gh { font-size: 0.82rem; color: var(--muted); transition: color 0.2s; }
-      .nav-gh:hover { color: var(--text); }
+      .nav-gh {
+        font-size: 0.82rem;
+        color: var(--muted);
+        transition: color 0.2s;
+      }
+      .nav-gh:hover {
+        color: var(--text);
+      }
 
-      .mt-40 { margin-top: 40px; }
+      .mt-40 {
+        margin-top: 40px;
+      }
 
       .btn {
         font-family: var(--mono);
@@ -88,7 +109,9 @@
         transition: opacity 0.2s;
         display: inline-block;
       }
-      .btn:hover { opacity: 0.82; }
+      .btn:hover {
+        opacity: 0.82;
+      }
 
       /* ── HERO ─────────────────────────────────────────────── */
       #hero {
@@ -99,8 +122,14 @@
       }
 
       @keyframes fadeUp {
-        from { opacity: 0; transform: translateY(14px); }
-        to { opacity: 1; transform: translateY(0); }
+        from {
+          opacity: 0;
+          transform: translateY(14px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
       .hero-hed {
@@ -112,24 +141,44 @@
         margin-bottom: 1.5rem;
       }
 
-      .hero-heading { height: 220px; }
+      .hero-heading {
+        height: 220px;
+      }
 
       @media (max-width: 767px) {
-        .nav-gh { display: none; }
-        .hero-heading { height: 175px; }
+        .nav-gh {
+          display: none;
+        }
+        .hero-heading {
+          height: 175px;
+        }
       }
       @media (max-width: 575px) {
-        .nav-gh { display: none; }
-        .hero-heading { height: 135px; }
+        .nav-gh {
+          display: none;
+        }
+        .hero-heading {
+          height: 135px;
+        }
       }
       @media (max-width: 315px) {
-        .nav-gh { display: none; }
-        .hero-heading { height: 196px; }
+        .nav-gh {
+          display: none;
+        }
+        .hero-heading {
+          height: 196px;
+        }
       }
 
-      .hero-line { display: block; }
-      .hero-line + .hero-line { margin-top: 0.1em; }
-      #hero-line1 { transition: opacity 0.5s ease; }
+      .hero-line {
+        display: block;
+      }
+      .hero-line + .hero-line {
+        margin-top: 0.1em;
+      }
+      #hero-line1 {
+        transition: opacity 0.5s ease;
+      }
 
       .cursor {
         display: inline-block;
@@ -141,7 +190,11 @@
         animation: blink 1s step-end infinite;
       }
 
-      @keyframes blink { 50% { opacity: 0; } }
+      @keyframes blink {
+        50% {
+          opacity: 0;
+        }
+      }
 
       .hero-sub {
         font-size: 0.97rem;
@@ -176,10 +229,18 @@
         border-radius: 4px;
         transition: opacity 0.2s;
       }
-      .hero-cta:hover { opacity: 0.82; }
+      .hero-cta:hover {
+        opacity: 0.82;
+      }
 
-      .hero-scroll { font-size: 0.88rem; color: var(--muted); transition: color 0.2s; }
-      .hero-scroll:hover { color: var(--text); }
+      .hero-scroll {
+        font-size: 0.88rem;
+        color: var(--muted);
+        transition: color 0.2s;
+      }
+      .hero-scroll:hover {
+        color: var(--text);
+      }
 
       /* ── PROBLEM ──────────────────────────────────────────── */
       #problem {
@@ -196,7 +257,10 @@
       }
 
       @media (min-width: 768px) {
-        .problem-inner { grid-template-columns: 1fr 1fr; gap: 3.5rem; }
+        .problem-inner {
+          grid-template-columns: 1fr 1fr;
+          gap: 3.5rem;
+        }
       }
 
       .plist {
@@ -215,15 +279,30 @@
         gap: 0.6rem;
       }
 
-      .mk { flex-shrink: 0; }
+      .mk {
+        flex-shrink: 0;
+      }
 
-      .bad .mk { color: var(--red); }
-      .bad .txt { color: var(--muted); text-decoration: line-through; text-decoration-color: rgba(248, 113, 113, 0.45); }
+      .bad .mk {
+        color: var(--red);
+      }
+      .bad .txt {
+        color: var(--muted);
+        text-decoration: line-through;
+        text-decoration-color: rgba(248, 113, 113, 0.45);
+      }
 
-      .good .mk { color: var(--accent); }
-      .good .txt { color: var(--text); }
+      .good .mk {
+        color: var(--accent);
+      }
+      .good .txt {
+        color: var(--text);
+      }
 
-      .text-emphasized { color: var(--accent); font-weight: 600; }
+      .text-emphasized {
+        color: var(--accent);
+        font-weight: 600;
+      }
 
       /* ── DEMO ─────────────────────────────────────────────── */
       #demo {
@@ -232,7 +311,11 @@
         background: var(--bg-alt);
       }
 
-      #demo .inner { max-width: 700px; margin: 0 auto; text-align: center; }
+      #demo .inner {
+        max-width: 700px;
+        margin: 0 auto;
+        text-align: center;
+      }
 
       .frames {
         display: flex;
@@ -243,13 +326,24 @@
       }
 
       @media (min-width: 768px) {
-        .frames { flex-direction: row; align-items: flex-start; justify-content: center; gap: 2rem; }
+        .frames {
+          flex-direction: row;
+          align-items: flex-start;
+          justify-content: center;
+          gap: 2rem;
+        }
       }
 
-      .device { flex: 1; max-width: 300px; width: 100%; }
+      .device {
+        flex: 1;
+        max-width: 300px;
+        width: 100%;
+      }
 
       @media (min-width: 768px) {
-        .device.phone { order: 1; }
+        .device.phone {
+          order: 1;
+        }
       }
 
       .dev-label {
@@ -286,7 +380,11 @@
         letter-spacing: -0.01em;
       }
 
-      .dev-status { display: flex; align-items: center; gap: 0.35rem; }
+      .dev-status {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+      }
 
       .sdot {
         width: 6px;
@@ -294,12 +392,21 @@
         border-radius: 50%;
         flex-shrink: 0;
         background: #6b6660;
-        transition: background 0.35s ease, box-shadow 0.35s ease;
+        transition:
+          background 0.35s ease,
+          box-shadow 0.35s ease;
       }
 
-      .sdot.on { background: #4caf50; box-shadow: 0 0 5px rgba(76, 175, 80, 0.45); }
+      .sdot.on {
+        background: #4caf50;
+        box-shadow: 0 0 5px rgba(76, 175, 80, 0.45);
+      }
 
-      .dot-lbl { font-family: var(--mono); font-size: 0.6rem; color: #6b6660; }
+      .dot-lbl {
+        font-family: var(--mono);
+        font-size: 0.6rem;
+        color: #6b6660;
+      }
 
       .dev-room-bar {
         display: flex;
@@ -331,7 +438,10 @@
         cursor: default;
       }
 
-      .dev-editor { padding: 0.65rem 0.7rem; min-height: 52px; }
+      .dev-editor {
+        padding: 0.65rem 0.7rem;
+        min-height: 52px;
+      }
 
       .dev-content {
         font-family: var(--mono);
@@ -376,7 +486,9 @@
         transition: color 0.15s;
       }
 
-      .dev-corner-btn.copied { color: #4ade80; }
+      .dev-corner-btn.copied {
+        color: #4ade80;
+      }
 
       .copy-icon-wrap {
         position: relative;
@@ -395,9 +507,16 @@
         transition: opacity 0.15s;
       }
 
-      .copy-icon-wrap .check-svg { opacity: 0; stroke: #4ade80; }
-      .dev-corner-btn.copied .copy-icon-wrap img { opacity: 0; }
-      .dev-corner-btn.copied .copy-icon-wrap .check-svg { opacity: 1; }
+      .copy-icon-wrap .check-svg {
+        opacity: 0;
+        stroke: #4ade80;
+      }
+      .dev-corner-btn.copied .copy-icon-wrap img {
+        opacity: 0;
+      }
+      .dev-corner-btn.copied .copy-icon-wrap .check-svg {
+        opacity: 1;
+      }
 
       .demo-caption {
         font-family: var(--mono);
@@ -429,8 +548,16 @@
         margin: 0 auto;
       }
 
-      @media (min-width: 480px) { .f-grid { grid-template-columns: repeat(2, 1fr); } }
-      @media (min-width: 768px) { .f-grid { grid-template-columns: repeat(3, 1fr); } }
+      @media (min-width: 480px) {
+        .f-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+      @media (min-width: 768px) {
+        .f-grid {
+          grid-template-columns: repeat(3, 1fr);
+        }
+      }
 
       .card {
         background: var(--bg-card);
@@ -439,9 +566,24 @@
         padding: 1.4rem;
       }
 
-      .card-icon { font-size: 1.4rem; display: block; margin-bottom: 0.65rem; line-height: 1; }
-      .card-title { font-family: var(--mono); font-size: 0.82rem; font-weight: 600; margin-bottom: 0.35rem; color: var(--text); }
-      .card-desc { font-size: 0.82rem; color: var(--muted); line-height: 1.6; }
+      .card-icon {
+        font-size: 1.4rem;
+        display: block;
+        margin-bottom: 0.65rem;
+        line-height: 1;
+      }
+      .card-title {
+        font-family: var(--mono);
+        font-size: 0.82rem;
+        font-weight: 600;
+        margin-bottom: 0.35rem;
+        color: var(--text);
+      }
+      .card-desc {
+        font-size: 0.82rem;
+        color: var(--muted);
+        line-height: 1.6;
+      }
 
       /* ── HOW IT WORKS ─────────────────────────────────────── */
       #how {
@@ -450,7 +592,10 @@
         background: var(--bg-alt);
       }
 
-      .how-inner { max-width: 900px; margin: 0 auto; }
+      .how-inner {
+        max-width: 900px;
+        margin: 0 auto;
+      }
 
       .steps {
         display: flex;
@@ -459,7 +604,12 @@
         margin-bottom: 1.75rem;
       }
 
-      @media (min-width: 768px) { .steps { flex-direction: row; gap: 0; } }
+      @media (min-width: 768px) {
+        .steps {
+          flex-direction: row;
+          gap: 0;
+        }
+      }
 
       .step {
         flex: 1;
@@ -468,12 +618,24 @@
         border: 1px solid var(--border);
       }
 
-      @media (max-width: 767px) { .step { border-radius: var(--r); } }
+      @media (max-width: 767px) {
+        .step {
+          border-radius: var(--r);
+        }
+      }
 
       @media (min-width: 768px) {
-        .step { border-right: none; border-radius: 0; }
-        .step:first-child { border-radius: var(--r) 0 0 var(--r); }
-        .step:last-child { border-radius: 0 var(--r) var(--r) 0; border-right: 1px solid var(--border); }
+        .step {
+          border-right: none;
+          border-radius: 0;
+        }
+        .step:first-child {
+          border-radius: var(--r) 0 0 var(--r);
+        }
+        .step:last-child {
+          border-radius: 0 var(--r) var(--r) 0;
+          border-right: 1px solid var(--border);
+        }
       }
 
       .step-n {
@@ -497,8 +659,17 @@
         text-align: center;
       }
 
-      .step-title { font-family: var(--mono); font-size: 0.88rem; font-weight: 600; margin-bottom: 0.45rem; }
-      .step-desc { font-size: 0.82rem; color: var(--muted); line-height: 1.65; }
+      .step-title {
+        font-family: var(--mono);
+        font-size: 0.88rem;
+        font-weight: 600;
+        margin-bottom: 0.45rem;
+      }
+      .step-desc {
+        font-size: 0.82rem;
+        color: var(--muted);
+        line-height: 1.65;
+      }
       .step-desc code {
         font-family: var(--mono);
         font-size: 0.8em;
@@ -518,12 +689,28 @@
         line-height: 1.65;
       }
 
-      .callout strong { color: var(--text); font-family: var(--mono); }
-      .callout a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
-      .callout a:hover { opacity: 0.8; }
+      .callout strong {
+        color: var(--text);
+        font-family: var(--mono);
+      }
+      .callout a {
+        color: var(--accent);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+      .callout a:hover {
+        opacity: 0.8;
+      }
 
-      .mono-center { font-family: var(--mono); font-size: 0.82rem; line-height: 1.65; text-align: center; }
-      .center { text-align: center; }
+      .mono-center {
+        font-family: var(--mono);
+        font-size: 0.82rem;
+        line-height: 1.65;
+        text-align: center;
+      }
+      .center {
+        text-align: center;
+      }
 
       /* ── PHILOSOPHY ────────────────────────────────────────── */
       .philosophy-inner {
@@ -534,7 +721,11 @@
         gap: 1.5rem;
       }
 
-      .philosophy-list-container { display: flex; justify-content: center; padding-top: 0.25rem; }
+      .philosophy-list-container {
+        display: flex;
+        justify-content: center;
+        padding-top: 0.25rem;
+      }
 
       .philosophy-list {
         list-style: none;
@@ -550,7 +741,10 @@
       }
 
       @media (min-width: 768px) {
-        .philosophy-list { grid-template-columns: repeat(2, 1fr); gap: 0.9rem 1.6rem; }
+        .philosophy-list {
+          grid-template-columns: repeat(2, 1fr);
+          gap: 0.9rem 1.6rem;
+        }
       }
 
       .philosophy-list li {
@@ -562,12 +756,21 @@
         gap: 0.6rem;
       }
 
-      #philosophy { padding: 1.5rem 1.5rem; border-top: 1px solid var(--border); }
+      #philosophy {
+        padding: 1.5rem 1.5rem;
+        border-top: 1px solid var(--border);
+      }
 
       /* ── USE CASES ────────────────────────────────────────── */
-      #use-cases { padding: 1.5rem 1.5rem; border-top: 1px solid var(--border); }
+      #use-cases {
+        padding: 1.5rem 1.5rem;
+        border-top: 1px solid var(--border);
+      }
 
-      .uc-wrap { max-width: 860px; margin: 0 auto; }
+      .uc-wrap {
+        max-width: 860px;
+        margin: 0 auto;
+      }
 
       .uc-list {
         list-style: none;
@@ -577,7 +780,10 @@
       }
 
       @media (min-width: 768px) {
-        .uc-list { grid-template-columns: repeat(2, 1fr); gap: 0.55rem 2.5rem; }
+        .uc-list {
+          grid-template-columns: repeat(2, 1fr);
+          gap: 0.55rem 2.5rem;
+        }
       }
 
       .uc-list li {
@@ -590,7 +796,10 @@
         align-items: baseline;
       }
 
-      .arr { color: var(--accent); flex-shrink: 0; }
+      .arr {
+        color: var(--accent);
+        flex-shrink: 0;
+      }
 
       /* ── PRIVACY / TRUST / LONGEVITY (merged) ─────────────── */
       #privacy {
@@ -617,8 +826,12 @@
         margin-bottom: 0.9rem;
       }
 
-      .privacy-box p:last-of-type { margin-bottom: 1.5rem; }
-      .privacy-box strong { color: var(--text); }
+      .privacy-box p:last-of-type {
+        margin-bottom: 1.5rem;
+      }
+      .privacy-box strong {
+        color: var(--text);
+      }
 
       /* ── FOOTER ───────────────────────────────────────────── */
       footer {
@@ -641,9 +854,15 @@
         gap: 1rem;
       }
 
-      .foot-r a { transition: color 0.2s; }
-      .foot-r a:hover { color: var(--text); }
-      .foot-r .cta { color: var(--accent); }
+      .foot-r a {
+        transition: color 0.2s;
+      }
+      .foot-r a:hover {
+        color: var(--text);
+      }
+      .foot-r .cta {
+        color: var(--accent);
+      }
 
       .background-video {
         position: fixed;
@@ -657,7 +876,10 @@
       }
 
       @media (max-width: 767px) {
-        .background-video { transform: scale(0.6); transform-origin: 0 0; }
+        .background-video {
+          transform: scale(0.6);
+          transform-origin: 0 0;
+        }
       }
 
       /* ── VARIANT LABEL ────────────────────────────────────── */
@@ -688,7 +910,13 @@
     <nav>
       <a href="#" class="nav-brand">notapipe</a>
       <div class="nav-right">
-        <a href="https://github.com/fermentationist/notapipe" target="_blank" rel="noopener" class="nav-gh">GitHub</a>
+        <a
+          href="https://github.com/fermentationist/notapipe"
+          target="_blank"
+          rel="noopener"
+          class="nav-gh"
+          >GitHub</a
+        >
         <a href="../../../" data-app-link class="btn">Open App →</a>
       </div>
     </nav>
@@ -763,7 +991,16 @@
                 <button class="dev-corner-btn" id="copybtn" tabindex="-1" aria-hidden="true">
                   <span class="copy-icon-wrap">
                     <img src="/svg_icons/copy_icon.svg" width="12" height="12" alt="" />
-                    <svg class="check-svg" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg
+                      class="check-svg"
+                      width="12"
+                      height="12"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      stroke-width="2.2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
                       <polyline points="1.5,6 4.5,9.5 10.5,2.5"></polyline>
                     </svg>
                   </span>
@@ -788,9 +1025,16 @@
           <br />
           <ul class="plist good">
             <li><span class="mk">✓</span><span class="txt">Open a session</span></li>
-            <li><span class="mk">✓</span><span class="txt">Join from another device (link or QR code)</span></li>
-            <li><span class="mk">✓</span><span class="txt">Paste, type, or drag and drop files</span></li>
-            <li><span class="mk">✓</span><span class="txt">Close the session and it disappears</span></li>
+            <li>
+              <span class="mk">✓</span
+              ><span class="txt">Join from another device (link or QR code)</span>
+            </li>
+            <li>
+              <span class="mk">✓</span><span class="txt">Paste, type, or drag and drop files</span>
+            </li>
+            <li>
+              <span class="mk">✓</span><span class="txt">Close the session and it disappears</span>
+            </li>
           </ul>
         </div>
         <div>
@@ -800,7 +1044,10 @@
           </p>
           <br />
           <ul class="plist good">
-            <li><span class="mk">✓</span><span class="txt">No server stores or reads your content</span></li>
+            <li>
+              <span class="mk">✓</span
+              ><span class="txt">No server stores or reads your content</span>
+            </li>
             <li><span class="mk">✓</span><span class="txt">No account required</span></li>
             <!-- REMOVED: "Close the session and data is gone" — duplicate of left column -->
           </ul>
@@ -814,14 +1061,23 @@
       <h2 class="section-hed">Why it exists</h2>
       <div class="philosophy-inner">
         <p class="section-sub">
-          Most tools turn everything into a file, message, or document. But sometimes you just need to:
+          Most tools turn everything into a file, message, or document. But sometimes you just need
+          to:
         </p>
         <div class="philosophy-list-container">
           <ul class="plist good philosophy-list">
-            <li><span class="mk">✓</span><span class="txt">Move data between work and personal devices</span></li>
-            <li><span class="mk">✓</span><span class="txt">Transfer files without email or cloud storage</span></li>
+            <li>
+              <span class="mk">✓</span
+              ><span class="txt">Move data between work and personal devices</span>
+            </li>
+            <li>
+              <span class="mk">✓</span
+              ><span class="txt">Transfer files without email or cloud storage</span>
+            </li>
             <li><span class="mk">✓</span><span class="txt">Share something sensitive</span></li>
-            <li><span class="mk">✓</span><span class="txt">Use a shared or temporary machine</span></li>
+            <li>
+              <span class="mk">✓</span><span class="txt">Use a shared or temporary machine</span>
+            </li>
             <li><span class="mk">✓</span><span class="txt">Leave no trace</span></li>
           </ul>
         </div>
@@ -864,14 +1120,26 @@
         <div class="callout">
           <div class="connection-methods">Connection Options</div>
           <p>
-            <img src="/svg_icons/qr_icon.svg" alt="QR code icon" width="16" height="16" style="vertical-align: middle; margin-right: 0.35rem" />
+            <img
+              src="/svg_icons/qr_icon.svg"
+              alt="QR code icon"
+              width="16"
+              height="16"
+              style="vertical-align: middle; margin-right: 0.35rem"
+            />
             <strong>QR code (recommended for maximum privacy):</strong>
             The connection details are encoded in a QR code, so the devices can connect directly
             without any server involvement at all.
           </p>
           <p class="mono-center">- or -</p>
           <p>
-            <img src="/svg_icons/radio_tower_icon.svg" alt="Link icon" width="16" height="16" style="vertical-align: middle; margin-right: 0.35rem" />
+            <img
+              src="/svg_icons/radio_tower_icon.svg"
+              alt="Link icon"
+              width="16"
+              height="16"
+              style="vertical-align: middle; margin-right: 0.35rem"
+            />
             <strong>Signalling server:</strong>
             A signalling server is only used to establish the initial connection. You can configure
             or replace it, and once the peers are connected the data flows directly between devices.
@@ -885,13 +1153,31 @@
       <div class="uc-wrap">
         <h2 class="section-hed">Built for moments like these</h2>
         <ul class="uc-list">
-          <li><span class="arr">→</span>Moving a password between your work and personal machine</li>
-          <li><span class="arr">→</span>Sharing a deploy key with a teammate without Slack or email</li>
-          <li><span class="arr">→</span>Sending a draft to someone in the same room, no account required</li>
-          <li><span class="arr">→</span>Transferring a file between phone and laptop without routing it through a cloud service</li>
-          <li><span class="arr">→</span>Pairing with a friend to edit a note together in real time</li>
-          <li><span class="arr">→</span>Moving a snippet or link from your phone to your laptop without cloud clipboard sync</li>
-          <li><span class="arr">→</span>Talking with someone when you don't want the conversation logged anywhere</li>
+          <li>
+            <span class="arr">→</span>Moving a password between your work and personal machine
+          </li>
+          <li>
+            <span class="arr">→</span>Sharing a deploy key with a teammate without Slack or email
+          </li>
+          <li>
+            <span class="arr">→</span>Sending a draft to someone in the same room, no account
+            required
+          </li>
+          <li>
+            <span class="arr">→</span>Transferring a file between phone and laptop without routing
+            it through a cloud service
+          </li>
+          <li>
+            <span class="arr">→</span>Pairing with a friend to edit a note together in real time
+          </li>
+          <li>
+            <span class="arr">→</span>Moving a snippet or link from your phone to your laptop
+            without cloud clipboard sync
+          </li>
+          <li>
+            <span class="arr">→</span>Talking with someone when you don't want the conversation
+            logged anywhere
+          </li>
         </ul>
       </div>
     </section>
@@ -904,11 +1190,13 @@
         <p>By default, everything is ephemeral. Close the session → data is gone.</p>
         <p>
           <strong>notapipe does NOT:</strong><br />
-          collect your text, store your files, log your sessions, require an account, or know who you are.
+          collect your text, store your files, log your sessions, require an account, or know who
+          you are.
         </p>
         <p>
-          You can inspect the code, self-host, or configure your own signaling and TURN infrastructure.
-          Install as a PWA and run it independently of notapipe.app. Open source (MIT).
+          You can inspect the code, self-host, or configure your own signaling and TURN
+          infrastructure. Install as a PWA and run it independently of notapipe.app. Open source
+          (MIT).
         </p>
         <a href="../../../" data-app-link class="btn mt-40">Open App →</a>
       </div>
@@ -949,7 +1237,9 @@
         <div class="card">
           <span class="card-icon">🎙️</span>
           <div class="card-title">Voice calls</div>
-          <p class="card-desc">Talk to your peer over the same WebRTC connection. No account needed.</p>
+          <p class="card-desc">
+            Talk to your peer over the same WebRTC connection. No account needed.
+          </p>
         </div>
         <div class="card">
           <span class="card-icon">💬</span>
@@ -989,7 +1279,9 @@
         <span>PWA — works on desktop and mobile</span>
       </div>
       <div class="foot-r">
-        <a href="https://github.com/fermentationist/notapipe" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/fermentationist/notapipe" target="_blank" rel="noopener"
+          >GitHub</a
+        >
         <a href="../../../" data-app-link class="cta">Open App →</a>
       </div>
     </footer>
@@ -997,9 +1289,14 @@
     <script>
       (function () {
         var parts = window.location.pathname.replace(/\/$/, "").split("/").filter(Boolean);
-        parts.pop(); parts.pop();
-        var appUrl = parts.length ? window.location.origin + "/" + parts.join("/") : window.location.origin;
-        document.querySelectorAll("[data-app-link]").forEach(function (el) { el.href = appUrl; });
+        parts.pop();
+        parts.pop();
+        var appUrl = parts.length
+          ? window.location.origin + "/" + parts.join("/")
+          : window.location.origin;
+        document.querySelectorAll("[data-app-link]").forEach(function (el) {
+          el.href = appUrl;
+        });
       })();
 
       const hl1 = document.getElementById("hero-line1");
@@ -1008,9 +1305,29 @@
       heroCursor.className = "cursor";
       hl2.appendChild(heroCursor);
 
-      const PHRASES = ["Move data between devices.", "Share a link without a third party.", "Chat without leaving a trace.", "Send files directly, peer-to-peer.", "A data bridge for your devices.", "Create a private connection in seconds.", "Move text between your devices.", "Transfer credentials without email.", "Start a voice call. No account needed."];
+      const PHRASES = [
+        "Move data between devices.",
+        "Share a link without a third party.",
+        "Chat without leaving a trace.",
+        "Send files directly, peer-to-peer.",
+        "A data bridge for your devices.",
+        "Create a private connection in seconds.",
+        "Move text between your devices.",
+        "Transfer credentials without email.",
+        "Start a voice call. No account needed.",
+      ];
       let phraseIdx = 0;
-      const PHRASES2 = ["A server never sees your content.", "Always encrypted in transit.", "No accounts. No logs. No cloud.", "Your data, your rules.", "Close the session and it's gone.", "Peer-to-peer, end-to-end encrypted.", "Zero server visibility.", "Built for privacy and simplicity.", "No storage. No history. No footprints."];
+      const PHRASES2 = [
+        "A server never sees your content.",
+        "Always encrypted in transit.",
+        "No accounts. No logs. No cloud.",
+        "Your data, your rules.",
+        "Close the session and it's gone.",
+        "Peer-to-peer, end-to-end encrypted.",
+        "Zero server visibility.",
+        "Built for privacy and simplicity.",
+        "No storage. No history. No footprints.",
+      ];
       let phrase2Idx = 0;
 
       function maskFade(el, onDone) {
@@ -1018,12 +1335,19 @@
         const fi = setInterval(() => {
           p += 1;
           const m = `linear-gradient(to right, transparent ${p}%, black ${p + 20}%)`;
-          el.style.webkitMaskImage = m; el.style.maskImage = m;
-          if (p >= 100) { clearInterval(fi); onDone && onDone(); }
+          el.style.webkitMaskImage = m;
+          el.style.maskImage = m;
+          if (p >= 100) {
+            clearInterval(fi);
+            onDone && onDone();
+          }
         }, 25);
       }
 
-      function clearMask(el) { el.style.webkitMaskImage = ""; el.style.maskImage = ""; }
+      function clearMask(el) {
+        el.style.webkitMaskImage = "";
+        el.style.maskImage = "";
+      }
 
       function typeLine2(delay, onDone) {
         const text = PHRASES2[phrase2Idx];
@@ -1033,8 +1357,12 @@
         let pos = 0;
         setTimeout(() => {
           const ti = setInterval(() => {
-            if (pos < text.length) { hl2.insertBefore(document.createTextNode(text[pos++]), heroCursor); }
-            else { clearInterval(ti); onDone && onDone(); }
+            if (pos < text.length) {
+              hl2.insertBefore(document.createTextNode(text[pos++]), heroCursor);
+            } else {
+              clearInterval(ti);
+              onDone && onDone();
+            }
           }, 52);
         }, delay);
       }
@@ -1044,10 +1372,18 @@
         phraseIdx = (phraseIdx + 1) % PHRASES.length;
         if (!isFirst) {
           hl1.style.opacity = "0";
-          requestAnimationFrame(() => requestAnimationFrame(() => { hl1.style.opacity = "1"; }));
+          requestAnimationFrame(() =>
+            requestAnimationFrame(() => {
+              hl1.style.opacity = "1";
+            }),
+          );
         }
         typeLine2(isFirst ? 720 : 300, () => {
-          setTimeout(() => { maskFade(hl2, () => { setTimeout(() => runLoop(false), 900); }); }, 2500);
+          setTimeout(() => {
+            maskFade(hl2, () => {
+              setTimeout(() => runLoop(false), 900);
+            });
+          }, 2500);
         });
       }
       runLoop(true);
@@ -1064,32 +1400,43 @@
       demoCursor.className = "dev-cursor";
 
       function resetFrames() {
-        lc.innerHTML = ""; lc.appendChild(demoCursor); lc.style.opacity = "1";
-        pc.textContent = ""; pc.style.opacity = "1";
+        lc.innerHTML = "";
+        lc.appendChild(demoCursor);
+        lc.style.opacity = "1";
+        pc.textContent = "";
+        pc.style.opacity = "1";
         copyBtn.classList.remove("copied");
-        ldot.classList.remove("on"); pdot.classList.remove("on");
-        llbl.textContent = "waiting"; plbl.textContent = "waiting";
+        ldot.classList.remove("on");
+        pdot.classList.remove("on");
+        llbl.textContent = "waiting";
+        plbl.textContent = "waiting";
       }
 
       function runDemo() {
-        resetFrames(); let i = 0;
+        resetFrames();
+        let i = 0;
         const typing = setInterval(() => {
-          if (i < DEMO_TEXT.length) { lc.insertBefore(document.createTextNode(DEMO_TEXT[i++]), demoCursor); }
-          else {
+          if (i < DEMO_TEXT.length) {
+            lc.insertBefore(document.createTextNode(DEMO_TEXT[i++]), demoCursor);
+          } else {
             clearInterval(typing);
             setTimeout(() => {
-              ldot.classList.add("on"); pdot.classList.add("on");
-              llbl.textContent = "1 connected"; plbl.textContent = "1 connected";
+              ldot.classList.add("on");
+              pdot.classList.add("on");
+              llbl.textContent = "1 connected";
+              plbl.textContent = "1 connected";
               setTimeout(() => {
                 pc.style.opacity = "0";
                 setTimeout(() => {
-                  pc.textContent = DEMO_TEXT; pc.style.opacity = "1";
+                  pc.textContent = DEMO_TEXT;
+                  pc.style.opacity = "1";
                   setTimeout(() => {
                     copyBtn.classList.add("copied");
                     setTimeout(() => {
                       copyBtn.classList.remove("copied");
                       setTimeout(() => {
-                        lc.style.opacity = "0"; pc.style.opacity = "0";
+                        lc.style.opacity = "0";
+                        pc.style.opacity = "0";
                         setTimeout(runDemo, 550);
                       }, 1100);
                     }, 950);

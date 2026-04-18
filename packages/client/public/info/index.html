@@ -344,7 +344,9 @@
         display: block;
         margin-bottom: 0.45rem;
         border-bottom: 1px dashed transparent;
-        transition: color 0.15s, border-color 0.15s;
+        transition:
+          color 0.15s,
+          border-color 0.15s;
       }
       .lf-trigger:hover {
         color: var(--accent);
@@ -1219,18 +1221,21 @@
             <div class="step-n">Step 2</div>
             <div class="step-title">Devices connect directly</div>
             <p class="step-desc">
-              Peers establish a WebRTC connection, end-to-end encrypted. No server ever sees
-              the content.
+              Peers establish a WebRTC connection, end-to-end encrypted. No server ever sees the
+              content.
             </p>
           </div>
           <div class="step">
             <div class="step-n">Step 3</div>
-            <button class="step-title lf-trigger" onclick="document.getElementById('lf-dialog').showModal()">
+            <button
+              class="step-title lf-trigger"
+              onclick="document.getElementById('lf-dialog').showModal()"
+            >
               Local-first sync ↗
             </button>
             <p class="step-desc">
-              Content syncs instantly. Close the session and it's gone — no trace, no storage,
-              no account needed.
+              Content syncs instantly. Close the session and it's gone — no trace, no storage, no
+              account needed.
             </p>
           </div>
         </div>
@@ -1249,7 +1254,8 @@
             <span class="arr">→</span>Sharing a deploy key with a teammate without Slack or email
           </li>
           <li>
-            <span class="arr">→</span>Transferring a file between phone and laptop without cloud storage
+            <span class="arr">→</span>Transferring a file between phone and laptop without cloud
+            storage
           </li>
           <li>
             <span class="arr">→</span>Talking with someone when you don't want the conversation
@@ -1286,7 +1292,12 @@
           <p class="card-desc">
             Content syncs directly between devices — never stored, logged, or read by any server.
             Close the tabs and it's gone. Built on
-            <button class="lf-inline-trigger" onclick="document.getElementById('lf-dialog').showModal()">local-first</button>
+            <button
+              class="lf-inline-trigger"
+              onclick="document.getElementById('lf-dialog').showModal()"
+            >
+              local-first
+            </button>
             principles; local persistence is opt-in only.
           </p>
         </div>
@@ -1308,16 +1319,12 @@
         <div class="card">
           <span class="card-icon">📁</span>
           <div class="card-title">File transfer</div>
-          <p class="card-desc">
-            Send files up to 100 MB over the encrypted WebRTC channel.
-          </p>
+          <p class="card-desc">Send files up to 100 MB over the encrypted WebRTC channel.</p>
         </div>
         <div class="card">
           <span class="card-icon">🎙️</span>
           <div class="card-title">Voice calls</div>
-          <p class="card-desc">
-            Talk to your peer over the same encrypted connection.
-          </p>
+          <p class="card-desc">Talk to your peer over the same encrypted connection.</p>
         </div>
       </div>
     </section>
@@ -1358,12 +1365,14 @@
             class="lf-modal-close"
             onclick="document.getElementById('lf-dialog').close()"
             aria-label="Close"
-          >✕</button>
+          >
+            ✕
+          </button>
         </div>
         <div class="lf-modal-body">
           <p>
-            <strong>Local-first</strong> is a design philosophy: your data lives on your device.
-            The network is a transport layer, not a storage layer.
+            <strong>Local-first</strong> is a design philosophy: your data lives on your device. The
+            network is a transport layer, not a storage layer.
           </p>
           <p>In practice, local-first software:</p>
           <ul>
@@ -1373,15 +1382,15 @@
             <li>Gives you full ownership — export, migrate, or delete at any time</li>
           </ul>
           <p>
-            notapipe takes this further than most. The shared document exists only in memory —
-            there is no server-side database, no sync cloud, no storage layer at all unless you
-            explicitly enable it. The WebRTC channel is a transport, not a host.
+            notapipe takes this further than most. The shared document exists only in memory — there
+            is no server-side database, no sync cloud, no storage layer at all unless you explicitly
+            enable it. The WebRTC channel is a transport, not a host.
           </p>
           <hr class="lf-modal-divider" />
           <p><strong>Built to last</strong></p>
           <p>
-            Software designed around local-first principles tends to outlive the services that
-            host it. notapipe is built with this in mind:
+            Software designed around local-first principles tends to outlive the services that host
+            it. notapipe is built with this in mind:
           </p>
           <ul>
             <li>Install as a PWA — runs independently of notapipe.app once installed</li>
@@ -1587,7 +1596,12 @@
       // Close local-first modal on backdrop click
       document.getElementById("lf-dialog").addEventListener("click", function (e) {
         const rect = this.getBoundingClientRect();
-        if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) {
+        if (
+          e.clientX < rect.left ||
+          e.clientX > rect.right ||
+          e.clientY < rect.top ||
+          e.clientY > rect.bottom
+        ) {
           this.close();
         }
       });

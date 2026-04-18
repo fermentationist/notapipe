@@ -1,4 +1,15 @@
 export const ICE_GATHERING_TIMEOUT_MS = 15_000;
+// ConnectionManager: heartbeat ping sent over the data channel every N ms.
+export const HEARTBEAT_INTERVAL_MS = 15_000;
+// ConnectionManager: if no pong is received within this window, the data
+// channel is silently dead and ICE restart is triggered.
+export const HEARTBEAT_TIMEOUT_MS = 45_000; // 3 missed pings
+// ConnectionManager: how long to wait for ICE restart to recover the
+// connection before giving up and triggering a full teardown.
+export const ICE_RESTART_TIMEOUT_MS = 12_000;
+// ConnectionManager: after the page becomes visible, how long to wait for a
+// pong to the probe ping before treating the connection as dead.
+export const VISIBILITY_PONG_WAIT_MS = 3_000;
 // QR mode uses a shorter timeout — STUN typically completes in <2 s, and
 // waiting longer just delays QR code generation without adding useful candidates.
 export const QR_ICE_GATHERING_TIMEOUT_MS = 5_000;

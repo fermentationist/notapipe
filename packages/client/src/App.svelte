@@ -20,6 +20,7 @@
   import { USER_GUIDE_CONTENT, ABOUT_CONTENT } from "$lib/constants/docs.ts";
   import { IndexeddbPersistence } from "y-indexeddb";
   import { RTCPeerManager, isOfferer } from "./rtc/peer.ts";
+  import { ConnectionManager } from "./rtc/connection_manager.ts";
   import {
     WebSocketTransport,
     type WebSocketTransportCallbacks,
@@ -146,6 +147,7 @@
   // QR mode uses a `qr-<uuid>` placeholder ID.
   interface PeerRecord {
     manager: RTCPeerManager;
+    conn_manager: ConnectionManager | null;
     yjs_provider: RTCDataChannelProvider | null;
     ft_manager: FileTransferManager | null;
     data_channel: RTCDataChannel | null;
@@ -517,7 +519,10 @@
 
   function registerDataChannel(remote_peer_id: string, channel: RTCDataChannel): void {
     const peer = peers.get(remote_peer_id);
-    if (peer !== undefined) { peer.data_channel = channel; }
+    if (peer !== undefined) {
+      peer.data_channel = channel;
+      peer.conn_manager?.setDataChannel(channel);
+    }
 
     const send_initial_state = (): void => {
       channel.send(JSON.stringify({ type: "identity", handle: local_handle }));
@@ -546,6 +551,13 @@
           text?: string;
           timestamp?: number;
         };
+        // Heartbeat control messages are consumed by ConnectionManager.
+        if (
+          typeof msg.type === "string" &&
+          peers.get(remote_peer_id)?.conn_manager?.handleDataMessage(msg.type)
+        ) {
+          return;
+        }
         if (msg.type === "identity" && typeof msg.handle === "string") {
           const is_new = !remote_handles.has(remote_peer_id);
           remote_handles = new Map(remote_handles).set(remote_peer_id, msg.handle);
@@ -681,6 +693,7 @@
     const peer = peers.get(remote_peer_id)!;
     // Delete first to prevent re-entry from the "closed" onStateChange fired by manager.close()
     peers.delete(remote_peer_id);
+    peer.conn_manager?.destroy();
     peer.yjs_provider?.destroy();
     peer.ft_manager?.destroy();
     any_peer_relayed = Array.from(peers.values()).some((p) => p.relay_status);
@@ -707,9 +720,7 @@
       return;
     }
     const channel = ws_transport.createPeerChannel(remote_peer_id);
-    // Track whether this peer ever reached "connected" so we know whether
-    // a subsequent "disconnected" is a drop (clean up) or an ICE transient (ignore).
-    let was_ever_connected = false;
+    const peer_is_offerer = isOfferer(local_peer_id, remote_peer_id);
     const manager = new RTCPeerManager(
       channel,
       {
@@ -731,26 +742,22 @@
           if (!peers.has(remote_peer_id)) {
             return; // already being cleaned up
           }
-          peers.get(remote_peer_id)!.state = state;
+          const peer = peers.get(remote_peer_id)!;
+          peer.state = state;
           if (state === "connected") {
-            was_ever_connected = true;
             connection_store.addRemotePeer(remote_peer_id);
           }
-          // Only auto-disconnect on "failed" (terminal ICE failure) or on
-          // "disconnected" after the connection was previously established.
-          // Ignoring "disconnected" during initial negotiation avoids spurious
-          // teardowns caused by transient ICE states.
-          if (
-            state === "failed" ||
-            (state === "disconnected" && was_ever_connected)
-          ) {
-            if (state === "failed" && !was_ever_connected) {
-              addPeerToast(
-                "Connection failed — your peer could not be reached. " +
-                "You may be behind a restrictive firewall. " +
-                "Try QR mode, or add a TURN relay server in Settings → Connection.",
-              );
-            }
+          // Route through ConnectionManager for post-connection failure handling
+          // (heartbeat watchdog, ICE restart, give-up). Returns true when it
+          // consumes the state and the caller must NOT proceed with disconnectPeer.
+          const conn_manager_handled = peer.conn_manager?.onStateChange(state) ?? false;
+          if (!conn_manager_handled && state === "failed") {
+            // Initial connection failure — peer never reached "connected".
+            addPeerToast(
+              "Connection failed — your peer could not be reached. " +
+              "You may be behind a restrictive firewall. " +
+              "Try QR mode, or add a TURN relay server in Settings → Connection.",
+            );
             disconnectPeer(remote_peer_id);
           }
           updateAggregateState();
@@ -774,8 +781,21 @@
       getEffectiveIceServers(),
     );
 
+    const conn_manager = new ConnectionManager(
+      manager,
+      peer_is_offerer,
+      () => {
+        // Safety: only disconnect if this is still the active manager for this peer.
+        // If a reconnect already replaced it, leave the new connection alone.
+        if (peers.get(remote_peer_id)?.manager === manager) {
+          disconnectPeer(remote_peer_id);
+        }
+      },
+    );
+
     peers.set(remote_peer_id, {
       manager,
+      conn_manager,
       yjs_provider: null,
       ft_manager: null,
       data_channel: null,
@@ -784,7 +804,7 @@
     });
     updateAggregateState();
 
-    if (isOfferer(local_peer_id, remote_peer_id)) {
+    if (peer_is_offerer) {
       manager.startAsOfferer();
     } else {
       manager.startAsAnswerer();
