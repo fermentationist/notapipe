@@ -23,6 +23,7 @@ export class RTCDataChannelProvider {
   private doc: Y.Doc;
   private channel: RTCDataChannel;
   private update_handler: (update: Uint8Array, origin: unknown) => void;
+  private paused = false;
 
   constructor(doc: Y.Doc, channel: RTCDataChannel) {
     this.doc = doc;
@@ -58,6 +59,37 @@ export class RTCDataChannelProvider {
     });
   }
 
+  /**
+   * Stop sending and receiving Yjs updates. Other data-channel traffic (chat,
+   * heartbeat, voice) is unaffected — only binary Yjs sync messages are dropped.
+   * Local edits accumulate in the Y.Doc and will be sent on resume().
+   */
+  pause(): void {
+    if (this.paused) {
+      return;
+    }
+    this.paused = true;
+    this.doc.off("update", this.update_handler);
+  }
+
+  /**
+   * Resume syncing. Re-registers the update listener, requests what we missed
+   * from the peer (SyncStep1 → peer replies with SyncStep2), and also pushes
+   * our full state to the peer so they receive everything we accumulated while
+   * paused. Both calls are needed for a bidirectional catch-up:
+   *   - sendSyncStep1: peer → us (peer sends what we're missing)
+   *   - sendFullState: us → peer (peer applies what they're missing from us)
+   */
+  resume(): void {
+    if (!this.paused) {
+      return;
+    }
+    this.paused = false;
+    this.doc.on("update", this.update_handler);
+    this.sendSyncStep1();
+    this.sendFullState();
+  }
+
   destroy(): void {
     this.doc.off("update", this.update_handler);
   }
@@ -82,6 +114,23 @@ export class RTCDataChannelProvider {
     this.sendEncoded(encoder);
   }
 
+  /**
+   * Push our complete doc state to the peer as a sync update message.
+   * Used on resume() so the peer receives all changes that accumulated locally
+   * while sync was paused — without needing to ask for them via SyncStep1.
+   *
+   * Using writeUpdate (messageYjsUpdate) rather than writeSyncStep2 avoids
+   * decoding a state vector on this side: Y.encodeStateAsUpdate() with no
+   * argument encodes all updates in the doc and the peer's readUpdate handler
+   * applies them idempotently (duplicate updates are silently ignored).
+   */
+  private sendFullState(): void {
+    const encoder = encoding.createEncoder();
+    encoding.writeVarUint(encoder, MESSAGE_SYNC);
+    sync_protocol.writeUpdate(encoder, Y.encodeStateAsUpdate(this.doc));
+    this.sendEncoded(encoder);
+  }
+
   private sendUpdate(update: Uint8Array): void {
     const encoder = encoding.createEncoder();
     encoding.writeVarUint(encoder, MESSAGE_SYNC);
@@ -96,6 +145,9 @@ export class RTCDataChannelProvider {
   }
 
   private handleMessage(data: Uint8Array): void {
+    if (this.paused) {
+      return;
+    }
     const decoder = decoding.createDecoder(data);
     const message_type = decoding.readVarUint(decoder);
 

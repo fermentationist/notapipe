@@ -115,8 +115,13 @@
   let share_filename_dialog_error = $state<string | null>(null);
   let confirm_dialog = $state<{
     message: string;
+    confirm_label?: string;
+    cancel_label?: string;
+    confirm_variant?: "danger" | "primary";
     onconfirm: () => void;
   } | null>(null);
+
+  let sync_paused = $state(false);
 
   // ---------------------------------------------------------------------------
   // Persistence (y-indexeddb)
@@ -564,6 +569,9 @@
           if (is_new) {
             addPeerToast(`Connected to ${msg.handle}`);
           }
+        } else if (msg.type === "sync-resume") {
+          const handle = remote_handles.get(remote_peer_id) ?? "Peer";
+          addPeerToast(`${handle} resumed sync — documents are merging`);
         } else if (msg.type === "voice-start" || msg.type === "voice-stop") {
           voice_manager.handle_data_message(remote_peer_id, msg);
         } else if (
@@ -1155,6 +1163,53 @@
     relay_notice_dismissed = false;
     connection_store.setMode("none");
     connection_store.setPeerState("idle");
+  }
+
+  // ---------------------------------------------------------------------------
+  // Sync pause / resume
+  // ---------------------------------------------------------------------------
+
+  // Auto-reset when the last peer disconnects — pausing only makes sense with
+  // active peers, and resuming silently avoids a stale "paused" state on reconnect.
+  $effect(() => {
+    if ($connection_store.peer_state !== "connected" && sync_paused) {
+      sync_paused = false;
+      for (const peer of peers.values()) {
+        peer.yjs_provider?.resume();
+      }
+    }
+  });
+
+  function pauseSync(): void {
+    sync_paused = true;
+    for (const peer of peers.values()) {
+      peer.yjs_provider?.pause();
+    }
+  }
+
+  function resumeSync(): void {
+    sync_paused = false;
+    for (const peer of peers.values()) {
+      peer.yjs_provider?.resume();
+      if (peer.data_channel?.readyState === "open") {
+        peer.data_channel.send(JSON.stringify({ type: "sync-resume" }));
+      }
+    }
+  }
+
+  function toggleSync(): void {
+    if (!sync_paused) {
+      pauseSync();
+    } else {
+      confirm_dialog = {
+        message:
+          "Resume sync? Changes your peers made while sync was paused will be merged into your document.",
+        confirm_label: "Resume",
+        cancel_label: "Stay paused",
+        confirm_variant: "primary",
+        onconfirm: resumeSync,
+      };
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -1956,6 +2011,16 @@
       {/if}
     </div>
     <div class="bottom-right">
+      {#if is_connected}
+        <button
+          class="corner-btn"
+          class:sync-paused={sync_paused}
+          onclick={toggleSync}
+          title={sync_paused ? "Resume document sync" : "Pause document sync"}
+          aria-label={sync_paused ? "Resume document sync" : "Pause document sync"}
+          aria-pressed={sync_paused}
+        >{sync_paused ? "▶" : "⏸"}</button>
+      {/if}
       <button
         class="corner-btn"
         class:copy-error={copy_content_feedback === "error"}
@@ -2211,6 +2276,9 @@
   {#if confirm_dialog !== null}
     <ConfirmDialog
       message={confirm_dialog.message}
+      confirm_label={confirm_dialog.confirm_label}
+      cancel_label={confirm_dialog.cancel_label}
+      confirm_variant={confirm_dialog.confirm_variant}
       onconfirm={() => {
         confirm_dialog?.onconfirm();
         confirm_dialog = null;
@@ -2919,6 +2987,12 @@
     opacity: 1;
     color: var(--color-accent);
     border-color: var(--color-accent);
+  }
+
+  .corner-btn.sync-paused {
+    opacity: 1;
+    color: #f59e0b;
+    border-color: #f59e0b;
   }
 
   .lang-select {

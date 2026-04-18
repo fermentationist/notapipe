@@ -1,11 +1,22 @@
 <script lang="ts">
   interface Props {
     message: string;
+    confirm_label?: string;
+    cancel_label?: string;
+    /** "danger" = red (default, for destructive actions); "primary" = accent green */
+    confirm_variant?: "danger" | "primary";
     onconfirm: () => void;
     oncancel: () => void;
   }
 
-  let { message, onconfirm, oncancel }: Props = $props();
+  let {
+    message,
+    confirm_label = "Confirm",
+    cancel_label = "Cancel",
+    confirm_variant = "danger",
+    onconfirm,
+    oncancel,
+  }: Props = $props();
 
   function handleKeydown(event: KeyboardEvent): void {
     if (event.key === "Escape") { oncancel(); }
@@ -23,8 +34,8 @@
   <div class="dialog" role="alertdialog" aria-modal="true" aria-label="Confirm action">
     <p class="message">{message}</p>
     <div class="buttons">
-      <button class="cancel-btn" onclick={oncancel}>Cancel</button>
-      <button class="confirm-btn" onclick={onconfirm}>Confirm</button>
+      <button class="cancel-btn" onclick={oncancel}>{cancel_label}</button>
+      <button class="confirm-btn" class:primary={confirm_variant === "primary"} onclick={onconfirm}>{confirm_label}</button>
     </div>
   </div>
 </div>
@@ -90,6 +101,11 @@
     font-size: 0.85rem;
     cursor: pointer;
     min-height: 36px;
+  }
+
+  .confirm-btn.primary {
+    background: var(--color-accent, #4ade80);
+    color: #0d0d0d;
   }
 
   .confirm-btn:hover {
