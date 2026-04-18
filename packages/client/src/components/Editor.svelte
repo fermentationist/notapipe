@@ -253,7 +253,7 @@
       spellcheck="false"
       autocorrect="off"
       autocapitalize="off"
-      placeholder="Start typing…"
+      placeholder="nothing is saved. nothing is sent. just you and the page."
       aria-label="Shared document"
     ></textarea>
   </div>
@@ -287,6 +287,7 @@
 
   textarea::placeholder {
     color: var(--color-text-muted);
+    font-style: italic;
   }
 
   /* Focus mode: lined notebook paper look */

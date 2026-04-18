@@ -1834,6 +1834,7 @@
       <PeerList
         peers={Array.from(remote_handles.entries()).map(([id, handle]) => ({ id, handle }))}
       />
+      <span class="room-bar-spacer" aria-hidden="true"></span>
       <div class="chat-btn-wrapper">
         <button
           class="copy-btn"
@@ -1920,6 +1921,19 @@
         {code_mode}
         language={code_language}
       />
+      {#if !code_mode}
+        <button
+          class="editor-copy"
+          class:success={copy_content_feedback === "success"}
+          class:error={copy_content_feedback === "error"}
+          onclick={copyEditorContent}
+          title={copy_content_feedback === "success" ? "Copied!" : copy_content_feedback === "error" ? "Copy failed — clipboard not available" : "Copy all text to clipboard"}
+          aria-label={copy_content_feedback === "error" ? "Copy failed — clipboard not available" : "Copy all text to clipboard"}
+        >
+          <CopyIcon copied={copy_content_feedback === "success"} size={13} />
+          <span>{copy_content_feedback === "success" ? "copied" : "copy all"}</span>
+        </button>
+      {/if}
       <PeerToastBar toasts={peer_toasts} ondismiss={dismissPeerToast} />
     </div>
     {#if show_preview && !show_chat}
@@ -2021,15 +2035,6 @@
           aria-pressed={sync_paused}
         >{sync_paused ? "▶" : "⏸"}</button>
       {/if}
-      <button
-        class="corner-btn"
-        class:copy-error={copy_content_feedback === "error"}
-        onclick={copyEditorContent}
-        title={copy_content_feedback === "success" ? "Copied!" : copy_content_feedback === "error" ? "Copy failed — clipboard not available" : "Copy all text to clipboard"}
-        aria-label={copy_content_feedback === "error" ? "Copy failed — clipboard not available" : "Copy editor content to clipboard"}
-      >
-        <CopyIcon copied={copy_content_feedback === "success"} size={14} />
-      </button>
       {#if code_mode}
         <select
           class="lang-select"
@@ -2391,9 +2396,14 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.25rem 1rem;
+    background: var(--color-surface);
     border-bottom: 1px solid var(--color-border);
     flex-shrink: 0;
     position: relative;
+  }
+
+  .room-bar-spacer {
+    flex: 1;
   }
 
 
@@ -2981,6 +2991,47 @@
   .corner-btn.copy-error {
     color: #ef4444;
     border-color: #ef4444;
+  }
+
+  .editor-copy {
+    position: absolute;
+    right: 1rem;
+    bottom: 1rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    z-index: 10;
+  }
+
+  .editor-copy:hover {
+    color: var(--color-text);
+  }
+
+  .editor-copy.success {
+    color: var(--color-status-connected);
+  }
+
+  .editor-copy.error {
+    color: var(--color-status-error);
+  }
+
+  :global(.focus-mode) .editor-copy {
+    background: var(--color-focus-bg);
+    border-color: var(--color-focus-rule);
+    color: var(--color-focus-text);
+    opacity: 0.5;
+  }
+
+  :global(.focus-mode) .editor-copy:hover {
+    opacity: 1;
   }
 
   .corner-btn.active {
