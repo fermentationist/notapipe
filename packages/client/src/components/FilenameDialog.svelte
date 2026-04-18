@@ -3,6 +3,7 @@
     default_filename: string;
     label?: string;
     confirm_label?: string;
+    error?: string | null;
     onconfirm: (filename: string) => void;
     oncancel: () => void;
   }
@@ -11,6 +12,7 @@
     default_filename,
     label = "Filename",
     confirm_label = "Share",
+    error = null,
     onconfirm,
     oncancel,
   }: Props = $props();
@@ -53,6 +55,9 @@
       spellcheck={false}
       autocomplete="off"
     />
+    {#if error}
+      <p class="error-msg" role="alert">{error}</p>
+    {/if}
     <div class="buttons">
       <button class="cancel-btn" onclick={oncancel}>Cancel</button>
       <button
@@ -105,6 +110,13 @@
 
   .filename-input:focus {
     border-color: var(--color-text-muted);
+  }
+
+  .error-msg {
+    font-size: 0.78rem;
+    color: #f87171;
+    line-height: 1.45;
+    margin: 0;
   }
 
   .buttons {

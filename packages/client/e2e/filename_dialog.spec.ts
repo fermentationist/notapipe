@@ -11,7 +11,8 @@ async function stubShareSucceeds(page: PageType): Promise<void> {
     Object.defineProperty(navigator, "share", {
       value: async (data: ShareData) => {
         const filenames = data.files ? data.files.map((f: File) => f.name) : [];
-        ((window as unknown as Record<string, unknown>).__share_calls as unknown[]).push({ filenames });
+        const mime_types = data.files ? data.files.map((f: File) => f.type) : [];
+        ((window as unknown as Record<string, unknown>).__share_calls as unknown[]).push({ filenames, mime_types });
       },
       writable: false,
       configurable: true,
@@ -19,12 +20,28 @@ async function stubShareSucceeds(page: PageType): Promise<void> {
   });
 }
 
-// Stub: navigator.share throws TypeError (simulates "file sharing not supported").
-// Tests that use this stub verify the download fallback runs.
-async function stubShareThrows(page: PageType): Promise<void> {
+// Stub: navigator.share throws TypeError (simulates Chrome rejecting the file type
+// because the MIME type + extension combination is not in its allowlist).
+// The dialog must stay open and show an error message — no download should occur.
+async function stubShareThrowsTypeError(page: PageType): Promise<void> {
   await page.addInitScript(() => {
     Object.defineProperty(navigator, "share", {
       value: async () => { throw new TypeError("Share not supported"); },
+      writable: false,
+      configurable: true,
+    });
+  });
+}
+
+// Keep legacy alias so existing call-sites compile without change.
+const stubShareThrows = stubShareThrowsTypeError;
+
+// Stub: navigator.share throws a generic Error (not TypeError, not AbortError).
+// The dialog must close cleanly — no download, no error message.
+async function stubShareThrowsGeneric(page: PageType): Promise<void> {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "share", {
+      value: async () => { throw new Error("Unknown share failure"); },
       writable: false,
       configurable: true,
     });
@@ -112,12 +129,38 @@ test.describe("FilenameDialog — Share document as file", () => {
     expect(share_calls[0].filenames).toEqual(["my-notes.md"]);
   });
 
-  test("falls back to download when navigator.share() throws", async ({ page }) => {
-    await stubShareThrows(page);
+  // When navigator.share() throws TypeError (Chrome's response to an unsupported
+  // MIME type + extension combination), the dialog stays open and shows an error
+  // message so the user knows to rename the file. No download must occur.
+  test("TypeError from navigator.share() keeps dialog open with error message", async ({ page }) => {
+    await stubShareThrowsTypeError(page);
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
-    const download_promise = page.waitForEvent("download");
+    let download_fired = false;
+    page.on("download", () => { download_fired = true; });
+
+    await openShareMenu(page);
+    await page.getByRole("menuitem", { name: "Share document as file" }).click();
+
+    const dialog = page.getByRole("dialog", { name: "Set filename" });
+    await dialog.locator("#filename-input").fill("notes.md");
+    await dialog.getByRole("button", { name: "Share" }).click();
+
+    // Dialog must remain visible with an error message
+    await expect(dialog).toBeVisible({ timeout: 2000 });
+    await expect(dialog.getByRole("alert")).toBeVisible();
+    expect(download_fired).toBe(false);
+  });
+
+  // A generic (non-TypeError, non-AbortError) share failure closes the dialog silently.
+  test("generic error from navigator.share() closes dialog without download", async ({ page }) => {
+    await stubShareThrowsGeneric(page);
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    let download_fired = false;
+    page.on("download", () => { download_fired = true; });
 
     await openShareMenu(page);
     await page.getByRole("menuitem", { name: "Share document as file" }).click();
@@ -126,8 +169,8 @@ test.describe("FilenameDialog — Share document as file", () => {
     await dialog.locator("#filename-input").fill("export.md");
     await dialog.getByRole("button", { name: "Share" }).click();
 
-    const download = await download_promise;
-    expect(download.suggestedFilename()).toBe("export.md");
+    await expect(dialog).not.toBeVisible({ timeout: 2000 });
+    expect(download_fired).toBe(false);
   });
 
   test("no download when user dismisses share sheet (AbortError)", async ({ page }) => {
@@ -135,17 +178,16 @@ test.describe("FilenameDialog — Share document as file", () => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
+    let download_fired = false;
+    page.on("download", () => { download_fired = true; });
+
     await openShareMenu(page);
     await page.getByRole("menuitem", { name: "Share document as file" }).click();
 
     const dialog = page.getByRole("dialog", { name: "Set filename" });
     await dialog.locator("#filename-input").fill("notes.md");
-
-    // Trigger share and expect dialog to close, no download event
-    let download_fired = false;
-    page.on("download", () => { download_fired = true; });
-
     await dialog.getByRole("button", { name: "Share" }).click();
+
     await expect(dialog).not.toBeVisible({ timeout: 2000 });
     expect(download_fired).toBe(false);
   });
@@ -176,12 +218,10 @@ test.describe("FilenameDialog — Share document as file", () => {
     await expect(page.getByRole("dialog", { name: "Set filename" })).not.toBeVisible();
   });
 
-  test("Enter key confirms with current filename", async ({ page }) => {
-    await stubShareThrows(page);
+  test("Enter key calls navigator.share() with current filename", async ({ page }) => {
+    await stubShareSucceeds(page);
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-
-    const download_promise = page.waitForEvent("download");
 
     await openShareMenu(page);
     await page.getByRole("menuitem", { name: "Share document as file" }).click();
@@ -190,8 +230,63 @@ test.describe("FilenameDialog — Share document as file", () => {
     await input.fill("export.md");
     await input.press("Enter");
 
-    const download = await download_promise;
-    expect(download.suggestedFilename()).toBe("export.md");
+    await expect(page.getByRole("dialog", { name: "Set filename" })).not.toBeVisible({ timeout: 2000 });
+
+    const share_calls = await page.evaluate(
+      () => (window as unknown as Record<string, unknown>).__share_calls,
+    ) as Array<{ filenames: string[] }>;
+    expect(share_calls).toHaveLength(1);
+    expect(share_calls[0].filenames).toEqual(["export.md"]);
+  });
+
+  // Regression: navigator.share() must always be called with MIME type text/plain,
+  // regardless of the file extension the user chooses. Chrome's Web Share API
+  // allowlist rejects less-common types (e.g. text/markdown, application/json),
+  // causing share() to throw and the download fallback to run — showing a Save
+  // dialog instead of the share sheet. The file extension is what the receiving
+  // app uses to determine format; the MIME type is just a transport label.
+  test("regression: .md filename uses text/plain MIME — not text/markdown", async ({ page }) => {
+    await stubShareSucceeds(page);
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    await openShareMenu(page);
+    await page.getByRole("menuitem", { name: "Share document as file" }).click();
+
+    const dialog = page.getByRole("dialog", { name: "Set filename" });
+    await dialog.locator("#filename-input").fill("notes.md");
+    await dialog.getByRole("button", { name: "Share" }).click();
+
+    await expect(dialog).not.toBeVisible({ timeout: 2000 });
+
+    const share_calls = await page.evaluate(
+      () => (window as unknown as Record<string, unknown>).__share_calls,
+    ) as Array<{ filenames: string[]; mime_types: string[] }>;
+    expect(share_calls).toHaveLength(1);
+    expect(share_calls[0].filenames).toEqual(["notes.md"]);
+    expect(share_calls[0].mime_types).toEqual(["text/plain"]);
+  });
+
+  test("regression: .json filename uses text/plain MIME — not application/json", async ({ page }) => {
+    await stubShareSucceeds(page);
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    await openShareMenu(page);
+    await page.getByRole("menuitem", { name: "Share document as file" }).click();
+
+    const dialog = page.getByRole("dialog", { name: "Set filename" });
+    await dialog.locator("#filename-input").fill("data.json");
+    await dialog.getByRole("button", { name: "Share" }).click();
+
+    await expect(dialog).not.toBeVisible({ timeout: 2000 });
+
+    const share_calls = await page.evaluate(
+      () => (window as unknown as Record<string, unknown>).__share_calls,
+    ) as Array<{ filenames: string[]; mime_types: string[] }>;
+    expect(share_calls).toHaveLength(1);
+    expect(share_calls[0].filenames).toEqual(["data.json"]);
+    expect(share_calls[0].mime_types).toEqual(["text/plain"]);
   });
 
   // Regression: canShare() returning false (or not existing) must not prevent
@@ -204,7 +299,8 @@ test.describe("FilenameDialog — Share document as file", () => {
       Object.defineProperty(navigator, "share", {
         value: async (data: ShareData) => {
           const filenames = data.files ? data.files.map((f: File) => f.name) : [];
-          ((window as unknown as Record<string, unknown>).__share_calls as unknown[]).push({ filenames });
+          const mime_types = data.files ? data.files.map((f: File) => f.type) : [];
+          ((window as unknown as Record<string, unknown>).__share_calls as unknown[]).push({ filenames, mime_types });
         },
         writable: false,
         configurable: true,

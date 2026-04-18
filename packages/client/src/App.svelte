@@ -111,6 +111,7 @@
   let show_about = $state(false);
   let show_share_filename_dialog = $state(false);
   let share_default_filename = $state("");
+  let share_filename_dialog_error = $state<string | null>(null);
   let confirm_dialog = $state<{
     message: string;
     onconfirm: () => void;
@@ -1173,6 +1174,7 @@
   async function confirmShareDocument(filename: string): Promise<void> {
     const content = ytext.toString();
     const file = new File([content], filename, { type: "text/plain" });
+    share_filename_dialog_error = null;
     try {
       // Call navigator.share() unconditionally — skipping the canShare() pre-flight
       // entirely. canShare() can return false (or not exist) even on browsers that
@@ -1180,22 +1182,23 @@
       // share sheet to never appear. Let share() itself throw if unsupported.
       // Must be called before any state mutations to preserve the user-gesture token.
       await navigator.share({ files: [file] });
+      show_share_filename_dialog = false;
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") {
-        // User dismissed the share sheet — nothing to do.
+        // User dismissed the share sheet — close the dialog.
+        show_share_filename_dialog = false;
+      } else if (err instanceof TypeError) {
+        // Chrome throws TypeError when the MIME type + extension combination is not
+        // in its Web Share allowlist (e.g. text/plain + .md is rejected; only .txt
+        // is accepted for text/plain on Chrome desktop). Keep the dialog open so
+        // the user can rename the file to a supported extension.
+        console.error("[notapipe] navigator.share rejected file type:", err.message);
+        share_filename_dialog_error = "This file type can't be shared on your browser. Try renaming to .txt.";
       } else {
-        // share() genuinely unsupported or not allowed — download as fallback.
-        const url = URL.createObjectURL(file);
-        const anchor = document.createElement("a");
-        anchor.href = url;
-        anchor.download = filename;
-        document.body.appendChild(anchor);
-        anchor.click();
-        document.body.removeChild(anchor);
-        setTimeout(() => URL.revokeObjectURL(url), 0);
+        // Other failure (share not supported at all, etc.) — close silently.
+        console.error("[notapipe] navigator.share failed:", err);
+        show_share_filename_dialog = false;
       }
-    } finally {
-      show_share_filename_dialog = false;
     }
   }
 
@@ -2227,8 +2230,9 @@
       default_filename={share_default_filename}
       label="Filename"
       confirm_label="Share"
+      error={share_filename_dialog_error}
       onconfirm={confirmShareDocument}
-      oncancel={() => { show_share_filename_dialog = false; }}
+      oncancel={() => { show_share_filename_dialog = false; share_filename_dialog_error = null; }}
     />
   {/if}
 </div>
