@@ -2255,7 +2255,7 @@
       >
       <div class="menu-divider" role="separator"></div>
       <button
-        class="menu-item"
+        class="menu-item menu-item-danger"
         role="menuitem"
         onclick={() => {
           show_actions_menu = false;
@@ -2266,7 +2266,7 @@
         }}>Clear current document</button
       >
       <button
-        class="menu-item"
+        class="menu-item menu-item-danger"
         role="menuitem"
         onclick={() => {
           show_actions_menu = false;
@@ -2277,7 +2277,7 @@
         }}>Clear all documents</button
       >
       <button
-        class="menu-item"
+        class="menu-item menu-item-danger"
         role="menuitem"
         onclick={() => {
           show_actions_menu = false;
@@ -2671,7 +2671,7 @@
   }
 
   .menu-item-danger {
-    color: var(--color-status-error);
+    color: var(--color-accent);
   }
 
   .icon-btn {
