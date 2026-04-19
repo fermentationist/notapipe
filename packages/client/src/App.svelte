@@ -53,7 +53,12 @@
   import FileTransferBar, { type PeerEntry as FtPeerEntry } from "./components/FileTransferBar.svelte";
   import ThemePanel from "./components/ThemePanel.svelte";
   import CopyIcon from "./components/CopyIcon.svelte";
+  import CloseIcon from "./components/CloseIcon.svelte";
   import HardDriveIcon from "./components/HardDriveIcon.svelte";
+  import InstallIcon from "./components/InstallIcon.svelte";
+  import PauseIcon from "./components/PauseIcon.svelte";
+  import PlayIcon from "./components/PlayIcon.svelte";
+  import SettingsIcon from "./components/SettingsIcon.svelte";
   import SunIcon from "./components/SunIcon.svelte";
   import MoonIcon from "./components/MoonIcon.svelte";
   import QrCodeIcon from "./components/QrCodeIcon.svelte";
@@ -1762,9 +1767,7 @@
             title="Install app"
             aria-label="Install app"
           >
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M8 2v8M5 7l3 3 3-3M2 13h12" />
-            </svg>
+            <InstallIcon />
           </button>
         {/if}
         <button
@@ -1775,10 +1778,7 @@
           title="Settings"
           aria-label="Settings"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
-            <circle cx="12" cy="12" r="3"/>
-          </svg>
+          <SettingsIcon />
         </button>
         <!-- ⌘K palette trigger — also serves as the tap target on mobile -->
         <button
@@ -2023,16 +2023,12 @@
             <span class="btn-text">Add peer via QR</span>
           </button>
           <button class="action-btn" onclick={handleDisconnect} title="Disconnect">
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M3 3l10 10M13 3L3 13"/>
-            </svg>
+            <CloseIcon />
             <span class="btn-text">Disconnect</span>
           </button>
         {:else if is_waiting_for_peer}
           <button class="action-btn" onclick={handleDisconnect} title="Stop waiting for peer">
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
-              <path d="M3 3l10 10M13 3L3 13"/>
-            </svg>
+            <CloseIcon stroke_width={1.8} />
             <span class="btn-text">Stop waiting</span>
           </button>
         {:else}
@@ -2070,16 +2066,9 @@
           aria-pressed={sync_paused}
         >
           {#if sync_paused}
-            <!-- Play / resume -->
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-              <path d="M3 2.5l10 5.5-10 5.5V2.5z"/>
-            </svg>
+            <PlayIcon />
           {:else}
-            <!-- Pause -->
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-              <rect x="3" y="2" width="3.5" height="12" rx="1"/>
-              <rect x="9.5" y="2" width="3.5" height="12" rx="1"/>
-            </svg>
+            <PauseIcon />
           {/if}
         </button>
       {/if}
