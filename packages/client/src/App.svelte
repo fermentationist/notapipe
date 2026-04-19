@@ -2411,7 +2411,6 @@
 
   .app-name {
     font-size: 0.9rem;
-    font-weight: 500;
     color: var(--color-text-muted);
     flex-shrink: 0;
   }
@@ -2421,10 +2420,10 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.25rem 1rem;
-    background: var(--color-surface);
     border-bottom: 1px solid var(--color-border);
     flex-shrink: 0;
     position: relative;
+    flex-wrap: wrap;
   }
 
   .room-bar-spacer {
@@ -2488,11 +2487,12 @@
   }
 
   .copy-btn.voice-active {
-    color: #22c55e;
+    color: var(--color-status-connected);
   }
 
   .copy-btn.voice-active:hover {
-    color: #16a34a;
+    color: var(--color-status-connected);
+    opacity: 0.8;
   }
 
   @keyframes voice-ring {
@@ -2501,12 +2501,12 @@
   }
 
   .copy-btn.voice-connecting {
-    color: #22c55e;
+    color: var(--color-status-connected);
     animation: voice-ring 1.2s ease-in-out infinite;
   }
 
   .copy-btn.voice-ringing {
-    color: #22c55e;
+    color: var(--color-status-connected);
     animation: voice-ring 1.2s ease-in-out infinite;
   }
 
@@ -2590,18 +2590,17 @@
   .room-name-btn {
     background: none;
     border: none;
-    color: var(--color-accent);
+    color: var(--color-text-muted);
     font-family: inherit;
     font-size: 0.8rem;
-    padding: 0.1rem 0.2rem;
+    padding: 0.1rem 0.3rem;
     cursor: pointer;
     border-radius: 3px;
   }
 
   .room-name-btn:hover {
-    color: var(--color-accent);
+    color: var(--color-text);
     background: var(--color-bg);
-    opacity: 0.8;
   }
 
   .connect-menu.room-menu {
@@ -2680,17 +2679,16 @@
     border: none;
     color: var(--color-text-muted);
     cursor: pointer;
-    font-size: 1rem;
-    padding: 0.25rem 0.4rem;
+    font-size: 0.85rem;
+    padding: 0.2rem 0.35rem;
     border-radius: 6px;
-    min-width: 32px;
-    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
     line-height: 1;
   }
 
   .icon-btn:hover:not(:disabled) {
     color: var(--color-text);
-    background: var(--color-surface);
   }
 
   .icon-btn:disabled {
@@ -2781,7 +2779,7 @@
     }
 
     main.chat-split .chat-pane {
-      width: 300px;
+      width: 340px;
       flex-shrink: 0;
       min-height: 0;
       overflow: hidden;
@@ -2963,10 +2961,10 @@
     border: 1px solid var(--color-border);
     border-radius: 8px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+    padding: 4px 0;
     display: flex;
     flex-direction: column;
     min-width: 100%;
-    overflow: hidden;
   }
 
   .menu-item {
