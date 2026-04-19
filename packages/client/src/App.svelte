@@ -434,15 +434,14 @@
       if (show_palette) { return; }
       if (event.key === "f" && (event.metaKey || event.ctrlKey)) {
         event.preventDefault();
-        code_mode = false;
-        focus_mode_store.toggle();
+        set_view_mode(get(focus_mode_store) ? "text" : "focus");
         return;
       }
       if (event.key === "Escape" && get(focus_mode_store)) {
-        focus_mode_store.disable();
+        set_view_mode("text");
       }
       if (event.key === "Escape" && code_mode) {
-        code_mode = false;
+        set_view_mode("text");
       }
     };
     window.addEventListener("keydown", handle_keydown);
@@ -1457,6 +1456,24 @@
   let code_language = $state("javascript");
   let preview_fullscreen = $state(false);
 
+  type ViewMode = "text" | "code" | "markdown" | "focus";
+
+  const current_view_mode = $derived<ViewMode>(
+    $focus_mode_store ? "focus" :
+    code_mode ? "code" :
+    $preview_store ? "markdown" :
+    "text"
+  );
+
+  function set_view_mode(mode: ViewMode): void {
+    focus_mode_store.disable();
+    code_mode = false;
+    preview_store.set(false);
+    if (mode === "focus") { focus_mode_store.enable(); }
+    else if (mode === "code") { code_mode = true; }
+    else if (mode === "markdown") { preview_store.set(true); }
+  }
+
   const CODE_LANGUAGES: { value: string; label: string }[] = [
     { value: "javascript", label: "JS" },
     { value: "typescript", label: "TS" },
@@ -1542,7 +1559,7 @@
       label: $preview_store ? "Hide markdown preview" : "Show markdown preview",
       group: "Document",
       keywords: ["markdown", "render", "preview", "md"],
-      action: () => { preview_store.toggle(); },
+      action: () => { set_view_mode($preview_store ? "text" : "markdown"); },
     },
     {
       id: "toggle-code",
@@ -2037,7 +2054,7 @@
               aria-haspopup="menu"
               aria-expanded={show_connect_menu}
             >
-              Connect to peer ▾
+              Connect ▾
             </button>
             {#if show_connect_menu}
               <Menu items={[
@@ -2076,25 +2093,37 @@
             <option value={lang.value}>{lang.label}</option>
           {/each}
         </select>
-      {:else}
-        <button
-          class="corner-btn"
-          onclick={() => { focus_mode_store.toggle(); code_mode = false; }}
-          title={$focus_mode_store ? "Exit focus mode" : "Enter focus mode"}
-          aria-label={$focus_mode_store ? "Exit focus mode" : "Enter focus mode"}
-        >
-          {$focus_mode_store ? "✕" : "⛶"}
-        </button>
       {/if}
-      <button
-        class="corner-btn"
-        class:active={code_mode}
-        onclick={() => { code_mode = !code_mode; if (code_mode) { focus_mode_store.disable(); } }}
-        title={code_mode ? "Exit code mode" : "Code editor mode"}
-        aria-label={code_mode ? "Exit code mode" : "Code editor mode"}
-      >
-        {code_mode ? "✕" : "</>"}
-      </button>
+      <div class="view-toggle" role="group" aria-label="View mode">
+        <button
+          class="view-btn"
+          class:active={current_view_mode === "text"}
+          onclick={() => set_view_mode("text")}
+          title="Plain text editor"
+          aria-pressed={current_view_mode === "text"}
+        >Text</button>
+        <button
+          class="view-btn"
+          class:active={current_view_mode === "code"}
+          onclick={() => set_view_mode("code")}
+          title="Code editor mode"
+          aria-pressed={current_view_mode === "code"}
+        >Code</button>
+        <button
+          class="view-btn"
+          class:active={current_view_mode === "markdown"}
+          onclick={() => set_view_mode("markdown")}
+          title="Markdown preview"
+          aria-pressed={current_view_mode === "markdown"}
+        >Markdown</button>
+        <button
+          class="view-btn"
+          class:active={current_view_mode === "focus"}
+          onclick={() => set_view_mode("focus")}
+          title="Focus mode"
+          aria-pressed={current_view_mode === "focus"}
+        >Focus</button>
+      </div>
     </div>
   </div>
 
@@ -2160,7 +2189,6 @@
         { type: "divider" },
         { label: "↑ Load text file", action: () => { show_actions_menu = false; if (ytext.length > 0) { showConfirm(`Load a file? This will replace the current document${is_connected ? " and sync the change to all connected peers" : ""}.`, importDocument); } else { importDocument(); } } },
         { label: "↓ Save as text file", action: () => { show_actions_menu = false; exportDocument(); } },
-        { label: `M↓ ${show_preview ? "Hide preview" : "Markdown preview"}`, checked: show_preview, action: () => { show_actions_menu = false; preview_store.toggle(); } },
         { label: "⬌ Wide layout", checked: $wide_mode_store, hidden: !is_desktop, action: () => { show_actions_menu = false; wide_mode_store.toggle(); } },
         { label: `⌂ Send file${!is_connected ? " (not connected)" : ""}`, disabled: !is_connected, action: () => { show_actions_menu = false; (document.getElementById("file-transfer-input") as HTMLInputElement).click(); } },
         { type: "divider" },
@@ -2880,6 +2908,57 @@
     background: var(--color-focus-bg);
     border-color: var(--color-focus-rule);
     color: var(--color-focus-text);
+  }
+
+  .view-toggle {
+    display: flex;
+  }
+
+  .view-btn {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    margin-left: -1px;
+    color: var(--color-text-muted);
+    font-family: inherit;
+    font-size: 0.75rem;
+    height: 2.5rem;
+    padding: 0 0.6rem;
+    cursor: pointer;
+    transition: opacity 0.15s, color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+  }
+
+  .view-btn:first-child {
+    margin-left: 0;
+    border-radius: 6px 0 0 6px;
+  }
+
+  .view-btn:last-child {
+    border-radius: 0 6px 6px 0;
+  }
+
+  .view-btn:hover {
+    opacity: 0.7;
+  }
+
+  .view-btn.active {
+    position: relative;
+    z-index: 1;
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+    opacity: 1;
+  }
+
+  :global(.focus-mode) .view-btn {
+    background: var(--color-focus-bg);
+    border-color: var(--color-focus-rule);
+    color: var(--color-focus-text);
+  }
+
+  :global(.focus-mode) .view-btn.active {
+    color: var(--color-focus-text);
+    border-color: var(--color-focus-rule);
+    opacity: 0.5;
   }
 
   :global(.focus-mode) .bottom-bar {
