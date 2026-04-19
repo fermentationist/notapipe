@@ -1670,8 +1670,9 @@
   {#if !$focus_mode_store}
     <header>
       <div class="header-left">
+        <ConnectionStatus part="dot" />
         <span class="app-name">notapipe</span>
-        <ConnectionStatus />
+        <ConnectionStatus part="label" />
       </div>
       <div class="header-right">
         {#if $persistence_store}
@@ -2681,7 +2682,7 @@
     cursor: pointer;
     font-size: 1rem;
     padding: 0.25rem 0.4rem;
-    border-radius: 3px;
+    border-radius: 6px;
     min-width: 32px;
     min-height: 32px;
     line-height: 1;
@@ -2961,6 +2962,7 @@
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
     display: flex;
     flex-direction: column;
     min-width: 100%;

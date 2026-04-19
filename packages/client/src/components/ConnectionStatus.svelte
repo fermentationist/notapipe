@@ -1,6 +1,13 @@
 <script lang="ts">
   import { connection_store } from "../stores/connection.ts";
 
+  interface Props {
+    /** Which part to render. "dot" = dot only, "label" = label only, "all" = both (default). */
+    part?: "all" | "dot" | "label";
+  }
+
+  let { part = "all" }: Props = $props();
+
   const status_label: Record<string, string> = {
     idle: "waiting",
     connecting: "connecting",
@@ -13,15 +20,21 @@
     return `${peer_count} ${peer_count === 1 ? "peer" : "peers"} connected`;
   }
 
-  $: display_label = $connection_store.peer_state === "connected"
-    ? connectedLabel($connection_store.remote_peer_ids.length)
-    : $connection_store.peer_state === "connecting" && $connection_store.mode === "signalling"
-    ? "waiting for peer…"
-    : (status_label[$connection_store.peer_state] ?? "unknown");
+  const display_label = $derived(
+    $connection_store.peer_state === "connected"
+      ? connectedLabel($connection_store.remote_peer_ids.length)
+      : $connection_store.peer_state === "connecting" && $connection_store.mode === "signalling"
+      ? "waiting for peer…"
+      : (status_label[$connection_store.peer_state] ?? "unknown")
+  );
 </script>
 
-<span class="status-dot state-{$connection_store.peer_state}" aria-label="Connection status: {display_label}"></span>
-<span class="status-label">{display_label}</span>
+{#if part === "dot" || part === "all"}
+  <span class="status-dot state-{$connection_store.peer_state}" aria-label="Connection status: {display_label}"></span>
+{/if}
+{#if part === "label" || part === "all"}
+  <span class="status-label">{display_label}</span>
+{/if}
 
 <style>
   .status-dot {
