@@ -109,13 +109,12 @@
     right: 0;
     background: var(--color-surface);
     border: 1px solid var(--color-border);
-    border-radius: 6px;
+    border-radius: 8px;
     min-width: 160px;
     max-width: 240px;
     max-height: 280px;
     overflow-y: auto;
     z-index: 150;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
 
   .empty {

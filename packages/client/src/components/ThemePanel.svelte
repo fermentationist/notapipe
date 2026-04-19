@@ -281,7 +281,7 @@
     padding: 0.3rem 0.6rem;
     cursor: pointer;
     margin-bottom: -1px;
-    border-radius: 4px 4px 0 0;
+    border-radius: 3px 3px 0 0;
   }
 
   .tab-btn.active {

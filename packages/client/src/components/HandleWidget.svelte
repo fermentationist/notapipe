@@ -159,7 +159,7 @@
     background: var(--color-accent);
     color: #fff;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     padding: 0.5rem 1rem;
     font-family: inherit;
     font-size: 0.85rem;

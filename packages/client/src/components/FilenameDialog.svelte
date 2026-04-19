@@ -101,7 +101,7 @@
     width: 100%;
     background: var(--color-bg);
     border: 1px solid var(--color-border);
-    border-radius: 4px;
+    border-radius: 6px;
     color: var(--color-text);
     font-family: var(--font-mono, monospace);
     font-size: 0.9rem;
@@ -132,7 +132,7 @@
     border: 1px solid var(--color-border);
     color: var(--color-text);
     padding: 0.4rem 0.9rem;
-    border-radius: 4px;
+    border-radius: 6px;
     font-family: inherit;
     font-size: 0.85rem;
     cursor: pointer;
@@ -148,7 +148,7 @@
     border: none;
     color: #0d0d0d;
     padding: 0.4rem 0.9rem;
-    border-radius: 4px;
+    border-radius: 6px;
     font-family: inherit;
     font-size: 0.85rem;
     cursor: pointer;

@@ -314,12 +314,12 @@
 
   .qr-canvas {
     border: 4px solid white;
-    border-radius: 4px;
+    border-radius: 6px;
   }
 
   .camera-preview {
     width: 100%;
-    border-radius: 4px;
+    border-radius: 6px;
     background: #000;
     aspect-ratio: 4 / 3;
     object-fit: cover;
@@ -343,7 +343,7 @@
     background: var(--color-accent);
     color: #fff;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     padding: 0.6rem 1.2rem;
     font-family: inherit;
     font-size: 0.9rem;

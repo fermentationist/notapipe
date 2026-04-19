@@ -300,7 +300,7 @@
       spellcheck="false"
       autocorrect="off"
       autocapitalize="off"
-      placeholder="nothing is saved. nothing is sent. just you and the page."
+      placeholder="Start typing here..."
       aria-label="Shared document"
     ></textarea>
   </div>

@@ -47,12 +47,11 @@
     gap: 0.5rem;
     background: var(--color-surface);
     border: 1px solid var(--color-border);
-    border-radius: 4px;
+    border-radius: 6px;
     padding: 0.35rem 0.5rem 0.35rem 0.75rem;
     font-size: 0.8rem;
     color: var(--color-text-muted);
     animation: slide-in 0.15s ease-out;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
     pointer-events: auto;
   }
 

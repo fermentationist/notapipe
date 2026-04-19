@@ -2608,7 +2608,6 @@
     bottom: auto;
     left: 0;
     right: auto;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
   }
 
   .persist-indicator {
@@ -2617,7 +2616,7 @@
     background: none;
     border: none;
     padding: 0.25rem;
-    border-radius: 4px;
+    border-radius: 3px;
     color: var(--color-accent);
     opacity: 0.7;
     cursor: pointer;
@@ -2644,7 +2643,6 @@
     min-width: 160px !important;
     z-index: 300 !important;
     white-space: nowrap;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
   }
 
   .actions-menu {
@@ -2683,7 +2681,7 @@
     cursor: pointer;
     font-size: 1rem;
     padding: 0.25rem 0.4rem;
-    border-radius: 4px;
+    border-radius: 3px;
     min-width: 32px;
     min-height: 32px;
     line-height: 1;
@@ -2729,7 +2727,7 @@
     z-index: 50;
     background: color-mix(in srgb, var(--color-accent) 12%, transparent);
     border: 2px dashed var(--color-accent);
-    border-radius: 4px;
+    border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2916,7 +2914,7 @@
     border: 1px solid var(--color-border);
     color: var(--color-text);
     padding: 0.5rem 1rem;
-    border-radius: 4px;
+    border-radius: 6px;
     font-family: inherit;
     font-size: 0.85rem;
     cursor: pointer;
@@ -2967,7 +2965,6 @@
     flex-direction: column;
     min-width: 100%;
     overflow: hidden;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
   }
 
   .menu-item {
@@ -3084,7 +3081,6 @@
     font-size: 0.75rem;
     cursor: pointer;
     opacity: 0.7;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
   }
 
   .lang-select:hover {

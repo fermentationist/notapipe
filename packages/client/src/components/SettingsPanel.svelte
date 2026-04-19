@@ -211,7 +211,7 @@
     padding: 0.35rem 0.75rem;
     cursor: pointer;
     margin-bottom: -1px;
-    border-radius: 4px 4px 0 0;
+    border-radius: 3px 3px 0 0;
   }
 
   .section-tab.active {
@@ -260,7 +260,7 @@
     box-sizing: border-box;
     background: var(--color-bg);
     border: 1px solid var(--color-border);
-    border-radius: 4px;
+    border-radius: 6px;
     color: var(--color-text);
     font-family: inherit;
     font-size: 0.8rem;
@@ -290,7 +290,7 @@
     margin-top: 0.6rem;
     background: transparent;
     border: 1px solid var(--color-border);
-    border-radius: 4px;
+    border-radius: 6px;
     color: var(--color-text-muted);
     font-family: inherit;
     font-size: 0.78rem;

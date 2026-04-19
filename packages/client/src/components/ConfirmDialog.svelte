@@ -81,7 +81,7 @@
     border: 1px solid var(--color-border);
     color: var(--color-text);
     padding: 0.4rem 0.9rem;
-    border-radius: 4px;
+    border-radius: 6px;
     font-family: inherit;
     font-size: 0.85rem;
     cursor: pointer;
@@ -97,7 +97,7 @@
     border: none;
     color: #fff;
     padding: 0.4rem 0.9rem;
-    border-radius: 4px;
+    border-radius: 6px;
     font-family: inherit;
     font-size: 0.85rem;
     cursor: pointer;
