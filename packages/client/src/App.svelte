@@ -94,6 +94,8 @@
     is_desktop = e.matches;
   });
 
+  let deferred_install_prompt = $state<BeforeInstallPromptEvent | null>(null);
+
   let show_qr_overlay = $state(false);
   let show_settings = $state(false);
   let settings_initial_section = $state<"storage" | "connection">("storage");
@@ -375,6 +377,13 @@
 
   onMount(() => {
     local_handle = loadHandle();
+
+    const on_before_install = (e: Event) => {
+      e.preventDefault();
+      deferred_install_prompt = e as BeforeInstallPromptEvent;
+    };
+    window.addEventListener("beforeinstallprompt", on_before_install);
+    window.addEventListener("appinstalled", () => { deferred_install_prompt = null; });
 
     const parsed = parseId();
     if (parsed !== null && isValidId(parsed)) {
@@ -1742,6 +1751,22 @@
             <ShareIcon size={14} />
           </button>
         </div>
+        {#if deferred_install_prompt !== null}
+          <button
+            class="icon-btn"
+            onclick={async () => {
+              deferred_install_prompt!.prompt();
+              const { outcome } = await deferred_install_prompt!.userChoice;
+              if (outcome === "accepted") { deferred_install_prompt = null; }
+            }}
+            title="Install app"
+            aria-label="Install app"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M8 2v8M5 7l3 3 3-3M2 13h12" />
+            </svg>
+          </button>
+        {/if}
         <button
           class="icon-btn settings-btn"
           onclick={() => {
