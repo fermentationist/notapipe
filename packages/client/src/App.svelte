@@ -53,6 +53,7 @@
   import FileTransferBar, { type PeerEntry as FtPeerEntry } from "./components/FileTransferBar.svelte";
   import ThemePanel from "./components/ThemePanel.svelte";
   import CopyIcon from "./components/CopyIcon.svelte";
+  import Menu, { type MenuItemConfig } from "./components/Menu.svelte";
   import CloseIcon from "./components/CloseIcon.svelte";
   import HardDriveIcon from "./components/HardDriveIcon.svelte";
   import InstallIcon from "./components/InstallIcon.svelte";
@@ -1834,13 +1835,10 @@
           aria-expanded={show_room_menu}
         >{room_id}</button>
         {#if show_room_menu}
-          <div class="connect-menu room-menu" role="menu">
-            <button
-              class="menu-item"
-              role="menuitem"
-              onclick={selectRandom}
-            >New random room</button>
-          </div>
+          <Menu
+            placement="below"
+            items={[{ label: "New random room", action: selectRandom }]}
+          />
         {/if}
       </div>
       <button
@@ -2042,14 +2040,10 @@
               Connect to peer ▾
             </button>
             {#if show_connect_menu}
-              <div class="connect-menu" role="menu">
-                <button class="menu-item" role="menuitem" onclick={selectSignalling}>
-                  Use signalling server
-                </button>
-                <button class="menu-item" role="menuitem" onclick={selectQr}>
-                  Use QR code (air-gapped)
-                </button>
-              </div>
+              <Menu items={[
+                { label: "Use signalling server", action: selectSignalling },
+                { label: "Use QR code (air-gapped)", action: selectQr },
+              ]} />
             {/if}
           </div>
         {/if}
@@ -2138,181 +2132,46 @@
   {/if}
 
   {#if show_info_menu && info_menu_anchor !== null}
-    <div
-      class="connect-menu info-menu"
-      role="menu"
-      style="position: fixed; top: {info_menu_anchor.top}px; right: {info_menu_anchor.right}px; z-index: 200;"
-    >
-      <button class="menu-item" role="menuitem" onclick={openUserGuide}>
-        User Guide
-      </button>
-      <button class="menu-item" role="menuitem" onclick={openAbout}>
-        About
-      </button>
-    </div>
+    <Menu
+      anchor={info_menu_anchor}
+      items={[
+        { label: "User Guide", action: openUserGuide },
+        { label: "About", action: openAbout },
+      ]}
+    />
   {/if}
 
   {#if show_share_menu && share_menu_anchor !== null}
-    <div
-      class="connect-menu share-menu"
-      role="menu"
-      style="position: fixed; top: {share_menu_anchor.top}px; right: {share_menu_anchor.right}px; z-index: 200;"
-    >
-      <button class="menu-item" role="menuitem" onclick={shareRoomLink}>
-        Share room link
-      </button>
-      {#if can_share}
-        <button class="menu-item" role="menuitem" onclick={shareDocument}>
-          Share document as file
-        </button>
-      {/if}
-    </div>
+    <Menu
+      anchor={share_menu_anchor}
+      items={[
+        { label: "Share room link", action: shareRoomLink },
+        { label: "Share document as file", action: shareDocument, hidden: !can_share },
+      ]}
+    />
   {/if}
 
   {#if show_actions_menu && actions_menu_anchor !== null}
-    <div
-      class="connect-menu actions-menu"
-      role="menu"
-      style="position: fixed; top: {actions_menu_anchor.top}px; right: {actions_menu_anchor.right}px; z-index: 200;"
-    >
-      <button
-        class="menu-item"
-        role="menuitem"
-        onclick={() => {
-          show_actions_menu = false;
-          show_palette = true;
-        }}
-      >
-        ⌘ Command palette
-      </button>
-      <div class="menu-divider" role="separator"></div>
-      <button
-        class="menu-item"
-        role="menuitem"
-        onclick={() => {
-          show_actions_menu = false;
-          if (ytext.length > 0) {
-            showConfirm(
-              `Load a file? This will replace the current document${is_connected ? " and sync the change to all connected peers" : ""}.`,
-              importDocument,
-            );
-          } else {
-            importDocument();
-          }
-        }}
-      >
-        ↑ Load text file
-      </button>
-      <button
-        class="menu-item"
-        role="menuitem"
-        onclick={() => {
-          show_actions_menu = false;
-          exportDocument();
-        }}
-      >
-        ↓ Save as text file
-      </button>
-      <button
-        class="menu-item"
-        role="menuitem"
-        onclick={() => {
-          show_actions_menu = false;
-          preview_store.toggle();
-        }}
-      >
-        M↓ {show_preview ? "Hide preview" : "Markdown preview"}
-        {#if show_preview}<span class="menu-check">✓</span>{/if}
-      </button>
-      {#if is_desktop}
-        <button
-          class="menu-item"
-          role="menuitem"
-          onclick={() => {
-            show_actions_menu = false;
-            wide_mode_store.toggle();
-          }}
-        >
-          ⬌ Wide layout
-          {#if $wide_mode_store}<span class="menu-check">✓</span>{/if}
-        </button>
-      {/if}
-      <button
-        class="menu-item"
-        class:menu-item-disabled={!is_connected}
-        role="menuitem"
-        onclick={() => {
-          if (!is_connected) {
-            return;
-          }
-          show_actions_menu = false;
-          (
-            document.getElementById("file-transfer-input") as HTMLInputElement
-          ).click();
-        }}
-      >
-        ⌂ Send file{!is_connected ? " (not connected)" : ""}
-      </button>
-      <div class="menu-divider" role="separator"></div>
-      <button
-        class="menu-item"
-        role="menuitem"
-        onclick={() => {
-          show_actions_menu = false;
-          showConfirm(
-            "Force reload the page? Any unsynced changes may be lost.",
-            () => {
-              window.location.reload();
-            },
-          );
-        }}>↺ Force reload</button
-      >
-      <div class="menu-divider" role="separator"></div>
-      <button
-        class="menu-item menu-item-danger"
-        role="menuitem"
-        onclick={() => {
-          show_actions_menu = false;
-          showConfirm(
-            "Clear the current document? This cannot be undone.",
-            clearCurrentDoc,
-          );
-        }}>Clear current document</button
-      >
-      <button
-        class="menu-item menu-item-danger"
-        role="menuitem"
-        onclick={() => {
-          show_actions_menu = false;
-          showConfirm(
-            "Clear all saved documents? This cannot be undone.",
-            clearAllDocs,
-          );
-        }}>Clear all documents</button
-      >
-      <button
-        class="menu-item menu-item-danger"
-        role="menuitem"
-        onclick={() => {
-          show_actions_menu = false;
-          showConfirm(
-            "Clear all notapipe settings (theme, persistence)?",
-            clearSettings,
-          );
-        }}>Clear settings</button
-      >
-      <button
-        class="menu-item menu-item-danger"
-        role="menuitem"
-        onclick={() => {
-          show_actions_menu = false;
-          showConfirm(
-            "Clear everything — all documents and settings? This cannot be undone.",
-            clearEverything,
-          );
-        }}>Clear everything</button
-      >
-    </div>
+    <Menu
+      anchor={actions_menu_anchor}
+      min_width="200px"
+      items={[
+        { label: "⌘ Command palette", action: () => { show_actions_menu = false; show_palette = true; } },
+        { type: "divider" },
+        { label: "↑ Load text file", action: () => { show_actions_menu = false; if (ytext.length > 0) { showConfirm(`Load a file? This will replace the current document${is_connected ? " and sync the change to all connected peers" : ""}.`, importDocument); } else { importDocument(); } } },
+        { label: "↓ Save as text file", action: () => { show_actions_menu = false; exportDocument(); } },
+        { label: `M↓ ${show_preview ? "Hide preview" : "Markdown preview"}`, checked: show_preview, action: () => { show_actions_menu = false; preview_store.toggle(); } },
+        { label: "⬌ Wide layout", checked: $wide_mode_store, hidden: !is_desktop, action: () => { show_actions_menu = false; wide_mode_store.toggle(); } },
+        { label: `⌂ Send file${!is_connected ? " (not connected)" : ""}`, disabled: !is_connected, action: () => { show_actions_menu = false; (document.getElementById("file-transfer-input") as HTMLInputElement).click(); } },
+        { type: "divider" },
+        { label: "↺ Force reload", action: () => { show_actions_menu = false; showConfirm("Force reload the page? Any unsynced changes may be lost.", () => { window.location.reload(); }); } },
+        { type: "divider" },
+        { label: "Clear current document", danger: true, action: () => { show_actions_menu = false; showConfirm("Clear the current document? This cannot be undone.", clearCurrentDoc); } },
+        { label: "Clear all documents", danger: true, action: () => { show_actions_menu = false; showConfirm("Clear all saved documents? This cannot be undone.", clearAllDocs); } },
+        { label: "Clear settings", danger: true, action: () => { show_actions_menu = false; showConfirm("Clear all notapipe settings (theme, persistence)?", clearSettings); } },
+        { label: "Clear everything", danger: true, action: () => { show_actions_menu = false; showConfirm("Clear everything — all documents and settings? This cannot be undone.", clearEverything); } },
+      ] satisfies MenuItemConfig[]}
+    />
   {/if}
 
   {#if confirm_dialog !== null}
@@ -2617,13 +2476,6 @@
     background: var(--color-bg);
   }
 
-  .connect-menu.room-menu {
-    top: calc(100% + 4px);
-    bottom: auto;
-    left: 0;
-    right: auto;
-  }
-
   .persist-indicator {
     display: flex;
     align-items: center;
@@ -2644,48 +2496,6 @@
   .actions-menu-wrapper,
   .info-menu-wrapper {
     position: relative;
-  }
-
-  /* Overrides the .connect-menu defaults — rendered at app root with fixed positioning.
-     Add any new fixed-position menus here or they will render behind other elements. */
-  .actions-menu,
-  .info-menu,
-  .share-menu {
-    position: fixed !important;
-    bottom: auto !important;
-    left: auto !important;
-    min-width: 160px !important;
-    z-index: 300 !important;
-    white-space: nowrap;
-  }
-
-  .actions-menu {
-    min-width: 200px !important;
-  }
-
-  .menu-divider {
-    height: 1px;
-    background: var(--color-border);
-    margin: 0.25rem 0;
-  }
-
-  .menu-check {
-    margin-left: auto;
-    padding-left: 1rem;
-    color: var(--color-accent);
-  }
-
-  .menu-item-disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-  }
-
-  .menu-item-disabled:hover {
-    background: none;
-  }
-
-  .menu-item-danger {
-    color: var(--color-accent);
   }
 
   .icon-btn {
@@ -2964,41 +2774,6 @@
 
   .connect-wrapper {
     position: relative;
-  }
-
-  .connect-menu {
-    position: absolute;
-    bottom: calc(100% + 4px);
-    left: 0;
-    z-index: 60;
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
-    padding: 4px 0;
-    display: flex;
-    flex-direction: column;
-    min-width: 100%;
-  }
-
-  .menu-item {
-    background: none;
-    border: none;
-    color: var(--color-text);
-    font-family: inherit;
-    font-size: 0.82rem;
-    padding: 0.4rem 0.9rem;
-    text-align: left;
-    cursor: pointer;
-    white-space: nowrap;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-  }
-
-  .menu-item:hover {
-    background: var(--color-bg);
   }
 
   /* Focus mode: full-page cream background, no chrome */
