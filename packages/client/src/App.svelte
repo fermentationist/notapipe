@@ -2038,7 +2038,20 @@
           title={sync_paused ? "Resume document sync" : "Pause document sync"}
           aria-label={sync_paused ? "Resume document sync" : "Pause document sync"}
           aria-pressed={sync_paused}
-        >{sync_paused ? "▶" : "⏸"}</button>
+        >
+          {#if sync_paused}
+            <!-- Play / resume -->
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+              <path d="M3 2.5l10 5.5-10 5.5V2.5z"/>
+            </svg>
+          {:else}
+            <!-- Pause -->
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+              <rect x="3" y="2" width="3.5" height="12" rx="1"/>
+              <rect x="9.5" y="2" width="3.5" height="12" rx="1"/>
+            </svg>
+          {/if}
+        </button>
       {/if}
       {#if code_mode}
         <select
