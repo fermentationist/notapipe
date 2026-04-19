@@ -1,7 +1,7 @@
 import { defineConfig } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { VitePWA } from "vite-plugin-pwa";
-import basicSsl from "@vitejs/plugin-basic-ssl";
+import mkcert from "vite-plugin-mkcert";
 import { resolve } from "path";
 import { createReadStream, existsSync } from "fs";
 
@@ -34,7 +34,7 @@ export default defineConfig({
       },
     },
     svelte(),
-    basicSsl(),
+    mkcert(),
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["app_icons/*.png"],
@@ -68,10 +68,14 @@ export default defineConfig({
             purpose: "maskable",
           },
         ],
+        launch_handler: {
+          client_mode: ["focus-existing", "navigate-new"],
+        },
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,woff2}", "app_icons/*.png"],
         navigateFallback: `${base}index.html`,
+        navigateFallbackAllowlist: [/^\//],
         navigateFallbackDenylist: [/^\/ws/, /^\/info/, /^\/videos\//],
       },
       devOptions: {

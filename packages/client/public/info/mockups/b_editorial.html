@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <script>
+    var _mq = window.matchMedia("(display-mode: standalone)");
+    if (_mq.matches) { location.replace("/"); } else { _mq.addEventListener("change", function(e) { if (e.matches) { location.replace("/"); } }, { once: true }); }
+    if ("launchQueue" in window) { window.launchQueue.setConsumer(function() { location.replace("/"); }); }
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/png" href="/app_icons/icon-192x192.png" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <title>notapipe — Move data between devices. No storage. No trail.</title>
+  <meta name="description" content="A peer-to-peer data bridge for transferring text and files directly between devices—without uploading, saving, or leaving a record." />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0d0d;
+      --bg-card: #141414;
+      --bg-alt: #0f0f0f;
+      --text: #f0ede8;
+      --muted: #7c7c78;
+      --accent: #e05c4a;
+      --border: #1e1e1c;
+      --mono: 'IBM Plex Mono', 'Courier New', monospace;
+      --r: 8px;
+      --col: 680px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 15px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    /* NAV — thinner, no blur, just a bottom rule */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      height: 52px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 2.5rem;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-brand { font-weight: 600; font-size: 0.88rem; letter-spacing: 0.02em; }
+    .nav-right { display: flex; align-items: center; gap: 1.5rem; }
+    .nav-gh { font-size: 0.8rem; color: var(--muted); transition: color 0.2s; }
+    .nav-gh:hover { color: var(--text); }
+    @media (max-width: 600px) { .nav-gh { display: none; } nav { padding: 0 1.5rem; } }
+    .btn {
+      font-size: 0.78rem; font-weight: 600;
+      border: 1px solid var(--accent); color: var(--accent);
+      padding: 0.35rem 0.85rem; border-radius: 3px;
+      transition: background 0.15s, color 0.15s; display: inline-block;
+    }
+    .btn:hover { background: var(--accent); color: #0d0d0d; }
+
+    /* HERO — editorial, generous vertical rhythm */
+    #hero {
+      padding: 7rem 2.5rem 6rem;
+      max-width: var(--col);
+      margin: 0 auto;
+      border-bottom: 1px solid var(--border);
+      animation: fadeUp 0.75s ease forwards;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .hero-hed {
+      font-size: clamp(1.7rem, 6vw, 3.2rem);
+      font-weight: 600; line-height: 1.15;
+      letter-spacing: -0.04em; margin-bottom: 2rem;
+    }
+    .hero-heading { min-height: 240px; }
+    @media (max-width: 767px) { .hero-heading { min-height: 185px; } }
+    @media (max-width: 575px) { .hero-heading { min-height: 145px; } }
+    .hero-line { display: block; }
+    .hero-line + .hero-line { margin-top: 0.08em; }
+    #hero-line1 { transition: opacity 0.5s ease; }
+    /* second line in muted color */
+    #hero-line2 { color: var(--muted); }
+
+    .cursor {
+      display: inline-block; width: 3px; height: 0.88em;
+      background: var(--accent); vertical-align: middle;
+      margin-left: 2px; animation: blink 1s step-end infinite;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    .hero-sub {
+      font-size: 0.94rem; color: var(--muted);
+      max-width: 480px; margin-bottom: 3rem; line-height: 1.8;
+    }
+    .hero-ctas { display: flex; align-items: center; gap: 2rem; flex-wrap: wrap; }
+    .hero-cta {
+      font-size: 0.88rem; font-weight: 600;
+      background: var(--accent); color: #0d0d0d;
+      padding: 0.6rem 1.4rem; border-radius: 3px;
+      transition: opacity 0.2s;
+    }
+    .hero-cta:hover { opacity: 0.82; }
+    .install-btn {
+      font-size: 0.88rem; font-weight: 600;
+      background: none; border: 1px solid var(--accent); color: var(--accent);
+      padding: 0.6rem 1.4rem; border-radius: 3px;
+      cursor: pointer; font-family: var(--mono);
+      transition: background 0.15s, color 0.15s;
+    }
+    .install-btn:hover { background: var(--accent); color: #0d0d0d; }
+    .hero-scroll { font-size: 0.84rem; color: var(--muted); transition: color 0.2s; }
+    .hero-scroll:hover { color: var(--text); }
+
+    /* SHARED SECTION WRAPPER */
+    .section-wrap {
+      max-width: var(--col);
+      margin: 0 auto;
+      padding: 5rem 2.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    @media (max-width: 600px) { .section-wrap { padding: 3.5rem 1.5rem; } }
+
+    .section-label {
+      font-size: 0.65rem; font-weight: 600; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--accent);
+      margin-bottom: 1.25rem; display: block;
+    }
+    .section-hed {
+      font-size: clamp(1.1rem, 3vw, 1.55rem);
+      font-weight: 600; letter-spacing: -0.025em;
+      margin-bottom: 2.5rem; line-height: 1.25;
+    }
+    .section-hed.centered { text-align: center; }
+
+    /* DEMO */
+    #demo .inner { text-align: center; }
+    .frames { display: flex; flex-direction: column; gap: 1.25rem; align-items: center; margin-bottom: 1rem; }
+    @media (min-width: 600px) { .frames { flex-direction: row; align-items: flex-start; justify-content: center; gap: 2rem; } }
+    .device { flex: 1; max-width: 280px; width: 100%; }
+    .dev-label { font-size: 0.66rem; color: var(--muted); text-align: left; margin-bottom: 0.35rem; letter-spacing: 0.08em; text-transform: uppercase; }
+    .dev-frame { background: #1a1a18; border: 1px solid #2e2e2a; border-radius: var(--r); overflow: hidden; }
+    .dev-app-bar { display: flex; align-items: center; justify-content: space-between; padding: 0.35rem 0.65rem; background: #242420; border-bottom: 1px solid #2e2e2a; }
+    .dev-app-name { font-size: 0.72rem; font-weight: 500; color: #e8e3d8; letter-spacing: -0.01em; }
+    .dev-status { display: flex; align-items: center; gap: 0.35rem; }
+    .sdot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; background: #6b6660; transition: background 0.35s ease, box-shadow 0.35s ease; }
+    .sdot.on { background: #4caf50; box-shadow: 0 0 5px rgba(76,175,80,0.45); }
+    .dot-lbl { font-size: 0.6rem; color: #6b6660; }
+    .dev-room-bar { display: flex; align-items: center; gap: 0.35rem; padding: 0.28rem 0.65rem; background: #242420; border-bottom: 1px solid #2e2e2a; }
+    .dev-room-id { font-size: 0.65rem; color: #e8e3d8; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dev-icon-btn { background: none; border: none; padding: 0.1rem 0.15rem; color: #6b6660; display: flex; align-items: center; border-radius: 3px; cursor: default; }
+    .dev-editor { padding: 0.65rem 0.7rem; min-height: 52px; }
+    .dev-content { font-size: 0.78rem; color: #e8e3d8; line-height: 1.6; word-break: break-all; min-height: 26px; transition: opacity 0.28s ease; }
+    .dev-cursor { display: inline-block; width: 1px; height: 0.85em; background: #e05c4a; vertical-align: middle; animation: blink 1s step-end infinite; }
+    .dev-actions { display: flex; align-items: center; justify-content: flex-end; padding: 0.28rem 0.5rem; border-top: 1px solid #2e2e2a; }
+    .dev-corner-btn { background: none; border: none; padding: 0.18rem 0.32rem; color: #6b6660; font-size: 0.7rem; border-radius: 3px; display: flex; align-items: center; gap: 0.2rem; cursor: default; transition: color 0.15s; }
+    .dev-corner-btn.copied { color: #4ade80; }
+    .copy-icon-wrap { position: relative; display: inline-flex; width: 12px; height: 12px; flex-shrink: 0; }
+    .copy-icon-wrap img, .copy-icon-wrap .check-svg { position: absolute; inset: 0; width: 12px; height: 12px; transition: opacity 0.15s; }
+    .copy-icon-wrap .check-svg { opacity: 0; stroke: #4ade80; }
+    .dev-corner-btn.copied .copy-icon-wrap img { opacity: 0; }
+    .dev-corner-btn.copied .copy-icon-wrap .check-svg { opacity: 1; }
+    .demo-caption { font-size: 0.78rem; color: var(--muted); margin-top: 1rem; }
+
+    /* HOW IT WORKS — prose steps, no card boxes */
+    .steps-prose { display: flex; flex-direction: column; gap: 2.5rem; }
+    .step-prose { display: flex; gap: 1.75rem; align-items: flex-start; }
+    .step-num {
+      font-size: 0.65rem; font-weight: 600; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--accent);
+      padding-top: 0.15rem; flex-shrink: 0; width: 3.5rem;
+    }
+    .step-body {}
+    .step-title { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.45rem; }
+    .step-desc { font-size: 0.84rem; color: var(--muted); line-height: 1.75; }
+    .lf-trigger {
+      background: none; border: none; padding: 0;
+      font-family: var(--mono); font-size: 0.95rem; font-weight: 600;
+      color: var(--text); cursor: pointer; text-align: left;
+      display: block; margin-bottom: 0.45rem;
+      border-bottom: 1px dashed transparent;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .lf-trigger:hover { color: var(--accent); border-bottom-color: var(--accent); }
+    .lf-inline-trigger {
+      background: none; border: none; padding: 0;
+      font-family: inherit; font-size: inherit;
+      color: var(--accent); text-decoration: underline;
+      text-underline-offset: 3px; cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .lf-inline-trigger:hover { opacity: 0.75; }
+
+    /* USE CASES */
+    .uc-list { list-style: none; display: flex; flex-direction: column; gap: 1rem; }
+    .uc-list li {
+      font-size: 0.9rem; color: var(--muted); line-height: 1.6;
+      display: flex; gap: 1.25rem; align-items: baseline;
+      padding-bottom: 1rem; border-bottom: 1px solid var(--border);
+    }
+    .uc-list li:last-child { border-bottom: none; padding-bottom: 0; }
+    .arr { color: var(--accent); flex-shrink: 0; }
+
+    /* TRUST */
+    .trust-text { max-width: 480px; }
+    .trust-text p { font-size: 0.88rem; color: var(--muted); line-height: 1.8; margin-bottom: 1.25rem; }
+    .trust-text strong { color: var(--text); }
+    .trust-text .cta-row { margin-top: 2rem; }
+    .hero-cta.outline {
+      font-size: 0.88rem; font-weight: 600;
+      border: 1px solid var(--accent); color: var(--accent);
+      padding: 0.55rem 1.2rem; border-radius: 3px;
+      transition: background 0.15s, color 0.15s;
+      display: inline-block;
+    }
+    .hero-cta.outline:hover { background: var(--accent); color: #0d0d0d; }
+
+    /* FEATURES — numbered list, no cards */
+    .f-list { list-style: none; display: flex; flex-direction: column; gap: 0; }
+    .f-item {
+      display: flex; gap: 1.75rem; align-items: flex-start;
+      padding: 1.5rem 0; border-bottom: 1px solid var(--border);
+    }
+    .f-item:first-child { padding-top: 0; }
+    .f-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .f-num {
+      font-size: 0.65rem; font-weight: 600; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--accent);
+      padding-top: 0.2rem; flex-shrink: 0; width: 3.5rem;
+    }
+    .f-body {}
+    .f-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.4rem; }
+    .f-desc { font-size: 0.84rem; color: var(--muted); line-height: 1.75; }
+
+    /* FINAL CTA */
+    #final-cta .section-wrap { text-align: center; }
+    #final-cta .section-hed { margin-bottom: 1.75rem; }
+
+    /* FOOTER */
+    footer {
+      padding: 2.5rem 2.5rem;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 1rem;
+      border-top: 1px solid var(--border);
+      max-width: 100%;
+    }
+    @media (max-width: 600px) { footer { padding: 2rem 1.5rem; } }
+    .foot-l, .foot-r { font-size: 0.73rem; color: var(--muted); display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+    .foot-r a { transition: color 0.2s; }
+    .foot-r a:hover { color: var(--text); }
+    .foot-r .cta { color: var(--accent); }
+
+    /* BACKGROUND VIDEO */
+    .background-video { position: fixed; top: 0; left: 0; min-width: 100%; min-height: 100%; object-fit: cover; z-index: -1; opacity: 0.04; }
+    @media (max-width: 767px) { .background-video { transform: scale(0.6); transform-origin: 0 0; } }
+
+    /* MODAL */
+    #lf-dialog {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--r); color: var(--text);
+      max-width: 560px; width: calc(100vw - 3rem);
+      padding: 0; margin: auto;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    }
+    #lf-dialog::backdrop { background: rgba(0,0,0,0.72); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+    .lf-modal-inner { padding: 2rem 2rem 1.75rem; }
+    .lf-modal-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; }
+    .lf-modal-title { font-size: 1.1rem; font-weight: 600; letter-spacing: -0.02em; }
+    .lf-modal-close { background: none; border: none; color: var(--muted); font-size: 1.2rem; cursor: pointer; line-height: 1; padding: 0.1rem 0.3rem; border-radius: 3px; flex-shrink: 0; transition: color 0.15s; }
+    .lf-modal-close:hover { color: var(--text); }
+    .lf-modal-body { font-size: 0.88rem; color: var(--muted); line-height: 1.75; display: flex; flex-direction: column; gap: 1rem; }
+    .lf-modal-body strong { color: var(--text); }
+    .lf-modal-body ul { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; padding-left: 0; }
+    .lf-modal-body ul li { display: flex; gap: 0.6rem; align-items: baseline; font-size: 0.82rem; }
+    .lf-modal-body ul li::before { content: "→"; color: var(--accent); flex-shrink: 0; }
+    .lf-modal-divider { border: none; border-top: 1px solid var(--border); margin: 0.25rem 0; }
+    .lf-modal-links { display: flex; flex-direction: column; gap: 0.35rem; }
+    .lf-modal-links a { font-size: 0.78rem; color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+    .lf-modal-links a:hover { opacity: 0.8; }
+  </style>
+</head>
+<body>
+  <video autoplay muted loop playsinline class="background-video">
+    <source src="/videos/notapipe_ascii_loop_compressed.mp4" type="video/mp4" />
+  </video>
+
+  <nav>
+    <a href="#" class="nav-brand">notapipe</a>
+    <div class="nav-right">
+      <a href="https://github.com/fermentationist/notapipe" target="_blank" rel="noopener" class="nav-gh">GitHub</a>
+      <a href="../../../" data-app-link class="btn">Open App →</a>
+    </div>
+  </nav>
+
+  <section id="hero">
+    <h1 class="hero-hed hero-heading">
+      <span class="hero-line" id="hero-line1">Move data between devices.</span>
+      <span class="hero-line" id="hero-line2"></span>
+    </h1>
+    <p class="hero-sub">A peer-to-peer data bridge for transferring text and files directly between devices—without uploading, saving, or leaving a record.</p>
+    <div class="hero-ctas">
+      <a href="../../../" data-app-link class="hero-cta">Open App →</a>
+      <button id="install-btn" class="install-btn" hidden>Install App</button>
+      <a href="#demo" class="hero-scroll">See how it works ↓</a>
+    </div>
+  </section>
+
+  <section id="demo">
+    <div class="section-wrap">
+      <div class="inner">
+        <div class="frames">
+          <div class="device laptop">
+            <div class="dev-label">Laptop</div>
+            <div class="dev-frame">
+              <div class="dev-app-bar"><span class="dev-app-name">notapipe</span><div class="dev-status"><div class="sdot" id="ldot"></div><span class="dot-lbl" id="llbl">waiting</span></div></div>
+              <div class="dev-room-bar"><span class="dev-room-id">apple-river-moon</span><button class="dev-icon-btn" tabindex="-1" aria-hidden="true"><img src="/svg_icons/copy_icon.svg" width="11" height="11" alt="" /></button></div>
+              <div class="dev-editor"><div class="dev-content" id="lcontent"></div></div>
+              <div class="dev-actions"><button class="dev-corner-btn" tabindex="-1" aria-hidden="true"><img src="/svg_icons/copy_icon.svg" width="12" height="12" alt="" /></button></div>
+            </div>
+          </div>
+          <div class="device phone">
+            <div class="dev-label">Phone</div>
+            <div class="dev-frame">
+              <div class="dev-app-bar"><span class="dev-app-name">notapipe</span><div class="dev-status"><div class="sdot" id="pdot"></div><span class="dot-lbl" id="plbl">waiting</span></div></div>
+              <div class="dev-room-bar"><span class="dev-room-id">apple-river-moon</span><button class="dev-icon-btn" tabindex="-1" aria-hidden="true"><img src="/svg_icons/copy_icon.svg" width="11" height="11" alt="" /></button></div>
+              <div class="dev-editor"><div class="dev-content" id="pcontent"></div></div>
+              <div class="dev-actions">
+                <button class="dev-corner-btn" id="copybtn" tabindex="-1" aria-hidden="true">
+                  <span class="copy-icon-wrap"><img src="/svg_icons/copy_icon.svg" width="12" height="12" alt="" /><svg class="check-svg" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1.5,6 4.5,9.5 10.5,2.5"></polyline></svg></span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="demo-caption">Both tabs. Same URL. Nothing in between.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="section-wrap">
+      <span class="section-label">How it works</span>
+      <div class="steps-prose">
+        <div class="step-prose">
+          <span class="step-num">Step 1</span>
+          <div class="step-body">
+            <div class="step-title">Open a session</div>
+            <p class="step-desc">Share the URL with another device — or scan a QR code to connect without any server involvement at all.</p>
+          </div>
+        </div>
+        <div class="step-prose">
+          <span class="step-num">Step 2</span>
+          <div class="step-body">
+            <div class="step-title">Devices connect directly</div>
+            <p class="step-desc">Peers establish a WebRTC connection, end-to-end encrypted. No server ever sees the content.</p>
+          </div>
+        </div>
+        <div class="step-prose">
+          <span class="step-num">Step 3</span>
+          <div class="step-body">
+            <button class="lf-trigger" onclick="document.getElementById('lf-dialog').showModal()">Local-first sync ↗</button>
+            <p class="step-desc">Content syncs instantly. Close the session and it's gone — no trace, no storage, no account needed.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="use-cases">
+    <div class="section-wrap">
+      <span class="section-label">Built for moments like these</span>
+      <ul class="uc-list">
+        <li><span class="arr">→</span>Moving a password between your work and personal machine</li>
+        <li><span class="arr">→</span>Sharing a deploy key with a teammate without Slack or email</li>
+        <li><span class="arr">→</span>Transferring a file between phone and laptop without cloud storage</li>
+        <li><span class="arr">→</span>Talking with someone when you don't want the conversation logged anywhere</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="trust">
+    <div class="section-wrap">
+      <span class="section-label">No trust required</span>
+      <div class="trust-text">
+        <p><strong>notapipe does NOT:</strong><br />collect your text, store your files, log your sessions, require an account, or know who you are.</p>
+        <p>You can inspect the code, self-host, or configure your own signaling and TURN servers. Install as a PWA to run independently of notapipe.app. Open source (MIT).</p>
+        <div class="cta-row"><a href="../../../" data-app-link class="hero-cta outline">Open App →</a></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="section-wrap">
+      <span class="section-label">High utility, low friction.</span>
+      <ul class="f-list">
+        <li class="f-item">
+          <span class="f-num">01</span>
+          <div class="f-body">
+            <div class="f-title">Your content is never read by a server</div>
+            <p class="f-desc">Content syncs directly between devices — never stored, logged, or read by any server. Close the tabs and it's gone. Built on <button class="lf-inline-trigger" onclick="document.getElementById('lf-dialog').showModal()">local-first</button> principles; local persistence is opt-in only.</p>
+          </div>
+        </li>
+        <li class="f-item">
+          <span class="f-num">02</span>
+          <div class="f-body">
+            <div class="f-title">Real-time sync</div>
+            <p class="f-desc">Yjs CRDTs over a WebRTC data channel. Conflicts merge automatically.</p>
+          </div>
+        </li>
+        <li class="f-item">
+          <span class="f-num">03</span>
+          <div class="f-body">
+            <div class="f-title">QR air-gap mode</div>
+            <p class="f-desc">Pair two devices by scanning a QR code — no signalling server contact. The entire WebRTC handshake is encoded in the QR itself.</p>
+          </div>
+        </li>
+        <li class="f-item">
+          <span class="f-num">04</span>
+          <div class="f-body">
+            <div class="f-title">File transfer</div>
+            <p class="f-desc">Send files up to 100 MB over the encrypted WebRTC channel.</p>
+          </div>
+        </li>
+        <li class="f-item">
+          <span class="f-num">05</span>
+          <div class="f-body">
+            <div class="f-title">Voice calls</div>
+            <p class="f-desc">Talk to your peer over the same encrypted connection.</p>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="final-cta">
+    <div class="section-wrap" style="text-align:center; border-bottom:none;">
+      <h2 class="section-hed centered">Ready to try it?</h2>
+      <a href="../../../" data-app-link class="hero-cta">Open App →</a>
+    </div>
+  </section>
+
+  <footer>
+    <div class="foot-l">
+      <a href="../../../">notapipe</a>
+      <span>MIT License</span>
+      <a href="https://dennishodges.com" target="_blank" rel="noopener">©2026 Dennis Hodges</a>
+      <span>PWA — works on desktop and mobile</span>
+    </div>
+    <div class="foot-r">
+      <a href="https://github.com/fermentationist/notapipe" target="_blank" rel="noopener">GitHub</a>
+      <a href="../../../" data-app-link class="cta">Open App →</a>
+    </div>
+  </footer>
+
+  <dialog id="lf-dialog">
+    <div class="lf-modal-inner">
+      <div class="lf-modal-header"><span class="lf-modal-title">Local-first software</span><button class="lf-modal-close" onclick="document.getElementById('lf-dialog').close()" aria-label="Close">✕</button></div>
+      <div class="lf-modal-body">
+        <p><strong>Local-first</strong> is a design philosophy: your data lives on your device. The network is a transport layer, not a storage layer.</p>
+        <p>In practice, local-first software:</p>
+        <ul>
+          <li>Works without a server — the network only syncs, never owns</li>
+          <li>Responds instantly — no round-trips for every keystroke</li>
+          <li>Keeps data on your device by default</li>
+          <li>Gives you full ownership — export, migrate, or delete at any time</li>
+        </ul>
+        <p>notapipe takes this further than most. The shared document exists only in memory — there is no server-side database, no sync cloud, no storage layer at all unless you explicitly enable it. The WebRTC channel is a transport, not a host.</p>
+        <hr class="lf-modal-divider" />
+        <p><strong>Built to last</strong></p>
+        <p>Software designed around local-first principles tends to outlive the services that host it. notapipe is built with this in mind:</p>
+        <ul>
+          <li>Install as a PWA — runs independently of notapipe.app once installed</li>
+          <li>Bring your own signalling and TURN servers</li>
+          <li>In QR mode, no server infrastructure is required at all</li>
+          <li>Open source (MIT) — fork it, self-host it, audit it</li>
+        </ul>
+        <p>If notapipe.app disappears tomorrow, an installed copy keeps working. The app is designed to have no single point of failure you don't control.</p>
+        <hr class="lf-modal-divider" />
+        <div class="lf-modal-links">
+          <a href="https://www.inkandswitch.com/local-first/" target="_blank" rel="noopener">"Local-first software" — Ink &amp; Switch essay ↗</a>
+          <a href="https://localfirstweb.dev" target="_blank" rel="noopener">localfirstweb.dev — community &amp; resources ↗</a>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <script>
+    if ("serviceWorker" in navigator && location.hostname !== "localhost") { navigator.serviceWorker.register("/sw.js").catch(() => {}); }
+
+    (function() {
+      var parts = window.location.pathname.replace(/\/$/, "").split("/").filter(Boolean);
+      parts.pop(); parts.pop();
+      var appUrl = parts.length ? window.location.origin + "/" + parts.join("/") : window.location.origin;
+      document.querySelectorAll("[data-app-link]").forEach(function(el) { el.href = appUrl; });
+    })();
+    const hl1 = document.getElementById("hero-line1");
+    const hl2 = document.getElementById("hero-line2");
+    const heroCursor = document.createElement("span");
+    heroCursor.className = "cursor";
+    hl2.appendChild(heroCursor);
+    const PHRASES = ["Move data between devices.","Share a link without a third party.","Chat without leaving a trace.","Send files directly, peer-to-peer.","A data bridge for your devices.","Create a private connection in seconds.","Move text between your devices.","Transfer credentials without email.","Start a voice call. No account needed."];
+    let phraseIdx = 0;
+    const PHRASES2 = ["A server never sees your content.","Always encrypted in transit.","No accounts. No logs. No cloud.","Your data, your rules.","Close the session and it's gone.","Peer-to-peer, end-to-end encrypted.","Zero server visibility.","Built for privacy and simplicity.","No storage. No history. No footprints."];
+    let phrase2Idx = 0;
+    function maskFade(el, onDone) { let p = -20; const fi = setInterval(() => { p += 1; const m = `linear-gradient(to right, transparent ${p}%, black ${p+20}%)`; el.style.webkitMaskImage = m; el.style.maskImage = m; if (p >= 100) { clearInterval(fi); onDone && onDone(); } }, 25); }
+    function clearMask(el) { el.style.webkitMaskImage = ""; el.style.maskImage = ""; }
+    function typeLine2(delay, onDone) { const text = PHRASES2[phrase2Idx]; phrase2Idx = (phrase2Idx + 1) % PHRASES2.length; while (hl2.firstChild !== heroCursor) hl2.removeChild(hl2.firstChild); clearMask(hl2); let pos = 0; setTimeout(() => { const ti = setInterval(() => { if (pos < text.length) { hl2.insertBefore(document.createTextNode(text[pos++]), heroCursor); } else { clearInterval(ti); onDone && onDone(); } }, 52); }, delay); }
+    function runLoop(isFirst) { hl1.textContent = PHRASES[phraseIdx]; phraseIdx = (phraseIdx + 1) % PHRASES.length; if (!isFirst) { hl1.style.opacity = "0"; requestAnimationFrame(() => requestAnimationFrame(() => { hl1.style.opacity = "1"; })); } typeLine2(isFirst ? 720 : 300, () => { setTimeout(() => { maskFade(hl2, () => { setTimeout(() => runLoop(false), 900); }); }, 2500); }); }
+    runLoop(true);
+    const lc = document.getElementById("lcontent"); const pc = document.getElementById("pcontent"); const copyBtn = document.getElementById("copybtn"); const ldot = document.getElementById("ldot"); const pdot = document.getElementById("pdot"); const llbl = document.getElementById("llbl"); const plbl = document.getElementById("plbl");
+    const DEMO_TEXT = "ghp_k8mX92qPwRtN4s7vFjQ2"; const demoCursor = document.createElement("span"); demoCursor.className = "dev-cursor";
+    function resetFrames() { lc.innerHTML = ""; lc.appendChild(demoCursor); lc.style.opacity = "1"; pc.textContent = ""; pc.style.opacity = "1"; copyBtn.classList.remove("copied"); ldot.classList.remove("on"); pdot.classList.remove("on"); llbl.textContent = "waiting"; plbl.textContent = "waiting"; }
+    function runDemo() { resetFrames(); let i = 0; const typing = setInterval(() => { if (i < DEMO_TEXT.length) { lc.insertBefore(document.createTextNode(DEMO_TEXT[i++]), demoCursor); } else { clearInterval(typing); setTimeout(() => { ldot.classList.add("on"); pdot.classList.add("on"); llbl.textContent = "1 connected"; plbl.textContent = "1 connected"; setTimeout(() => { pc.style.opacity = "0"; setTimeout(() => { pc.textContent = DEMO_TEXT; pc.style.opacity = "1"; setTimeout(() => { copyBtn.classList.add("copied"); setTimeout(() => { copyBtn.classList.remove("copied"); setTimeout(() => { lc.style.opacity = "0"; pc.style.opacity = "0"; setTimeout(runDemo, 550); }, 1100); }, 950); }, 650); }, 200); }, 520); }, 380); } }, 62); }
+    setTimeout(runDemo, 450);
+    // PWA install prompt
+    let deferredInstallPrompt = null;
+    const installBtn = document.getElementById("install-btn");
+    window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferredInstallPrompt = e; installBtn.hidden = false; });
+    installBtn.addEventListener("click", async () => { if (!deferredInstallPrompt) { return; } history.replaceState(null, "", "/"); deferredInstallPrompt.prompt(); const { outcome } = await deferredInstallPrompt.userChoice; if (outcome !== "accepted") { history.replaceState(null, "", "/info/mockups/"); } deferredInstallPrompt = null; installBtn.hidden = true; });
+    window.addEventListener("appinstalled", () => { deferredInstallPrompt = null; installBtn.hidden = true; });
+
+    document.getElementById("lf-dialog").addEventListener("click", function(e) { const rect = this.getBoundingClientRect(); if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) { this.close(); } });
+  </script>
+</body>
+</html>

@@ -3,8 +3,22 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      var _mq = window.matchMedia("(display-mode: standalone)");
+      if (_mq.matches) {
+        location.replace("/");
+      } else {
+        _mq.addEventListener("change", function(e) {
+          if (e.matches) { location.replace("/"); }
+        }, { once: true });
+      }
+      if ("launchQueue" in window) {
+        window.launchQueue.setConsumer(function() { location.replace("/"); });
+      }
+    </script>
     <link rel="icon" type="image/png" href="/app_icons/icon-192x192.png" />
     <link rel="apple-touch-icon" href="/app_icons/icon-192x192.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <title>notapipe — Move data between devices. No storage. No trail.</title>
     <meta
       name="description"
@@ -262,6 +276,25 @@
       }
       .hero-cta:hover {
         opacity: 0.82;
+      }
+
+      .install-btn {
+        font-family: var(--mono);
+        font-size: 0.88rem;
+        font-weight: 600;
+        background: none;
+        border: 1px solid var(--accent);
+        color: var(--accent);
+        padding: 0.55rem 1.2rem;
+        border-radius: 4px;
+        cursor: pointer;
+        transition:
+          background 0.15s,
+          color 0.15s;
+      }
+      .install-btn:hover {
+        background: var(--accent);
+        color: #0d0d0d;
       }
 
       .hero-scroll {
@@ -1151,6 +1184,7 @@
       </p>
       <div class="hero-ctas">
         <a href="../../" data-app-link class="hero-cta">Open App →</a>
+        <button id="install-btn" class="install-btn" hidden>Install App</button>
         <a href="#demo" class="hero-scroll">See how it works ↓</a>
       </div>
       <!-- <p class="hero-try">
@@ -1495,6 +1529,11 @@
     </dialog>
 
     <script>
+      // ── Service worker registration ──────────────────────────
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/sw.js").catch(() => {});
+      }
+
       // ── Dynamic app URL ──────────────────────────────────────
       (function () {
         var parts = window.location.pathname
@@ -1680,6 +1719,34 @@
       }
 
       setTimeout(runDemo, 450);
+
+      // ── PWA install prompt ───────────────────────────────────
+      let deferredInstallPrompt = null;
+      const installBtn = document.getElementById("install-btn");
+
+      window.addEventListener("beforeinstallprompt", (e) => {
+        e.preventDefault();
+        deferredInstallPrompt = e;
+        console.log(
+          "beforeinstallprompt event captured, showing install button",
+        );
+        installBtn.hidden = false;
+      });
+
+      installBtn.addEventListener("click", async () => {
+        if (!deferredInstallPrompt) {
+          return;
+        }
+        deferredInstallPrompt.prompt();
+        const { outcome } = await deferredInstallPrompt.userChoice;
+        deferredInstallPrompt = null;
+        installBtn.hidden = true;
+      });
+
+      window.addEventListener("appinstalled", () => {
+        deferredInstallPrompt = null;
+        installBtn.hidden = true;
+      });
 
       // Close local-first modal on backdrop click
       document
