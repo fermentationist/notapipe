@@ -1,7 +1,10 @@
 <script lang="ts">
   import { persistence_store } from "../stores/persistence.ts";
   import { chat_persistence_store } from "../stores/chat_persistence.ts";
-  import { rtc_config_store, RTC_CONFIG_DEFAULTS } from "../stores/rtc_config.ts";
+  import {
+    rtc_config_store,
+    RTC_CONFIG_DEFAULTS,
+  } from "../stores/rtc_config.ts";
   import { auto_connect_store } from "../stores/auto_connect.ts";
 
   interface Props {
@@ -14,9 +17,12 @@
   // Snapshot the current CSS variable values so the input styles don't shift
   // when the user live-edits tokens like --color-bg or --color-text.
   const root_style = getComputedStyle(document.documentElement);
-  const frozen_input_bg = root_style.getPropertyValue("--color-bg").trim() || "#ffffff";
-  const frozen_input_text = root_style.getPropertyValue("--color-text").trim() || "#000000";
-  const frozen_input_border = root_style.getPropertyValue("--color-border").trim() || "#cccccc";
+  const frozen_input_bg =
+    root_style.getPropertyValue("--color-bg").trim() || "#ffffff";
+  const frozen_input_text =
+    root_style.getPropertyValue("--color-text").trim() || "#000000";
+  const frozen_input_border =
+    root_style.getPropertyValue("--color-border").trim() || "#cccccc";
   const frozen_input_style = `background:${frozen_input_bg};color:${frozen_input_text};border-color:${frozen_input_border};`;
 
   type SectionTab = "storage" | "connection";
@@ -24,7 +30,9 @@
   let active_section = $state<SectionTab>(initial_section);
 
   function handleKeydown(event: KeyboardEvent): void {
-    if (event.key === "Escape") { onclose(); }
+    if (event.key === "Escape") {
+      onclose();
+    }
   }
 
   function isConnectionModified(config: typeof $rtc_config_store): boolean {
@@ -42,10 +50,16 @@
 <div
   class="overlay"
   role="presentation"
-  onclick={(e) => { if (e.target === e.currentTarget) { onclose(); } }}
+  onclick={(e) => {
+    if (e.target === e.currentTarget) {
+      onclose();
+    }
+  }}
 >
   <div class="panel" role="dialog" aria-modal="true" aria-label="Settings">
-    <button class="close-btn" onclick={onclose} aria-label="Close settings">✕</button>
+    <button class="close-btn" onclick={onclose} aria-label="Close settings"
+      >✕</button
+    >
     <h2>Settings</h2>
 
     <div class="section-tabs" role="tablist">
@@ -54,15 +68,19 @@
         class:active={active_section === "storage"}
         role="tab"
         aria-selected={active_section === "storage"}
-        onclick={() => { active_section = "storage"; }}
-      >Storage</button>
+        onclick={() => {
+          active_section = "storage";
+        }}>Storage</button
+      >
       <button
         class="section-tab"
         class:active={active_section === "connection"}
         role="tab"
         aria-selected={active_section === "connection"}
-        onclick={() => { active_section = "connection"; }}
-      >Connection</button>
+        onclick={() => {
+          active_section = "connection";
+        }}>Connection</button
+      >
     </div>
 
     <div class="section-content">
@@ -71,54 +89,83 @@
           <input
             type="checkbox"
             checked={$persistence_store}
-            onchange={() => { $persistence_store ? persistence_store.disable() : persistence_store.enable(); }}
+            onchange={() => {
+              $persistence_store
+                ? persistence_store.disable()
+                : persistence_store.enable();
+            }}
           />
           <span>Save document</span>
         </label>
         <p class="note">
-          Stores document content in your browser's IndexedDB. Content <strong>survives tab close and browser restart</strong> — it is no longer ephemeral. Never sent to a server. Off by default.
+          Stores document content in your browser's IndexedDB. Content <strong
+            >survives tab close and browser restart</strong
+          > — it is no longer ephemeral. Never sent to a server. Off by default.
         </p>
 
         <label class="toggle-label">
           <input
             type="checkbox"
             checked={$chat_persistence_store}
-            onchange={() => { $chat_persistence_store ? chat_persistence_store.disable() : chat_persistence_store.enable(); }}
+            onchange={() => {
+              $chat_persistence_store
+                ? chat_persistence_store.disable()
+                : chat_persistence_store.enable();
+            }}
           />
           <span>Save chat log</span>
         </label>
         <p class="note">
-          Stores chat history in localStorage per room ID — never sent to a server. Off by default.
+          Stores chat history in localStorage per room ID — never sent to a
+          server. Off by default.
         </p>
-
       {:else}
         <label class="toggle-label">
           <input
             type="checkbox"
             checked={$auto_connect_store}
-            onchange={() => { $auto_connect_store ? auto_connect_store.disable() : auto_connect_store.enable(); }}
+            onchange={() => {
+              $auto_connect_store
+                ? auto_connect_store.disable()
+                : auto_connect_store.enable();
+            }}
           />
           <span>Auto-connect on launch</span>
         </label>
+        <p class="note border-bottom">
+          Automatically connects via the signalling server when the app opens.
+          Useful when notapipe is installed as a PWA on two machines set to the
+          same room. Off by default.
+        </p>
+        <h3>Custom signalling and TURN servers</h3>
+        <br />
         <p class="note">
-          Automatically connects via the signalling server when the app opens. Useful when notapipe is installed as a PWA on two machines set to the same room. Off by default.
+          Override the signalling server or configure a TURN relay. Changes take
+          effect on the next connection attempt.
+        </p>
+        <p class="note">
+          notapipe uses STUN by default — connections are direct, peer-to-peer.
+          If a direct connection fails (restrictive firewall or symmetric NAT),
+          you can add a <strong>TURN server</strong> to relay traffic. The relay
+          cannot decrypt your content (DTLS encryption), but it is in the network
+          path and can observe packet sizes and timing. File transfers on relayed
+          connections are limited to 5 MB; configuring your own TURN server removes
+          this limit.
         </p>
 
-        <p class="note">
-          Override the signalling server or configure a TURN relay. Changes take effect on the next connection attempt.
-        </p>
-        <p class="note">
-          notapipe uses STUN by default — connections are direct, peer-to-peer. If a direct connection fails (restrictive firewall or symmetric NAT), you can add a <strong>TURN server</strong> to relay traffic. The relay cannot decrypt your content (DTLS encryption), but it is in the network path and can observe packet sizes and timing. File transfers on relayed connections are limited to 5 MB; configuring your own TURN server removes this limit.
-        </p>
-
-        <label class="field-label" for="signal-url">Signalling server URL</label>
+        <label class="field-label" for="signal-url">Signalling server URL</label
+        >
         <input
           id="signal-url"
           class="text-input"
           type="url"
           placeholder="wss://your-signal-server.example.com/ws"
           value={$rtc_config_store.signal_url}
-          oninput={(e) => rtc_config_store.setField("signal_url", (e.target as HTMLInputElement).value.trim())}
+          oninput={(e) =>
+            rtc_config_store.setField(
+              "signal_url",
+              (e.target as HTMLInputElement).value.trim(),
+            )}
         />
 
         <label class="field-label" for="turn-url">TURN server URL</label>
@@ -127,7 +174,11 @@
           class="text-input"
           type="text"
           value={$rtc_config_store.turn_url}
-          oninput={(e) => rtc_config_store.setField("turn_url", (e.target as HTMLInputElement).value.trim())}
+          oninput={(e) =>
+            rtc_config_store.setField(
+              "turn_url",
+              (e.target as HTMLInputElement).value.trim(),
+            )}
         />
 
         <label class="field-label" for="turn-username">TURN username</label>
@@ -136,7 +187,11 @@
           class="text-input"
           type="text"
           value={$rtc_config_store.turn_username}
-          oninput={(e) => rtc_config_store.setField("turn_username", (e.target as HTMLInputElement).value)}
+          oninput={(e) =>
+            rtc_config_store.setField(
+              "turn_username",
+              (e.target as HTMLInputElement).value,
+            )}
         />
 
         <label class="field-label" for="turn-credential">TURN credential</label>
@@ -145,11 +200,17 @@
           class="text-input"
           type="password"
           value={$rtc_config_store.turn_credential}
-          oninput={(e) => rtc_config_store.setField("turn_credential", (e.target as HTMLInputElement).value)}
+          oninput={(e) =>
+            rtc_config_store.setField(
+              "turn_credential",
+              (e.target as HTMLInputElement).value,
+            )}
         />
 
         <p class="security-note">
-          ⚠ Credentials are stored unencrypted in localStorage. Use rate-limited keys where possible and never enter credentials you use elsewhere.
+          ⚠ Credentials are stored unencrypted in localStorage. Use
+          rate-limited keys where possible and never enter credentials you use
+          elsewhere.
         </p>
 
         {#if isConnectionModified($rtc_config_store)}
@@ -207,6 +268,13 @@
     font-weight: 500;
   }
 
+  h3 {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 400;
+    color: var(--color-text);
+  }
+
   /* Outer section tabs */
   .section-tabs {
     display: flex;
@@ -251,6 +319,11 @@
     font-size: 0.75rem;
     color: var(--color-text-muted);
     line-height: 1.4;
+  }
+
+  .border-bottom {
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 0.5rem;
   }
 
   .toggle-label {
