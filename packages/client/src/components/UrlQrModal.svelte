@@ -59,6 +59,7 @@
   .modal {
     background: #ffffff;
     border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
     padding: 1.5rem;
     display: flex;
     flex-direction: column;

@@ -2382,11 +2382,13 @@
     flex: 1;
     display: flex;
     justify-content: flex-end;
+    align-items: center;
     gap: 0.25rem;
   }
 
   .app-name {
     font-size: 0.9rem;
+    font-weight: 500;
     color: var(--color-text-muted);
     flex-shrink: 0;
   }
@@ -2565,7 +2567,7 @@
   .room-name-btn {
     background: none;
     border: none;
-    color: var(--color-text-muted);
+    color: var(--color-accent);
     font-family: inherit;
     font-size: 0.8rem;
     padding: 0.1rem 0.2rem;
@@ -2574,8 +2576,9 @@
   }
 
   .room-name-btn:hover {
-    color: var(--color-text);
+    color: var(--color-accent);
     background: var(--color-bg);
+    opacity: 0.8;
   }
 
   .connect-menu.room-menu {
@@ -2583,7 +2586,7 @@
     bottom: auto;
     left: 0;
     right: auto;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
   }
 
   .persist-indicator {
@@ -2619,7 +2622,7 @@
     min-width: 160px !important;
     z-index: 300 !important;
     white-space: nowrap;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
   }
 
   .actions-menu {
@@ -2675,13 +2678,14 @@
   }
 
   .palette-trigger {
-    font-size: 0.65rem;
+    font-size: 0.7rem;
+    background: var(--color-surface);
     letter-spacing: 0.02em;
-    opacity: 0.6;
     min-width: unset;
-    padding: 0.25rem 0.45rem;
+    padding: 0.15rem 0.4rem;
     border: 1px solid var(--color-border);
-    border-radius: 4px;
+    border-radius: 3px;
+    opacity: 0.8;
   }
 
   .palette-trigger:hover:not(:disabled) {
@@ -2934,14 +2938,14 @@
     bottom: calc(100% + 4px);
     left: 0;
     z-index: 60;
-    background: var(--color-bg);
+    background: var(--color-surface);
     border: 1px solid var(--color-border);
-    border-radius: 4px;
+    border-radius: 8px;
     display: flex;
     flex-direction: column;
     min-width: 100%;
     overflow: hidden;
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
   }
 
   .menu-item {
@@ -2949,18 +2953,19 @@
     border: none;
     color: var(--color-text);
     font-family: inherit;
-    font-size: 0.85rem;
-    padding: 0.6rem 1rem;
+    font-size: 0.82rem;
+    padding: 0.4rem 0.9rem;
     text-align: left;
     cursor: pointer;
     white-space: nowrap;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     width: 100%;
   }
 
   .menu-item:hover {
-    background: var(--color-surface);
+    background: var(--color-bg);
   }
 
   /* Focus mode: full-page cream background, no chrome */

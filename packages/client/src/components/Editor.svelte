@@ -10,25 +10,60 @@
     language?: string;
   }
 
-  let { doc, ytext, readonly = false, code_mode = false, language = "javascript" }: Props = $props();
+  let {
+    doc,
+    ytext,
+    readonly = false,
+    code_mode = false,
+    language = "javascript",
+  }: Props = $props();
 
   async function importLanguage(lang: string): Promise<void> {
     switch (lang) {
-      case "javascript": await import("prism-code-editor/prism/languages/javascript"); break;
-      case "typescript": await import("prism-code-editor/prism/languages/typescript"); break;
-      case "jsx": await import("prism-code-editor/prism/languages/jsx"); break;
-      case "tsx": await import("prism-code-editor/prism/languages/tsx"); break;
-      case "html": await import("prism-code-editor/languages/html"); break;
-      case "css": await import("prism-code-editor/languages/css"); break;
-      case "json": await import("prism-code-editor/languages/json"); break;
-      case "python": await import("prism-code-editor/languages/python"); break;
-      case "bash": await import("prism-code-editor/languages/bash"); break;
-      case "sql": await import("prism-code-editor/languages/sql"); break;
-      case "yaml": await import("prism-code-editor/languages/yaml"); break;
-      case "rust": await import("prism-code-editor/languages/rust"); break;
-      case "php": await import("prism-code-editor/languages/php"); break;
-      case "ruby": await import("prism-code-editor/languages/ruby"); break;
-      default: break; // plain text — no grammar needed
+      case "javascript":
+        await import("prism-code-editor/prism/languages/javascript");
+        break;
+      case "typescript":
+        await import("prism-code-editor/prism/languages/typescript");
+        break;
+      case "jsx":
+        await import("prism-code-editor/prism/languages/jsx");
+        break;
+      case "tsx":
+        await import("prism-code-editor/prism/languages/tsx");
+        break;
+      case "html":
+        await import("prism-code-editor/languages/html");
+        break;
+      case "css":
+        await import("prism-code-editor/languages/css");
+        break;
+      case "json":
+        await import("prism-code-editor/languages/json");
+        break;
+      case "python":
+        await import("prism-code-editor/languages/python");
+        break;
+      case "bash":
+        await import("prism-code-editor/languages/bash");
+        break;
+      case "sql":
+        await import("prism-code-editor/languages/sql");
+        break;
+      case "yaml":
+        await import("prism-code-editor/languages/yaml");
+        break;
+      case "rust":
+        await import("prism-code-editor/languages/rust");
+        break;
+      case "php":
+        await import("prism-code-editor/languages/php");
+        break;
+      case "ruby":
+        await import("prism-code-editor/languages/ruby");
+        break;
+      default:
+        break; // plain text — no grammar needed
     }
   }
 
@@ -124,12 +159,21 @@
     if (!code_mode || code_container === undefined) return;
 
     let cleanup_called = false;
-    let pce_editor: { remove: () => void; on: (event: string, cb: (v: string) => void) => () => void; setOptions: (opts: Record<string, unknown>) => void } | null = null;
+    let pce_editor: {
+      remove: () => void;
+      on: (event: string, cb: (v: string) => void) => () => void;
+      setOptions: (opts: Record<string, unknown>) => void;
+    } | null = null;
     let ytext_unobserve: (() => void) | null = null;
     let theme_style: HTMLStyleElement | null = null;
 
     (async () => {
-      const [{ createEditor }, { matchBrackets }, { highlightBracketPairs }, { defaultCommands }] = await Promise.all([
+      const [
+        { createEditor },
+        { matchBrackets },
+        { highlightBracketPairs },
+        { defaultCommands },
+      ] = await Promise.all([
         import("prism-code-editor"),
         import("prism-code-editor/match-brackets"),
         import("prism-code-editor/highlight-brackets"),
@@ -178,13 +222,16 @@
       let old_value = initial_value;
       let is_local = false;
 
-      const remove_update_listener = pce_editor.on("update", (new_value: string) => {
-        if (is_applying_remote) return;
-        is_local = true;
-        applyTextareaDiff(ytext, doc, old_value, new_value);
-        old_value = new_value;
-        is_local = false;
-      });
+      const remove_update_listener = pce_editor.on(
+        "update",
+        (new_value: string) => {
+          if (is_applying_remote) return;
+          is_local = true;
+          applyTextareaDiff(ytext, doc, old_value, new_value);
+          old_value = new_value;
+          is_local = false;
+        },
+      );
 
       // Yjs → Editor
       const ytext_observer = () => {
@@ -300,7 +347,8 @@
     caret-color: var(--color-focus-text);
     background-image: repeating-linear-gradient(
       to bottom,
-      transparent, transparent calc(var(--focus-line-height, 28px) - 1px),
+      transparent,
+      transparent calc(var(--focus-line-height, 28px) - 1px),
       var(--color-focus-rule) calc(var(--focus-line-height, 28px) - 1px),
       var(--color-focus-rule) var(--focus-line-height, 28px)
     );
@@ -322,8 +370,16 @@
     --pce-bg: var(--code-bg, #1a1a18);
     --pce-cursor: var(--code-caret-color, #e05c4a);
     --pce-line-number: var(--code-gutter-text, #6b6660);
-    --pce-selection: color-mix(in srgb, var(--color-accent, #e05c4a) 30%, transparent);
-    --pce-bg-highlight: color-mix(in srgb, var(--color-text, #e8e3d8) 5%, transparent);
+    --pce-selection: color-mix(
+      in srgb,
+      var(--color-accent, #e05c4a) 30%,
+      transparent
+    );
+    --pce-bg-highlight: color-mix(
+      in srgb,
+      var(--color-text, #e8e3d8) 5%,
+      transparent
+    );
     /* Base text color — overridden per-token by the Prism theme */
     color: var(--code-text, #e8e3d8);
     font-family: var(--code-font-family, "IBM Plex Mono", monospace);

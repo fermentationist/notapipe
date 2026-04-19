@@ -164,7 +164,8 @@
   .panel {
     background: var(--color-surface);
     border: 1px solid var(--color-border);
-    border-radius: 8px;
+    border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
     padding: 1.5rem;
     width: min(90vw, 360px);
     position: relative;

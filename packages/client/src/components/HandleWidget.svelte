@@ -14,24 +14,12 @@
     draft = handle;
   });
 
-  // Size the input to its content — at least 6 chars, at most 20.
-  const input_size = $derived(Math.min(Math.max(draft.length + 1, 6), 20));
-
   function commit(value: string): void {
     const trimmed = value.trim();
     if (trimmed.length > 0 && trimmed !== handle) {
       onchange(trimmed);
     }
     draft = trimmed.length > 0 ? trimmed : handle;
-  }
-
-  function handleKeydown(event: KeyboardEvent): void {
-    if (event.key === "Enter") {
-      (event.currentTarget as HTMLInputElement).blur();
-    } else if (event.key === "Escape") {
-      draft = handle;
-      (event.currentTarget as HTMLInputElement).blur();
-    }
   }
 
   function openModal(): void {
@@ -57,40 +45,17 @@
   }
 </script>
 
-<!-- Inline input — wide screens only -->
-<div class="handle-inline">
-  <span class="handle-icon" aria-hidden="true">
-    <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-      <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm0 1c-2.67 0-8 1.34-8 4v1h16v-1c0-2.66-5.33-4-8-4z"/>
-    </svg>
-  </span>
-  <input
-    class="handle-input"
-    type="text"
-    value={draft}
-    size={input_size}
-    maxlength="32"
-    aria-label="Your handle"
-    title="Your handle (click to edit)"
-    oninput={(e) => { draft = (e.currentTarget as HTMLInputElement).value; }}
-    onblur={(e) => commit((e.currentTarget as HTMLInputElement).value)}
-    onkeydown={handleKeydown}
-  />
-</div>
-
-<!-- Icon button — narrow screens only -->
+<!-- Pill chip button — opens rename modal at all screen sizes -->
 <button
-  class="handle-icon-btn"
+  class="handle-chip"
   onclick={openModal}
-  title="Your handle: {handle}"
-  aria-label="Edit your handle"
+  title="Your handle: {handle} — click to rename"
+  aria-label="Your handle: {handle}. Click to rename."
 >
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-    <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm0 1c-2.67 0-8 1.34-8 4v1h16v-1c0-2.66-5.33-4-8-4z"/>
-  </svg>
+  {handle}
 </button>
 
-<!-- Modal for narrow screens -->
+<!-- Rename modal -->
 {#if show_modal}
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <div
@@ -118,61 +83,21 @@
 {/if}
 
 <style>
-  /* Inline — wide screens only */
-  .handle-inline {
-    display: none;
-    align-items: center;
-    gap: 4px;
-    color: var(--color-text-muted);
-  }
-
-  /* Icon button — narrow screens only */
-  .handle-icon-btn {
-    display: flex;
-    background: none;
-    border: none;
-    color: var(--color-text-muted);
+  .handle-chip {
+    font-size: 0.75rem;
+    color: var(--color-text);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    padding: 0.15rem 0.55rem;
     cursor: pointer;
-    padding: 0.25rem;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .handle-icon-btn:hover {
-    color: var(--color-text);
-  }
-
-  @media (min-width: 600px) {
-    .handle-inline {
-      display: flex;
-    }
-    .handle-icon-btn {
-      display: none;
-    }
-  }
-
-  .handle-icon {
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-  }
-
-  .handle-input {
-    background: transparent;
-    border: none;
-    border-bottom: 1px solid var(--color-border);
-    color: var(--color-text);
     font-family: inherit;
-    font-size: 0.8rem;
-    padding: 1px 4px;
-    outline: none;
-    transition: border-color 0.15s;
-    min-width: 6ch;
-    max-width: 20ch;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
-  .handle-input:focus {
-    border-bottom-color: var(--color-accent);
+  .handle-chip:hover {
+    border-color: var(--color-text-muted);
   }
 
   /* Modal */
@@ -189,7 +114,8 @@
   .modal-panel {
     background: var(--color-surface);
     border: 1px solid var(--color-border);
-    border-radius: 8px;
+    border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
     padding: 1.5rem;
     width: min(90vw, 280px);
     display: flex;
@@ -206,7 +132,7 @@
   .modal-input {
     background: var(--color-bg);
     border: 1px solid var(--color-border);
-    border-radius: 4px;
+    border-radius: 6px;
     color: var(--color-text);
     font-family: inherit;
     font-size: 0.9rem;

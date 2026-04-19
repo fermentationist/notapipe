@@ -68,6 +68,7 @@ body {
   font-family: "IBM Plex Mono", monospace;
   background-color: var(--color-bg);
   color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
 }
 
 #app {
