@@ -1997,7 +1997,9 @@
             <span class="btn-text">Add peer via QR</span>
           </button>
           <button class="action-btn" onclick={handleDisconnect} title="Disconnect">
-            <DisconnectIcon />
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 3l10 10M13 3L3 13"/>
+            </svg>
             <span class="btn-text">Disconnect</span>
           </button>
         {:else if is_waiting_for_peer}
