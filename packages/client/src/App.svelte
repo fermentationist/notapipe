@@ -3013,8 +3013,8 @@
   }
 
   .corner-btn.copy-error {
-    color: #ef4444;
-    border-color: #ef4444;
+    color: var(--color-status-error);
+    border-color: var(--color-status-error);
   }
 
   .editor-copy {
@@ -3066,8 +3066,8 @@
 
   .corner-btn.sync-paused {
     opacity: 1;
-    color: #f59e0b;
-    border-color: #f59e0b;
+    color: var(--color-status-connecting);
+    border-color: var(--color-status-connecting);
   }
 
   .lang-select {

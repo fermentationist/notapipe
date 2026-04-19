@@ -105,8 +105,8 @@
   }
 
   .confirm-btn.primary {
-    background: var(--color-accent, #4ade80);
-    color: #0d0d0d;
+    background: var(--color-accent);
+    color: #fff;
   }
 
   .confirm-btn:hover {

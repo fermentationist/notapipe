@@ -115,7 +115,7 @@
 
   .error-msg {
     font-size: 0.78rem;
-    color: #f87171;
+    color: var(--color-status-error);
     line-height: 1.45;
     margin: 0;
   }
@@ -144,9 +144,9 @@
   }
 
   .confirm-btn {
-    background: var(--color-accent, #4ade80);
+    background: var(--color-accent);
     border: none;
-    color: #0d0d0d;
+    color: #fff;
     padding: 0.4rem 0.9rem;
     border-radius: 6px;
     font-family: inherit;
