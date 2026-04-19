@@ -2002,7 +2002,9 @@
           </button>
         {:else if is_waiting_for_peer}
           <button class="action-btn" onclick={handleDisconnect} title="Stop waiting for peer">
-            <DisconnectIcon />
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+              <path d="M3 3l10 10M13 3L3 13"/>
+            </svg>
             <span class="btn-text">Stop waiting</span>
           </button>
         {:else}
