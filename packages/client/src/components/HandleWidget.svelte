@@ -93,7 +93,11 @@
     cursor: pointer;
     font-family: inherit;
     white-space: nowrap;
-    flex-shrink: 0;
+    flex-shrink: 1;
+    min-width: 0;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .handle-chip:hover {
