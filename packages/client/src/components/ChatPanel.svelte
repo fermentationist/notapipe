@@ -64,7 +64,9 @@
     try {
       await navigator.clipboard.writeText(msg.text);
       copied_id = msg.id;
-      setTimeout(() => { copied_id = null; }, 1500);
+      setTimeout(() => {
+        copied_id = null;
+      }, 1500);
     } catch {
       // Clipboard access denied — nothing to do
     }
@@ -106,7 +108,9 @@
 <div class="chat-panel">
   <div class="chat-header">
     <span class="chat-title">Chat</span>
-    <button class="close-btn" onclick={onclose} aria-label="Close chat">✕</button>
+    <button class="close-btn" onclick={onclose} aria-label="Close chat"
+      >✕</button
+    >
   </div>
 
   <div class="messages" bind:this={scroll_el}>
@@ -120,7 +124,9 @@
       {#each messages as msg (msg.id)}
         <div class="message" class:local={msg.is_local}>
           <div class="meta">
-            <span class="handle">{msg.is_local ? local_handle : msg.handle}</span>
+            <span class="handle"
+              >{msg.is_local ? local_handle : msg.handle}</span
+            >
             <span class="time">{formatTime(msg.timestamp)}</span>
             {#if msg.secret}
               <span class="secret-label"><LockIcon size={9} /> secret</span>
@@ -153,7 +159,9 @@
       class="secret-toggle"
       class:active={secret_mode}
       onclick={toggleSecretMode}
-      title={secret_mode ? "Secret mode on — click to disable" : "Send a secret (e.g. password)"}
+      title={secret_mode
+        ? "Secret mode on — click to disable"
+        : "Send a secret (e.g. password)"}
       aria-label={secret_mode ? "Disable secret mode" : "Enable secret mode"}
       aria-pressed={secret_mode}
     >
@@ -178,7 +186,7 @@
         onkeydown={handleKeydown}
         placeholder={connected ? "Message… (Enter to send)" : "Not connected"}
         disabled={!connected}
-        rows="2"
+        rows="3"
         aria-label="Chat message"
       ></textarea>
     {/if}
@@ -188,8 +196,14 @@
       disabled={!connected || draft.trim().length === 0}
       aria-label="Send message"
     >
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-        <path d="M1 1l14 7-14 7V9.5l10-1.5-10-1.5V1z"/>
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 16 16"
+        fill="currentColor"
+        aria-hidden="true"
+      >
+        <path d="M1 1l14 7-14 7V9.5l10-1.5-10-1.5V1z"></path>
       </svg>
       <span class="send-label">Send</span>
     </button>

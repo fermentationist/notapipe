@@ -1670,8 +1670,9 @@
   {#if !$focus_mode_store}
     <header>
       <div class="header-left">
+        <ConnectionStatus part="dot" />
         <span class="app-name">notapipe</span>
-        <ConnectionStatus />
+        <ConnectionStatus part="label" />
       </div>
       <div class="header-right">
         {#if $persistence_store}
@@ -1747,8 +1748,13 @@
             show_settings = !show_settings;
           }}
           title="Settings"
-          aria-label="Settings">⚙</button
+          aria-label="Settings"
         >
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="8" cy="8" r="2.5"/>
+            <path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.05 3.05l1.06 1.06M11.89 11.89l1.06 1.06M3.05 12.95l1.06-1.06M11.89 4.11l1.06-1.06"/>
+          </svg>
+        </button>
         <!-- ⌘K palette trigger — also serves as the tap target on mobile -->
         <button
           class="icon-btn palette-trigger"
@@ -1834,6 +1840,7 @@
       <PeerList
         peers={Array.from(remote_handles.entries()).map(([id, handle]) => ({ id, handle }))}
       />
+      <span class="room-bar-spacer" aria-hidden="true"></span>
       <div class="chat-btn-wrapper">
         <button
           class="copy-btn"
@@ -1920,6 +1927,19 @@
         {code_mode}
         language={code_language}
       />
+      {#if !code_mode}
+        <button
+          class="editor-copy"
+          class:success={copy_content_feedback === "success"}
+          class:error={copy_content_feedback === "error"}
+          onclick={copyEditorContent}
+          title={copy_content_feedback === "success" ? "Copied!" : copy_content_feedback === "error" ? "Copy failed — clipboard not available" : "Copy all text to clipboard"}
+          aria-label={copy_content_feedback === "error" ? "Copy failed — clipboard not available" : "Copy all text to clipboard"}
+        >
+          <CopyIcon copied={copy_content_feedback === "success"} size={13} />
+          <span>{copy_content_feedback === "success" ? "copied" : "copy all"}</span>
+        </button>
+      {/if}
       <PeerToastBar toasts={peer_toasts} ondismiss={dismissPeerToast} />
     </div>
     {#if show_preview && !show_chat}
@@ -1978,12 +1998,16 @@
             <span class="btn-text">Add peer via QR</span>
           </button>
           <button class="action-btn" onclick={handleDisconnect} title="Disconnect">
-            <DisconnectIcon />
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 3l10 10M13 3L3 13"/>
+            </svg>
             <span class="btn-text">Disconnect</span>
           </button>
         {:else if is_waiting_for_peer}
           <button class="action-btn" onclick={handleDisconnect} title="Stop waiting for peer">
-            <DisconnectIcon />
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+              <path d="M3 3l10 10M13 3L3 13"/>
+            </svg>
             <span class="btn-text">Stop waiting</span>
           </button>
         {:else}
@@ -2019,17 +2043,21 @@
           title={sync_paused ? "Resume document sync" : "Pause document sync"}
           aria-label={sync_paused ? "Resume document sync" : "Pause document sync"}
           aria-pressed={sync_paused}
-        >{sync_paused ? "▶" : "⏸"}</button>
+        >
+          {#if sync_paused}
+            <!-- Play / resume -->
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+              <path d="M3 2.5l10 5.5-10 5.5V2.5z"/>
+            </svg>
+          {:else}
+            <!-- Pause -->
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+              <rect x="3" y="2" width="3.5" height="12" rx="1"/>
+              <rect x="9.5" y="2" width="3.5" height="12" rx="1"/>
+            </svg>
+          {/if}
+        </button>
       {/if}
-      <button
-        class="corner-btn"
-        class:copy-error={copy_content_feedback === "error"}
-        onclick={copyEditorContent}
-        title={copy_content_feedback === "success" ? "Copied!" : copy_content_feedback === "error" ? "Copy failed — clipboard not available" : "Copy all text to clipboard"}
-        aria-label={copy_content_feedback === "error" ? "Copy failed — clipboard not available" : "Copy editor content to clipboard"}
-      >
-        <CopyIcon copied={copy_content_feedback === "success"} size={14} />
-      </button>
       {#if code_mode}
         <select
           class="lang-select"
@@ -2227,7 +2255,7 @@
       >
       <div class="menu-divider" role="separator"></div>
       <button
-        class="menu-item"
+        class="menu-item menu-item-danger"
         role="menuitem"
         onclick={() => {
           show_actions_menu = false;
@@ -2238,7 +2266,7 @@
         }}>Clear current document</button
       >
       <button
-        class="menu-item"
+        class="menu-item menu-item-danger"
         role="menuitem"
         onclick={() => {
           show_actions_menu = false;
@@ -2249,7 +2277,7 @@
         }}>Clear all documents</button
       >
       <button
-        class="menu-item"
+        class="menu-item menu-item-danger"
         role="menuitem"
         onclick={() => {
           show_actions_menu = false;
@@ -2377,6 +2405,7 @@
     flex: 1;
     display: flex;
     justify-content: flex-end;
+    align-items: center;
     gap: 0.25rem;
   }
 
@@ -2394,6 +2423,11 @@
     border-bottom: 1px solid var(--color-border);
     flex-shrink: 0;
     position: relative;
+    flex-wrap: wrap;
+  }
+
+  .room-bar-spacer {
+    flex: 1;
   }
 
 
@@ -2453,11 +2487,12 @@
   }
 
   .copy-btn.voice-active {
-    color: #22c55e;
+    color: var(--color-status-connected);
   }
 
   .copy-btn.voice-active:hover {
-    color: #16a34a;
+    color: var(--color-status-connected);
+    opacity: 0.8;
   }
 
   @keyframes voice-ring {
@@ -2466,12 +2501,12 @@
   }
 
   .copy-btn.voice-connecting {
-    color: #22c55e;
+    color: var(--color-status-connected);
     animation: voice-ring 1.2s ease-in-out infinite;
   }
 
   .copy-btn.voice-ringing {
-    color: #22c55e;
+    color: var(--color-status-connected);
     animation: voice-ring 1.2s ease-in-out infinite;
   }
 
@@ -2558,7 +2593,7 @@
     color: var(--color-text-muted);
     font-family: inherit;
     font-size: 0.8rem;
-    padding: 0.1rem 0.2rem;
+    padding: 0.1rem 0.3rem;
     cursor: pointer;
     border-radius: 3px;
   }
@@ -2573,7 +2608,6 @@
     bottom: auto;
     left: 0;
     right: auto;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
 
   .persist-indicator {
@@ -2582,7 +2616,7 @@
     background: none;
     border: none;
     padding: 0.25rem;
-    border-radius: 4px;
+    border-radius: 3px;
     color: var(--color-accent);
     opacity: 0.7;
     cursor: pointer;
@@ -2609,7 +2643,6 @@
     min-width: 160px !important;
     z-index: 300 !important;
     white-space: nowrap;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
   }
 
   .actions-menu {
@@ -2638,7 +2671,7 @@
   }
 
   .menu-item-danger {
-    color: var(--color-status-error);
+    color: var(--color-accent);
   }
 
   .icon-btn {
@@ -2646,17 +2679,16 @@
     border: none;
     color: var(--color-text-muted);
     cursor: pointer;
-    font-size: 1rem;
-    padding: 0.25rem 0.4rem;
-    border-radius: 4px;
-    min-width: 32px;
-    min-height: 32px;
+    font-size: 0.85rem;
+    padding: 0.2rem 0.35rem;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
     line-height: 1;
   }
 
   .icon-btn:hover:not(:disabled) {
     color: var(--color-text);
-    background: var(--color-surface);
   }
 
   .icon-btn:disabled {
@@ -2665,13 +2697,14 @@
   }
 
   .palette-trigger {
-    font-size: 0.65rem;
+    font-size: 0.7rem;
+    background: var(--color-surface);
     letter-spacing: 0.02em;
-    opacity: 0.6;
     min-width: unset;
-    padding: 0.25rem 0.45rem;
+    padding: 0.15rem 0.4rem;
     border: 1px solid var(--color-border);
-    border-radius: 4px;
+    border-radius: 3px;
+    opacity: 0.8;
   }
 
   .palette-trigger:hover:not(:disabled) {
@@ -2693,7 +2726,7 @@
     z-index: 50;
     background: color-mix(in srgb, var(--color-accent) 12%, transparent);
     border: 2px dashed var(--color-accent);
-    border-radius: 4px;
+    border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2746,7 +2779,7 @@
     }
 
     main.chat-split .chat-pane {
-      width: 300px;
+      width: 340px;
       flex-shrink: 0;
       min-height: 0;
       overflow: hidden;
@@ -2880,7 +2913,7 @@
     border: 1px solid var(--color-border);
     color: var(--color-text);
     padding: 0.5rem 1rem;
-    border-radius: 4px;
+    border-radius: 6px;
     font-family: inherit;
     font-size: 0.85rem;
     cursor: pointer;
@@ -2924,14 +2957,14 @@
     bottom: calc(100% + 4px);
     left: 0;
     z-index: 60;
-    background: var(--color-bg);
+    background: var(--color-surface);
     border: 1px solid var(--color-border);
-    border-radius: 4px;
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+    padding: 4px 0;
     display: flex;
     flex-direction: column;
     min-width: 100%;
-    overflow: hidden;
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
   }
 
   .menu-item {
@@ -2939,18 +2972,19 @@
     border: none;
     color: var(--color-text);
     font-family: inherit;
-    font-size: 0.85rem;
-    padding: 0.6rem 1rem;
+    font-size: 0.82rem;
+    padding: 0.4rem 0.9rem;
     text-align: left;
     cursor: pointer;
     white-space: nowrap;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     width: 100%;
   }
 
   .menu-item:hover {
-    background: var(--color-surface);
+    background: var(--color-bg);
   }
 
   /* Focus mode: full-page cream background, no chrome */
@@ -2979,8 +3013,49 @@
   }
 
   .corner-btn.copy-error {
-    color: #ef4444;
-    border-color: #ef4444;
+    color: var(--color-status-error);
+    border-color: var(--color-status-error);
+  }
+
+  .editor-copy {
+    position: absolute;
+    right: 1rem;
+    bottom: 1rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    z-index: 10;
+  }
+
+  .editor-copy:hover {
+    color: var(--color-text);
+  }
+
+  .editor-copy.success {
+    color: var(--color-status-connected);
+  }
+
+  .editor-copy.error {
+    color: var(--color-status-error);
+  }
+
+  :global(.focus-mode) .editor-copy {
+    background: var(--color-focus-bg);
+    border-color: var(--color-focus-rule);
+    color: var(--color-focus-text);
+    opacity: 0.5;
+  }
+
+  :global(.focus-mode) .editor-copy:hover {
+    opacity: 1;
   }
 
   .corner-btn.active {
@@ -2991,8 +3066,8 @@
 
   .corner-btn.sync-paused {
     opacity: 1;
-    color: #f59e0b;
-    border-color: #f59e0b;
+    color: var(--color-status-connecting);
+    border-color: var(--color-status-connecting);
   }
 
   .lang-select {
@@ -3006,7 +3081,6 @@
     font-size: 0.75rem;
     cursor: pointer;
     opacity: 0.7;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
   }
 
   .lang-select:hover {

@@ -271,7 +271,8 @@
   .panel {
     background: var(--color-surface);
     border: 1px solid var(--color-border);
-    border-radius: 8px;
+    border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
     padding: 2rem;
     width: min(90vw, 340px);
     position: relative;
@@ -313,12 +314,12 @@
 
   .qr-canvas {
     border: 4px solid white;
-    border-radius: 4px;
+    border-radius: 6px;
   }
 
   .camera-preview {
     width: 100%;
-    border-radius: 4px;
+    border-radius: 6px;
     background: #000;
     aspect-ratio: 4 / 3;
     object-fit: cover;
@@ -342,7 +343,7 @@
     background: var(--color-accent);
     color: #fff;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     padding: 0.6rem 1.2rem;
     font-family: inherit;
     font-size: 0.9rem;

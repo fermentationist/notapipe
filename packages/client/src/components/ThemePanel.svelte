@@ -229,7 +229,8 @@
   .panel {
     background: var(--color-surface);
     border: 1px solid var(--color-border);
-    border-radius: 8px;
+    border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
     width: min(90vw, 360px);
     position: relative;
     display: flex;
@@ -280,7 +281,7 @@
     padding: 0.3rem 0.6rem;
     cursor: pointer;
     margin-bottom: -1px;
-    border-radius: 4px 4px 0 0;
+    border-radius: 3px 3px 0 0;
   }
 
   .tab-btn.active {

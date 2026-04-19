@@ -83,7 +83,8 @@
   .dialog {
     background: var(--color-surface);
     border: 1px solid var(--color-border);
-    border-radius: 8px;
+    border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
     padding: 1.5rem;
     width: min(90vw, 360px);
     display: flex;
@@ -100,7 +101,7 @@
     width: 100%;
     background: var(--color-bg);
     border: 1px solid var(--color-border);
-    border-radius: 4px;
+    border-radius: 6px;
     color: var(--color-text);
     font-family: var(--font-mono, monospace);
     font-size: 0.9rem;
@@ -114,7 +115,7 @@
 
   .error-msg {
     font-size: 0.78rem;
-    color: #f87171;
+    color: var(--color-status-error);
     line-height: 1.45;
     margin: 0;
   }
@@ -131,7 +132,7 @@
     border: 1px solid var(--color-border);
     color: var(--color-text);
     padding: 0.4rem 0.9rem;
-    border-radius: 4px;
+    border-radius: 6px;
     font-family: inherit;
     font-size: 0.85rem;
     cursor: pointer;
@@ -143,11 +144,11 @@
   }
 
   .confirm-btn {
-    background: var(--color-accent, #4ade80);
+    background: var(--color-accent);
     border: none;
-    color: #0d0d0d;
+    color: #fff;
     padding: 0.4rem 0.9rem;
-    border-radius: 4px;
+    border-radius: 6px;
     font-family: inherit;
     font-size: 0.85rem;
     cursor: pointer;

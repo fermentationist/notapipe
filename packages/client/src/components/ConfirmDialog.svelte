@@ -54,7 +54,8 @@
   .dialog {
     background: var(--color-surface);
     border: 1px solid var(--color-border);
-    border-radius: 8px;
+    border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
     padding: 1.5rem;
     width: min(90vw, 320px);
     display: flex;
@@ -80,7 +81,7 @@
     border: 1px solid var(--color-border);
     color: var(--color-text);
     padding: 0.4rem 0.9rem;
-    border-radius: 4px;
+    border-radius: 6px;
     font-family: inherit;
     font-size: 0.85rem;
     cursor: pointer;
@@ -96,7 +97,7 @@
     border: none;
     color: #fff;
     padding: 0.4rem 0.9rem;
-    border-radius: 4px;
+    border-radius: 6px;
     font-family: inherit;
     font-size: 0.85rem;
     cursor: pointer;
@@ -104,8 +105,8 @@
   }
 
   .confirm-btn.primary {
-    background: var(--color-accent, #4ade80);
-    color: #0d0d0d;
+    background: var(--color-accent);
+    color: #fff;
   }
 
   .confirm-btn:hover {

@@ -209,7 +209,6 @@
     border-radius: 6px;
     border: 1px solid var(--color-border);
     background: var(--color-surface);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
     font-size: 0.82rem;
     pointer-events: auto;
     flex-wrap: wrap;
@@ -248,7 +247,7 @@
 
   .strip-btn {
     padding: 0.2rem 0.55rem;
-    border-radius: 4px;
+    border-radius: 6px;
     border: 1px solid var(--color-border);
     font-size: 0.8rem;
     cursor: pointer;
