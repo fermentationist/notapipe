@@ -2,6 +2,7 @@
   import { persistence_store } from "../stores/persistence.ts";
   import { chat_persistence_store } from "../stores/chat_persistence.ts";
   import { rtc_config_store, RTC_CONFIG_DEFAULTS } from "../stores/rtc_config.ts";
+  import { auto_connect_store } from "../stores/auto_connect.ts";
 
   interface Props {
     onclose: () => void;
@@ -91,6 +92,18 @@
         </p>
 
       {:else}
+        <label class="toggle-label">
+          <input
+            type="checkbox"
+            checked={$auto_connect_store}
+            onchange={() => { $auto_connect_store ? auto_connect_store.disable() : auto_connect_store.enable(); }}
+          />
+          <span>Auto-connect on launch</span>
+        </label>
+        <p class="note">
+          Automatically connects via the signalling server when the app opens. Useful when notapipe is installed as a PWA on two machines set to the same room. Off by default.
+        </p>
+
         <p class="note">
           Override the signalling server or configure a TURN relay. Changes take effect on the next connection attempt.
         </p>

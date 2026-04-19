@@ -70,6 +70,7 @@
   import DisconnectIcon from "./components/DisconnectIcon.svelte";
   import { loadHandle, saveHandle } from "$lib/handle.ts";
   import { preview_store } from "./stores/preview.ts";
+  import { auto_connect_store } from "./stores/auto_connect.ts";
   import { wide_mode_store } from "./stores/wide_mode.ts";
   import { theme_store } from "./stores/theme.ts";
   import { VoiceCallManager } from "./rtc/voice_manager.ts";
@@ -416,6 +417,10 @@
     connection_store.setRoomId(room_id);
     reinitPersistence();
     loadChatLog();
+
+    if (get(auto_connect_store)) {
+      connectViaSignalling();
+    }
 
     const unsubscribe_persistence = persistence_store.subscribe(() => {
       reinitPersistence();
@@ -1705,6 +1710,12 @@
         <ConnectionStatus part="dot" />
         <span class="app-name">notapipe</span>
         <ConnectionStatus part="label" />
+        {#if $auto_connect_store}
+          <span
+            class="auto-badge"
+            title="Auto-connect is on — will connect via signalling server automatically on launch"
+          >auto</span>
+        {/if}
       </div>
       <div class="header-right">
         {#if $persistence_store}
@@ -2313,6 +2324,14 @@
   .app-name {
     font-size: 0.9rem;
     color: var(--color-text-muted);
+    flex-shrink: 0;
+  }
+
+  .auto-badge {
+    font-size: 0.65rem;
+    color: var(--color-accent);
+    opacity: 0.7;
+    letter-spacing: 0.04em;
     flex-shrink: 0;
   }
 
