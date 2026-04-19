@@ -31,20 +31,8 @@
           });
         }
 
-        // Pick a variant — stable within the session so refreshes don't reshuffle.
-        var VARIANTS = [
-          "a_baseline",
-          "b_editorial",
-          "c_terminal",
-          "d_structured",
-          "e_light",
-        ];
-        var KEY = "notapipe_info_variant";
-        var chosen = sessionStorage.getItem(KEY);
-        if (!chosen || !VARIANTS.includes(chosen)) {
-          chosen = VARIANTS[Math.floor(Math.random() * VARIANTS.length)];
-          sessionStorage.setItem(KEY, chosen);
-        }
+        var VARIANTS = ["a_baseline", "b_editorial", "c_terminal", "d_structured", "e_light"];
+        var chosen = VARIANTS[Math.floor(Math.random() * VARIANTS.length)];
         location.replace("/info/variants/" + chosen + ".html");
       }
     </script>
