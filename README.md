@@ -218,9 +218,11 @@ https://www.inkandswitch.com/essay/local-first/
 - **Markdown preview** — toggle a live rendered view alongside the editor; local-only
 - **Code editor mode** — syntax highlighting for 14 languages, bracket matching, line commands
 - **Theming** — built-in light/dark themes plus a fully customisable token editor (⌘K → Theme)
-- **Focus mode** — distraction-free writing (⌘F)
+- **Unified view modes** — Text, Code, Markdown, and Focus modes in a single toggle at the bottom of the editor
+- **Focus mode** — distraction-free writing (⌘F or view toggle)
 - **Local persistence** — opt-in IndexedDB/localStorage save; off by default; never synced to a server
 - **PWA** — installable on desktop and mobile; works offline after first load
+- **Auto-connect on launch** — opt-in setting (Settings → Connection) for PWA installs; connects via the signalling server automatically when the app opens
 
 ---
 

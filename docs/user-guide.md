@@ -79,10 +79,10 @@ The interface has four main regions:
 - All connected peers see the same content and can edit simultaneously
 - A **copy button** in the bottom-right copies all editor text to the clipboard in one tap — useful for transferring the synced content to another app
 
-**Action bar** (bottom)
+**Bottom bar**
 
-- When not connected: a **Connect to peer** button that opens a dropdown with connection method options
-- When connected: an **Add peer via QR** button and a **Disconnect** button
+- **Left side:** When not connected, a **Connect ▾** button opens a dropdown with connection method options. When connected, an **Add peer via QR** button and a **Disconnect** button appear.
+- **Right side (always visible):** A **Text | Code | Markdown | Focus** view mode toggle. Selecting a mode switches the editor view — only one mode is active at a time. When **Code** is active, a language selector also appears to the left of the toggle. A sync pause/resume button (play/pause icon) also appears here while connected.
 
 ---
 
@@ -107,7 +107,7 @@ Click the **room name** in the room bar to open the room menu. Select **New rand
 
 ## Connecting to another device
 
-notapipe does not connect automatically when you open a URL. You must explicitly choose a connection method. This ensures no network contact happens without your knowledge.
+By default, notapipe does not connect automatically when you open a URL. You must explicitly choose a connection method. This ensures no network contact happens without your knowledge. (If you want automatic connection on launch, see [Auto-connect on launch](#auto-connect-on-launch-off-by-default) in Settings.)
 
 ### Via signalling server
 
@@ -116,7 +116,7 @@ Best for: devices on the same Wi-Fi network, or over the internet when both peer
 **Workflow:**
 
 1. Both devices navigate to the same room URL (share the full link)
-2. On one device, click **Connect to peer ▾** → **Use signalling server**
+2. On one device, click **Connect ▾** → **Use signalling server**
 3. The status indicator changes to `waiting for peer…`
 4. On the second device, repeat step 2
 5. The status indicator on both devices changes to `connected`
@@ -134,7 +134,7 @@ In QR mode, the WebRTC offer and answer are encoded as QR codes and exchanged by
 
 **Workflow:**
 
-1. On device A, click **Connect to peer ▾** → **Use QR code (air-gapped)**
+1. On device A, click **Connect ▾** → **Use QR code (air-gapped)**
 2. A dialog appears asking who goes first. Choose **Show my QR code first** on device A
 3. Wait a few seconds while the screen shows `Gathering network info…` — device A is collecting its network addresses
 4. A QR code appears on device A's screen
@@ -251,12 +251,14 @@ When a peer starts a voice call while you are connected, the phone icon begins *
 
 ## Markdown preview
 
-**⌘K → Show markdown preview**, or `···` → **M↓ Markdown preview**, toggles a rendered view of the editor contents.
+Select **Markdown** in the **Text | Code | Markdown | Focus** view toggle (bottom-right), or use **⌘K → Show markdown preview**, to toggle a rendered view of the editor contents.
 
 - **Wide screens** — the editor and preview are shown side by side. The left pane remains editable; the right pane renders the markdown in real time
 - **Narrow screens (mobile)** — the preview replaces the editor. An `← Edit` button appears to switch back
 
 Markdown preview is a **local-only view** — it does not affect what other peers see.
+
+To return to the plain editor, select **Text** in the view toggle (or **Escape**).
 
 **Focus mode** is edit-only: activating focus mode while the preview is open will hide the preview.
 
@@ -274,14 +276,14 @@ Focus mode hides the header and action bar and gives the editor a full-screen ru
 
 **Entering focus mode:**
 
+- Select **Focus** in the **Text | Code | Markdown | Focus** view toggle (bottom-right)
 - Press `Cmd+F` (Mac) or `Ctrl+F` (Windows/Linux)
-- Click the `⛶` button in the bottom-right corner of the editor
 - **⌘K → Enter focus mode**
 
 **Exiting focus mode:**
 
+- Select **Text** (or any other mode) in the view toggle
 - Press `Escape` or `Cmd+F` / `Ctrl+F` again
-- Tap the `✕` button that appears in the same corner
 
 Focus mode is local — it does not affect what other peers see.
 
@@ -293,17 +295,17 @@ Code editor mode adds syntax highlighting powered by [Prism](https://prismjs.com
 
 **Entering code editor mode:**
 
-- Click the `</>` button in the bottom-right corner
+- Select **Code** in the **Text | Code | Markdown | Focus** view toggle (bottom-right)
 - **⌘K → Enter code mode**
 
 **Exiting code editor mode:**
 
+- Select **Text** (or any other mode) in the view toggle
 - Press `Escape`
-- Tap the `✕` button that replaces `</>` while active
 
 **Selecting a language:**
 
-A language dropdown appears in the bottom-right corner while code mode is active. The selected language controls syntax highlighting only — the underlying document is plain text and peers do not need to be in code mode to receive edits.
+A language dropdown appears to the left of the view toggle while code mode is active. The selected language controls syntax highlighting only — the underlying document is plain text and peers do not need to be in code mode to receive edits.
 
 Supported languages: JavaScript, TypeScript, JSX, TSX, HTML, CSS, JSON, Python, Rust, Bash, SQL, YAML, PHP, Ruby, and plain Text.
 
@@ -450,6 +452,16 @@ When **Save chat log** is enabled, chat messages for each room are saved to `loc
 
 ### Connection tab
 
+#### Auto-connect on launch (off by default)
+
+When **Auto-connect on launch** is enabled, notapipe connects via the signalling server automatically when the app opens — without requiring you to tap Connect. This is designed for users who have notapipe installed as a PWA on two machines (e.g. a work and personal computer) set to the same room URL, so the pair connects the moment both are open.
+
+When this setting is active, a small **auto** badge appears in the header next to the connection status label as a persistent reminder.
+
+**Note:** Enabling this means the app contacts the signalling server on every launch. For maximum privacy, leave it off and connect manually — or use QR mode.
+
+#### Custom signalling and TURN servers
+
 Override the signalling server URL or configure a TURN relay server. Changes take effect on the next connection attempt.
 
 notapipe uses STUN by default — connections are direct and peer-to-peer, with no relay server involved. If a direct connection fails (restrictive firewall or symmetric NAT), you can supply your own **TURN server** credentials to enable relayed connections. TURN relay traffic is encrypted in transit (DTLS) — the relay cannot decrypt your content — but the relay is in the network path and can observe packet sizes and timing.
@@ -508,7 +520,7 @@ The remaining options (**Clear all documents**, **Clear settings**, **Clear ever
 ### "Waiting for peer…" — the other device never connects
 
 - Make sure both devices are using the **exact same URL** (same room ID and `#token`)
-- Check that both devices have clicked **Connect to peer** → **Use signalling server**
+- Check that both devices have clicked **Connect ▾** → **Use signalling server**
 - If the signalling server is unreachable, try the QR code method instead
 
 ### Connection fails after a few seconds
