@@ -424,6 +424,7 @@
   </dialog>
 
   <script>
+    history.replaceState(null, "", "/info/");
     if ("serviceWorker" in navigator && location.hostname !== "localhost") { navigator.serviceWorker.register("/sw.js").catch(() => {}); }
 
     (function() {
@@ -452,7 +453,7 @@
     let deferredInstallPrompt = null;
     const installBtn = document.getElementById("install-btn");
     window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferredInstallPrompt = e; installBtn.hidden = false; });
-    installBtn.addEventListener("click", async () => { if (!deferredInstallPrompt) { return; } history.replaceState(null, "", "/"); deferredInstallPrompt.prompt(); const { outcome } = await deferredInstallPrompt.userChoice; if (outcome !== "accepted") { history.replaceState(null, "", "/info/mockups/"); } deferredInstallPrompt = null; installBtn.hidden = true; });
+    installBtn.addEventListener("click", async () => { if (!deferredInstallPrompt) { return; } deferredInstallPrompt.prompt(); const { outcome } = await deferredInstallPrompt.userChoice; deferredInstallPrompt = null; installBtn.hidden = true; });
     window.addEventListener("appinstalled", () => { deferredInstallPrompt = null; installBtn.hidden = true; });
 
     document.getElementById("lf-dialog").addEventListener("click", function(e) { const rect = this.getBoundingClientRect(); if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) { this.close(); } });
