@@ -59,7 +59,9 @@
         --red: #f87171;
         --border: #1e1e1c;
         --mono: "IBM Plex Mono", "Courier New", monospace;
-        --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+        --sans:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial,
+          sans-serif;
         --r: 8px;
       }
 
@@ -1100,7 +1102,7 @@
         min-height: 100%;
         object-fit: cover;
         z-index: -1;
-        opacity: 0.2;
+        opacity: 0.05;
       }
       @media (max-width: 767px) {
         .background-video {
@@ -1115,7 +1117,10 @@
   <body>
     <!-- Background video -->
     <video autoplay muted loop playsinline class="background-video">
-      <source src="/videos/notapipe_ascii_loop_compressed.mp4" type="video/mp4" />
+      <source
+        src="/videos/notapipe_ascii_loop_compressed.mp4"
+        type="video/mp4"
+      />
     </video>
     <!-- NAV -->
     <nav>
@@ -1135,12 +1140,14 @@
     <!-- HERO -->
     <section id="hero">
       <h1 class="hero-hed hero-heading">
-        <span class="hero-line" id="hero-line1">Move data between devices.</span>
+        <span class="hero-line" id="hero-line1"
+          >Move data between devices.</span
+        >
         <span class="hero-line" id="hero-line2"></span>
       </h1>
       <p class="hero-sub">
-        A peer-to-peer data bridge for transferring text and files directly between devices—without
-        uploading, saving, or leaving a record.
+        A peer-to-peer data bridge for transferring text and files directly
+        between devices—without uploading, saving, or leaving a record.
       </p>
       <div class="hero-ctas">
         <a href="../../" data-app-link class="hero-cta">Open App →</a>
@@ -1169,7 +1176,12 @@
               <div class="dev-room-bar">
                 <span class="dev-room-id">apple-river-moon</span>
                 <button class="dev-icon-btn" tabindex="-1" aria-hidden="true">
-                  <img src="/svg_icons/copy_icon.svg" width="11" height="11" alt="" />
+                  <img
+                    src="/svg_icons/copy_icon.svg"
+                    width="11"
+                    height="11"
+                    alt=""
+                  />
                 </button>
               </div>
               <div class="dev-editor">
@@ -1177,7 +1189,12 @@
               </div>
               <div class="dev-actions">
                 <button class="dev-corner-btn" tabindex="-1" aria-hidden="true">
-                  <img src="/svg_icons/copy_icon.svg" width="12" height="12" alt="" />
+                  <img
+                    src="/svg_icons/copy_icon.svg"
+                    width="12"
+                    height="12"
+                    alt=""
+                  />
                 </button>
               </div>
             </div>
@@ -1196,16 +1213,31 @@
               <div class="dev-room-bar">
                 <span class="dev-room-id">apple-river-moon</span>
                 <button class="dev-icon-btn" tabindex="-1" aria-hidden="true">
-                  <img src="/svg_icons/copy_icon.svg" width="11" height="11" alt="" />
+                  <img
+                    src="/svg_icons/copy_icon.svg"
+                    width="11"
+                    height="11"
+                    alt=""
+                  />
                 </button>
               </div>
               <div class="dev-editor">
                 <div class="dev-content" id="pcontent"></div>
               </div>
               <div class="dev-actions">
-                <button class="dev-corner-btn" id="copybtn" tabindex="-1" aria-hidden="true">
+                <button
+                  class="dev-corner-btn"
+                  id="copybtn"
+                  tabindex="-1"
+                  aria-hidden="true"
+                >
                   <span class="copy-icon-wrap">
-                    <img src="/svg_icons/copy_icon.svg" width="12" height="12" alt="" />
+                    <img
+                      src="/svg_icons/copy_icon.svg"
+                      width="12"
+                      height="12"
+                      alt=""
+                    />
                     <svg
                       class="check-svg"
                       width="12"
@@ -1237,16 +1269,16 @@
             <div class="step-n">Step 1</div>
             <div class="step-title">Open a session</div>
             <p class="step-desc">
-              Share the URL with another device — or scan a QR code to connect without any server
-              involvement at all.
+              Share the URL with another device — or scan a QR code to connect
+              without any server involvement at all.
             </p>
           </div>
           <div class="step">
             <div class="step-n">Step 2</div>
             <div class="step-title">Devices connect directly</div>
             <p class="step-desc">
-              Peers establish a WebRTC connection, end-to-end encrypted. No server ever sees the
-              content.
+              Peers establish a WebRTC connection, end-to-end encrypted. No
+              server ever sees the content.
             </p>
           </div>
           <div class="step">
@@ -1258,8 +1290,8 @@
               Local-first sync ↗
             </button>
             <p class="step-desc">
-              Content syncs instantly. Close the session and it's gone — no trace, no storage, no
-              account needed.
+              Content syncs instantly. Close the session and it's gone — no
+              trace, no storage, no account needed.
             </p>
           </div>
         </div>
@@ -1272,18 +1304,20 @@
         <h2 class="section-hed">Built for moments like these</h2>
         <ul class="uc-list">
           <li>
-            <span class="arr">→</span>Moving a password between your work and personal machine
+            <span class="arr">→</span>Moving a password between your work and
+            personal machine
           </li>
           <li>
-            <span class="arr">→</span>Sharing a deploy key with a teammate without Slack or email
+            <span class="arr">→</span>Sharing a deploy key with a teammate
+            without Slack or email
           </li>
           <li>
-            <span class="arr">→</span>Transferring a file between phone and laptop without cloud
-            storage
+            <span class="arr">→</span>Transferring a file between phone and
+            laptop without cloud storage
           </li>
           <li>
-            <span class="arr">→</span>Talking with someone when you don't want the conversation
-            logged anywhere
+            <span class="arr">→</span>Talking with someone when you don't want
+            the conversation logged anywhere
           </li>
         </ul>
       </div>
@@ -1295,12 +1329,13 @@
         <h2 class="section-hed">No trust required</h2>
         <p>
           <strong>notapipe does NOT:</strong><br />
-          collect your text, store your files, log your sessions, require an account, or know who
-          you are.
+          collect your text, store your files, log your sessions, require an
+          account, or know who you are.
         </p>
         <p>
-          You can inspect the code, self-host, or configure your own signaling and TURN servers.
-          Install as a PWA to run independently of notapipe.app. Open source (MIT).
+          You can inspect the code, self-host, or configure your own signaling
+          and TURN servers. Install as a PWA to run independently of
+          notapipe.app. Open source (MIT).
         </p>
         <a href="../../" data-app-link class="btn mt-40">Open App →</a>
       </div>
@@ -1314,8 +1349,8 @@
           <span class="card-icon">🔒</span>
           <div class="card-title">Your content is never read by a server</div>
           <p class="card-desc">
-            Content syncs directly between devices — never stored, logged, or read by any server.
-            Close the tabs and it's gone. Built on
+            Content syncs directly between devices — never stored, logged, or
+            read by any server. Close the tabs and it's gone. Built on
             <button
               class="lf-inline-trigger"
               onclick="document.getElementById('lf-dialog').showModal()"
@@ -1336,19 +1371,23 @@
           <span class="card-icon">📷</span>
           <div class="card-title">QR air-gap mode</div>
           <p class="card-desc">
-            Pair two devices by scanning a QR code — no signalling server contact. The entire WebRTC
-            handshake is encoded in the QR itself.
+            Pair two devices by scanning a QR code — no signalling server
+            contact. The entire WebRTC handshake is encoded in the QR itself.
           </p>
         </div>
         <div class="card">
           <span class="card-icon">📁</span>
           <div class="card-title">File transfer</div>
-          <p class="card-desc">Send files up to 100 MB over the encrypted WebRTC channel.</p>
+          <p class="card-desc">
+            Send files up to 100 MB over the encrypted WebRTC channel.
+          </p>
         </div>
         <div class="card">
           <span class="card-icon">🎙️</span>
           <div class="card-title">Voice calls</div>
-          <p class="card-desc">Talk to your peer over the same encrypted connection.</p>
+          <p class="card-desc">
+            Talk to your peer over the same encrypted connection.
+          </p>
         </div>
       </div>
     </section>
@@ -1373,7 +1412,10 @@
         <span>PWA — works on desktop and mobile</span>
       </div>
       <div class="foot-r">
-        <a href="https://github.com/fermentationist/notapipe" target="_blank" rel="noopener"
+        <a
+          href="https://github.com/fermentationist/notapipe"
+          target="_blank"
+          rel="noopener"
           >GitHub</a
         >
         <a href="../../" data-app-link class="cta">Open App →</a>
@@ -1395,40 +1437,52 @@
         </div>
         <div class="lf-modal-body">
           <p>
-            <strong>Local-first</strong> is a design philosophy: your data lives on your device. The
-            network is a transport layer, not a storage layer.
+            <strong>Local-first</strong> is a design philosophy: your data lives
+            on your device. The network is a transport layer, not a storage
+            layer.
           </p>
           <p>In practice, local-first software:</p>
           <ul>
             <li>Works without a server — the network only syncs, never owns</li>
             <li>Responds instantly — no round-trips for every keystroke</li>
             <li>Keeps data on your device by default</li>
-            <li>Gives you full ownership — export, migrate, or delete at any time</li>
+            <li>
+              Gives you full ownership — export, migrate, or delete at any time
+            </li>
           </ul>
           <p>
-            notapipe takes this further than most. The shared document exists only in memory — there
-            is no server-side database, no sync cloud, no storage layer at all unless you explicitly
-            enable it. The WebRTC channel is a transport, not a host.
+            notapipe takes this further than most. The shared document exists
+            only in memory — there is no server-side database, no sync cloud, no
+            storage layer at all unless you explicitly enable it. The WebRTC
+            channel is a transport, not a host.
           </p>
           <hr class="lf-modal-divider" />
           <p><strong>Built to last</strong></p>
           <p>
-            Software designed around local-first principles tends to outlive the services that host
-            it. notapipe is built with this in mind:
+            Software designed around local-first principles tends to outlive the
+            services that host it. notapipe is built with this in mind:
           </p>
           <ul>
-            <li>Install as a PWA — runs independently of notapipe.app once installed</li>
+            <li>
+              Install as a PWA — runs independently of notapipe.app once
+              installed
+            </li>
             <li>Bring your own signalling and TURN servers</li>
             <li>In QR mode, no server infrastructure is required at all</li>
             <li>Open source (MIT) — fork it, self-host it, audit it</li>
           </ul>
           <p>
-            If notapipe.app disappears tomorrow, an installed copy keeps working. The app is
-            designed to have no single point of failure you don't control.
+            If notapipe.app disappears tomorrow, an installed copy keeps
+            working. The app is designed to have no single point of failure you
+            don't control.
           </p>
           <hr class="lf-modal-divider" />
           <div class="lf-modal-links">
-            <a href="https://www.inkandswitch.com/local-first/" target="_blank" rel="noopener">
+            <a
+              href="https://www.inkandswitch.com/local-first/"
+              target="_blank"
+              rel="noopener"
+            >
               "Local-first software" — Ink &amp; Switch essay ↗
             </a>
             <a href="https://localfirstweb.dev" target="_blank" rel="noopener">
@@ -1442,7 +1496,10 @@
     <script>
       // ── Dynamic app URL ──────────────────────────────────────
       (function () {
-        var parts = window.location.pathname.replace(/\/$/, "").split("/").filter(Boolean);
+        var parts = window.location.pathname
+          .replace(/\/$/, "")
+          .split("/")
+          .filter(Boolean);
         parts.pop();
         var appUrl = parts.length
           ? window.location.origin + "/" + parts.join("/")
@@ -1513,7 +1570,10 @@
         setTimeout(() => {
           const ti = setInterval(() => {
             if (pos < text.length) {
-              hl2.insertBefore(document.createTextNode(text[pos++]), heroCursor);
+              hl2.insertBefore(
+                document.createTextNode(text[pos++]),
+                heroCursor,
+              );
             } else {
               clearInterval(ti);
               onDone && onDone();
@@ -1576,7 +1636,10 @@
 
         const typing = setInterval(() => {
           if (i < DEMO_TEXT.length) {
-            lc.insertBefore(document.createTextNode(DEMO_TEXT[i++]), demoCursor);
+            lc.insertBefore(
+              document.createTextNode(DEMO_TEXT[i++]),
+              demoCursor,
+            );
           } else {
             clearInterval(typing);
 
@@ -1618,17 +1681,19 @@
       setTimeout(runDemo, 450);
 
       // Close local-first modal on backdrop click
-      document.getElementById("lf-dialog").addEventListener("click", function (e) {
-        const rect = this.getBoundingClientRect();
-        if (
-          e.clientX < rect.left ||
-          e.clientX > rect.right ||
-          e.clientY < rect.top ||
-          e.clientY > rect.bottom
-        ) {
-          this.close();
-        }
-      });
+      document
+        .getElementById("lf-dialog")
+        .addEventListener("click", function (e) {
+          const rect = this.getBoundingClientRect();
+          if (
+            e.clientX < rect.left ||
+            e.clientX > rect.right ||
+            e.clientY < rect.top ||
+            e.clientY > rect.bottom
+          ) {
+            this.close();
+          }
+        });
     </script>
   </body>
 </html>
