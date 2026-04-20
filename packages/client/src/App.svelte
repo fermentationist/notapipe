@@ -2237,6 +2237,7 @@
 
   {#if show_go_to_url}
     <GoToUrlDialog
+      initial_value={window.location.href}
       onnavigate={goToRoomUrl}
       oncancel={() => { show_go_to_url = false; }}
     />

@@ -2,18 +2,22 @@
   import { isValidId } from "../id/generate.ts";
 
   interface Props {
+    initial_value?: string;
     onnavigate: (room_id: string, token: string | null) => void;
     oncancel: () => void;
   }
 
-  let { onnavigate, oncancel }: Props = $props();
+  let { initial_value = "", onnavigate, oncancel }: Props = $props();
 
-  let input_value = $state("");
+  let input_value = $state(initial_value);
   let error_message = $state("");
   let input_el: HTMLInputElement | undefined = $state();
 
   $effect(() => {
-    input_el?.focus();
+    if (input_el) {
+      input_el.focus();
+      input_el.select();
+    }
   });
 
   function parse_room_url(raw: string): { room_id: string; token: string | null } | null {
