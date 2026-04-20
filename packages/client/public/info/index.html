@@ -734,6 +734,8 @@
       .lf-modal-close {
         background: none;
         border: none;
+        outline: none;
+        -webkit-tap-highlight-color: transparent;
         color: var(--muted);
         font-size: 1.1rem;
         cursor: pointer;
@@ -767,7 +769,7 @@
       .lf-modal-body ul li {
         display: flex;
         gap: 0.6rem;
-        align-items: baseline;
+        align-items: flex-start;
         font-size: 0.82rem;
       }
       .lf-modal-body ul li::before {
@@ -1279,7 +1281,7 @@
             </p>
             <ul>
               <li>
-                Tap the <strong>Share</strong> button (□↑) in Safari's toolbar
+                Tap the <strong>Share</strong> button in Safari's toolbar
               </li>
               <li>Scroll down and tap <strong>Add to Home Screen</strong></li>
               <li>Tap <strong>Add</strong></li>
