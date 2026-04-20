@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": false,
   "url": "https://notapipe.app",
-  "description": "Ephemeral, peer-to-peer text, voice, and file sharing. No servers ever see your content.",
   "type": "module",
+  "description": "Notapipe is a peer-to-peer collaboration tool for sharing text, voice, and files. It uses WebRTC for direct connections between users, eliminating the need for servers to handle your data. Notapipe is ideal for quick sharing sessions, brainstorming, or any situation where you want to collaborate without leaving a trace.",
   "scripts": {
     "dev": "pnpm -r --parallel run dev",
     "build": "cd packages/client && pnpm run build",
