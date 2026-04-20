@@ -1535,11 +1535,11 @@
         document.getElementById("pwa-section-installable").hidden =
           !installable;
         document.getElementById("pwa-section-installed").hidden =
-          !alreadyInstalled;
+          installable || !alreadyInstalled;
         document.getElementById("pwa-section-ios").hidden =
-          alreadyInstalled || !isIOS;
+          installable || alreadyInstalled || !isIOS;
         document.getElementById("pwa-section-unsupported").hidden =
-          alreadyInstalled || isIOS;
+          installable || alreadyInstalled || isIOS;
 
         document.getElementById("pwa-dialog").showModal();
       }
