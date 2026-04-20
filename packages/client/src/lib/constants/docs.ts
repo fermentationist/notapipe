@@ -1,5 +1,6 @@
 import readmeRaw from "../../../../../README.md?raw";
 import userGuideRaw from "../../../../../docs/user-guide.md?raw";
+import qrModeRaw from "../../../../../docs/qr-mode.md?raw";
 
 /**
  * Extract a single `## Heading` section from a markdown string.
@@ -20,6 +21,7 @@ function extractSection(markdown: string, heading: string): string {
 }
 
 export const USER_GUIDE_CONTENT: string = userGuideRaw;
+export const QR_MODE_CONTENT: string = qrModeRaw;
 export const ABOUT_CONTENT: string =
   extractSection(readmeRaw, "About notapipe") +
   "\n\n---\n\n" +

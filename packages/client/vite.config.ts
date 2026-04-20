@@ -10,7 +10,8 @@ import { createReadStream, existsSync } from "fs";
 // Leave unset for root deployment (Render, custom domain).
 const raw_base = process.env["VITE_BASE_PATH"] ?? "/";
 const base = raw_base.endsWith("/") ? raw_base : `${raw_base}/`;
-
+const appId = `notapipe.app_${Date.now()}`; // Unique app ID for PWA install tracking
+console.log(`Using base path: ${base} (appId: ${appId})`);
 // https://vite.dev/config/
 export default defineConfig({
   base,
@@ -48,6 +49,7 @@ export default defineConfig({
         orientation: "any",
         scope: base,
         start_url: base,
+        id: appId,
         icons: [
           {
             src: "app_icons/icon-192x192.png",
