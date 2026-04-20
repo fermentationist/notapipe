@@ -1,3 +1,5 @@
+export const APP_PRIMARY_COLOR = "#c0392b";
+
 export const DEFAULT_LIGHT_THEME = {
   name: "light",
   // --- Global / UI ---
@@ -5,13 +7,13 @@ export const DEFAULT_LIGHT_THEME = {
   "--color-surface": "#ede8df",
   "--color-text": "#1a1a18",
   "--color-text-muted": "#b8b2a6",
-  "--color-accent": "#c0392b",
+  "--color-accent": APP_PRIMARY_COLOR,
   "--color-rule": "#d4cfc4",
   "--color-border": "#d4cfc4",
   "--color-status-waiting": "#b8b2a6",
   "--color-status-connecting": "#e0a030",
   "--color-status-connected": "#4caf50",
-  "--color-status-error": "#c0392b",
+  "--color-status-error": APP_PRIMARY_COLOR,
   // --- Standard editor ---
   "--standard-font-family": '"IBM Plex Mono", monospace',
   "--standard-font-size": "1rem",
@@ -30,7 +32,7 @@ export const DEFAULT_LIGHT_THEME = {
   "--code-bg": "#edeae2",
   "--code-text": "#1a1a18",
   "--code-gutter-text": "#b8b2a6",
-  "--code-caret-color": "#c0392b",
+  "--code-caret-color": APP_PRIMARY_COLOR,
 } as const;
 
 export const DEFAULT_DARK_THEME = {
@@ -40,13 +42,13 @@ export const DEFAULT_DARK_THEME = {
   "--color-surface": "#242420",
   "--color-text": "#e8e3d8",
   "--color-text-muted": "#6b6660",
-  "--color-accent": "#e05c4a",
+  "--color-accent": APP_PRIMARY_COLOR,
   "--color-rule": "#2e2e2a",
   "--color-border": "#2e2e2a",
   "--color-status-waiting": "#6b6660",
   "--color-status-connecting": "#e0a030",
   "--color-status-connected": "#4caf50",
-  "--color-status-error": "#e05c4a",
+  "--color-status-error": APP_PRIMARY_COLOR,
   // --- Standard editor ---
   "--standard-font-family": '"IBM Plex Mono", monospace',
   "--standard-font-size": "1rem",
@@ -55,7 +57,7 @@ export const DEFAULT_DARK_THEME = {
   "--focus-font-family": '"IBM Plex Mono", monospace',
   "--focus-font-size": "1.05rem",
   "--focus-line-height": "28px",
-  "--color-focus-bg": "#141412",
+  "--color-focus-bg": "#1a1a18",
   "--color-focus-text": "#d8d3c8",
   "--color-focus-rule": "#242420",
   // --- Code editor mode ---
@@ -65,7 +67,7 @@ export const DEFAULT_DARK_THEME = {
   "--code-bg": "#141412",
   "--code-text": "#e8e3d8",
   "--code-gutter-text": "#6b6660",
-  "--code-caret-color": "#e05c4a",
+  "--code-caret-color": APP_PRIMARY_COLOR,
 } as const;
 
 export const THEME_STORAGE_KEY = "notapipe:theme";
