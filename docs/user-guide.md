@@ -23,14 +23,15 @@
 10. [Wide layout](#wide-layout)
 11. [Focus mode](#focus-mode)
 12. [Code editor mode](#code-editor-mode)
-13. [Importing and exporting text](#importing-and-exporting-text)
-14. [Sending and receiving files](#sending-and-receiving-files)
-15. [Sharing](#sharing)
-16. [Themes](#themes)
-17. [Settings and persistence](#settings-and-persistence)
-18. [Installing as an app (PWA)](#installing-as-an-app-pwa)
-19. [Clearing data](#clearing-data)
-20. [Troubleshooting](#troubleshooting)
+13. [Stay awake](#stay-awake)
+14. [Importing and exporting text](#importing-and-exporting-text)
+15. [Sending and receiving files](#sending-and-receiving-files)
+16. [Sharing](#sharing)
+17. [Themes](#themes)
+18. [Settings and persistence](#settings-and-persistence)
+19. [Installing as an app (PWA)](#installing-as-an-app-pwa)
+20. [Clearing data](#clearing-data)
+21. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -176,7 +177,7 @@ Commands are organised into groups:
 | **Document** | Copy all text, Send file, Show/hide markdown preview, Enter/exit code mode, Import text file, Export as text file, Share room link, Clear document |
 | **Chat**     | Open/close chat                                                                                                                                    |
 | **Voice**    | Start/join/end voice call                                                                                                                          |
-| **View**     | Enter/exit focus mode, Enable/exit wide layout, Switch to light/dark mode, Customize theme                                                         |
+| **View**     | Enter/exit focus mode, Enable/exit wide layout, Switch to light/dark mode, Customize theme, Enable/disable stay awake                               |
 | **App**      | Open settings, User guide, About notapipe                                                                                                          |
 
 ---
@@ -324,6 +325,20 @@ Supported languages: JavaScript, TypeScript, JSX, TSX, HTML, CSS, JSON, Python, 
 Auto-closing of brackets, quotes, and backticks is also enabled.
 
 Code editor mode is local — it does not affect what other peers see.
+
+---
+
+## Stay awake
+
+**⌘K → Enable stay awake** prevents the screen from sleeping while notapipe is open. This uses the browser's [Screen Wake Lock API](https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API) — no background process or system-level access is required.
+
+Stay awake is only available through the command palette. When active, an **eye icon** appears in the header — click it to disable immediately without reopening the palette.
+
+The wake lock is automatically released by the browser when the tab is hidden or the window loses focus. notapipe re-acquires it silently when the tab becomes visible again, as long as you have not manually disabled it.
+
+**Note:** This command is hidden on browsers that do not support the Screen Wake Lock API.
+
+Stay awake is local — it has no effect on other peers.
 
 ---
 
