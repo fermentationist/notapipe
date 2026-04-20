@@ -65,7 +65,7 @@ The interface has four main regions:
 
 **Room bar** (below the header)
 
-- The current **room name** (e.g. `apple-river-moon`) — click it to open a menu with the option to navigate to a new random room
+- The current **room name** (e.g. `apple-river-moon`) — click it to open a menu with options to navigate to a new random room or go to a specific room URL
 - A **copy URL** button (overlapping-pages icon) to copy the full room URL to the clipboard
 - A **QR code** button to display the current room URL as a scannable QR code
 - Your display **handle** (click to rename yourself — the new name is shown to all connected peers)
@@ -102,7 +102,16 @@ https://notapipe.app/marble-cloud-seven#k7mX9qPw
 
 ### Switching rooms
 
-Click the **room name** in the room bar to open the room menu. Select **New random room** to generate a fresh room ID and token. This disconnects any active session, navigates to the new room, and saves it as your new default room for future visits.
+Click the **room name** in the room bar to open the room menu:
+
+- **New random room** — generates a fresh room ID and token, disconnects any active session, and saves it as your new default room for future visits.
+- **Go to room URL...** — opens a text input where you can paste any notapipe URL, path, or room ID to navigate directly to that room. Accepts any of these formats:
+  - Full URL: `https://notapipe.app/marble-cloud-seven#k7mX9qPw`
+  - Path: `/marble-cloud-seven#k7mX9qPw`
+  - Bare ID with token: `marble-cloud-seven#k7mX9qPw`
+  - Bare ID: `marble-cloud-seven` (a fresh token is generated)
+
+**Go to room URL** is also available via **⌘K → Go to room URL…** — useful when running as an installed PWA where the browser address bar is not accessible.
 
 ---
 
@@ -173,7 +182,7 @@ Commands are organised into groups:
 
 | Group        | Commands                                                                                                                                           |
 | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Connect**  | Connect via signalling server, Connect via QR code, New random room, Disconnect                                                                    |
+| **Connect**  | Connect via signalling server, Connect via QR code, New random room, Go to room URL, Disconnect                                                    |
 | **Document** | Copy all text, Send file, Show/hide markdown preview, Enter/exit code mode, Import text file, Export as text file, Share room link, Clear document |
 | **Chat**     | Open/close chat                                                                                                                                    |
 | **Voice**    | Start/join/end voice call                                                                                                                          |

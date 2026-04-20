@@ -288,6 +288,14 @@ VITE_SIGNAL_URL=wss://signal.example.com/ws vp build
 
 The signalling server is a plain Node.js process — run it behind a reverse proxy (nginx, Caddy) that terminates TLS and forwards `/ws` as a WebSocket upgrade.
 
+The server enforces an origin allowlist on WebSocket connections. By default it accepts connections from `notapipe.app`, `notapipe.onrender.com`, and `dennis-hodges.com`. Override with a comma-separated `ALLOWED_ORIGINS` env var:
+
+```bash
+ALLOWED_ORIGINS=https://myapp.example.com node dist/index.js
+```
+
+Localhost is always permitted regardless of this setting (for local dev and self-hosted instances).
+
 **Self-hosting:** For privacy-sensitive deployments, self-hosting both the client and signalling server means no third party handles even the WebRTC metadata. QR mode eliminates the signalling server entirely.
 
 ## Credits
