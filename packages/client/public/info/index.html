@@ -698,7 +698,8 @@
       }
 
       /* MODAL */
-      #lf-dialog {
+      #lf-dialog,
+      #pwa-dialog {
         background: var(--bg-card);
         border: 1px solid var(--border);
         border-radius: var(--r);
@@ -709,7 +710,8 @@
         margin: auto;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
       }
-      #lf-dialog::backdrop {
+      #lf-dialog::backdrop,
+      #pwa-dialog::backdrop {
         background: rgba(0, 0, 0, 0.4);
         backdrop-filter: blur(4px);
         -webkit-backdrop-filter: blur(4px);
@@ -790,6 +792,20 @@
         text-underline-offset: 3px;
       }
       .lf-modal-links a:hover {
+        opacity: 0.8;
+      }
+      .modal-install-row {
+        padding-top: 0.75rem;
+        border-top: 1px solid var(--border);
+        display: flex;
+        justify-content: center;
+      }
+      .lf-modal-link {
+        color: var(--accent);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+      .lf-modal-link:hover {
         opacity: 0.8;
       }
     </style>
@@ -991,8 +1007,14 @@
         </p>
         <p>
           You can inspect the code, self-host, or configure your own signaling
-          and TURN servers. <button class="lf-inline-trigger install-trigger" onclick="triggerInstall()">Install as a PWA</button> to run independently of
-          notapipe.app. Open source (MIT).
+          and TURN servers.
+          <button
+            class="lf-inline-trigger"
+            onclick="openPwaDialog()"
+          >
+            Install as a PWA ↗
+          </button>
+          to run independently of notapipe.app. Open source (MIT).
         </p>
         <a href="../../../" data-app-link class="btn mt-40">Open App →</a>
       </div>
@@ -1053,7 +1075,9 @@
         <h2 class="section-hed">Ready to try it?</h2>
         <div class="hero-ctas" style="justify-content: center">
           <a href="../../../" data-app-link class="hero-cta">Open App →</a>
-          <button id="install-btn-cta" class="install-btn" hidden>Install App</button>
+          <button id="install-btn-cta" class="install-btn" hidden>
+            Install App
+          </button>
         </div>
       </div>
     </section>
@@ -1119,7 +1143,13 @@
           </p>
           <ul>
             <li>
-              <button class="lf-inline-trigger install-trigger" onclick="triggerInstall()">Install as a PWA</button> — runs independently of notapipe.app once installed
+              <button
+                class="lf-inline-trigger"
+                onclick="openPwaDialog()"
+              >
+                Install as a PWA ↗
+              </button>
+              — runs independently of notapipe.app once installed
             </li>
             <li>Bring your own signalling and TURN servers</li>
             <li>In QR mode, no server infrastructure is required at all</li>
@@ -1142,6 +1172,99 @@
               >localfirstweb.dev — community &amp; resources ↗</a
             >
           </div>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog id="pwa-dialog">
+      <div class="lf-modal-inner">
+        <div class="lf-modal-header">
+          <span class="lf-modal-title">Progressive Web Apps</span
+          ><button
+            class="lf-modal-close"
+            onclick="document.getElementById('pwa-dialog').close()"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
+        <div class="lf-modal-body">
+
+          <!-- Section A: install prompt available -->
+          <div id="pwa-section-installable">
+            <p>
+              A <a href="https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps" target="_blank" rel="noopener" class="lf-modal-link">Progressive Web App</a>
+              is a website your browser can install as a native-feeling app —
+              no app store, no approval process, no intermediary.
+            </p>
+            <p>Installed, notapipe:</p>
+            <ul>
+              <li>Runs in its own window, separate from the browser</li>
+              <li>Loads instantly, even offline after the first visit</li>
+              <li>Updates silently in the background</li>
+              <li>Keeps working if notapipe.app ever goes down — it's on your device</li>
+            </ul>
+            <hr class="lf-modal-divider" />
+            <p><strong>Why some platforms push back</strong></p>
+            <p>
+              App stores control what software reaches their users and take up
+              to 30% of in-app revenue. PWAs route around both: direct
+              distribution from any web server, no permission required.
+            </p>
+            <p>
+              Apple restricted PWA capabilities on iOS for years. In early
+              2024, under EU regulatory pressure, they briefly attempted to
+              <strong>disable PWA support entirely</strong> before reversing
+              course after public outcry. The threat to PWAs isn't hypothetical
+              — it's a business decision platforms make when it suits them.
+            </p>
+            <p>
+              A PWA runs on your device, answers to you, and doesn't depend on
+              anyone's permission to exist.
+            </p>
+            <div class="modal-install-row">
+              <button id="install-btn-pwa" class="install-btn" onclick="triggerInstall()">
+                Install App
+              </button>
+            </div>
+          </div>
+
+          <!-- Section B: install prompt not available -->
+          <div id="pwa-section-fallback" hidden>
+            <p>
+              A <a href="https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps" target="_blank" rel="noopener" class="lf-modal-link">Progressive Web App</a>
+              is a website that can be installed as a native-feeling app —
+              runs offline, opens in its own window, and works independently
+              of the browser.
+            </p>
+
+            <!-- iOS Safari -->
+            <div id="pwa-ios-instructions" hidden>
+              <p>
+                iOS Safari doesn't support the standard install prompt, but
+                you can still add notapipe to your home screen:
+              </p>
+              <ul>
+                <li>Tap the <strong>Share</strong> button (□↑) in Safari's toolbar</li>
+                <li>Scroll down and tap <strong>Add to Home Screen</strong></li>
+                <li>Tap <strong>Add</strong></li>
+              </ul>
+              <p>
+                Once added, notapipe opens as a standalone app and keeps
+                working even if notapipe.app goes down.
+              </p>
+            </div>
+
+            <!-- Other browsers -->
+            <div id="pwa-generic-instructions" hidden>
+              <p>
+                Your browser doesn't support direct PWA installation. To
+                install notapipe, open this page in Chrome or Edge on desktop
+                or Android and look for the install icon in the address bar.
+              </p>
+            </div>
+          </div>
+
         </div>
       </div>
     </dialog>
@@ -1328,6 +1451,7 @@
         await deferredInstallPrompt.userChoice;
         deferredInstallPrompt = null;
         setInstallBtnsVisible(false);
+        document.getElementById("pwa-dialog").close();
       }
       installBtns.forEach((btn) => {
         btn.addEventListener("click", triggerInstall);
@@ -1341,10 +1465,22 @@
         deferredInstallPrompt = null;
         setInstallBtnsVisible(false);
       });
+      function openPwaDialog() {
+        const installable = !!deferredInstallPrompt;
+        const isIOS =
+          /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+          (navigator.userAgent.includes("Mac") && "ontouchend" in document);
+        document.getElementById("pwa-section-installable").hidden = !installable;
+        document.getElementById("pwa-section-fallback").hidden = installable;
+        if (!installable) {
+          document.getElementById("pwa-ios-instructions").hidden = !isIOS;
+          document.getElementById("pwa-generic-instructions").hidden = isIOS;
+        }
+        document.getElementById("pwa-dialog").showModal();
+      }
 
-      document
-        .getElementById("lf-dialog")
-        .addEventListener("click", function (e) {
+      ["lf-dialog", "pwa-dialog"].forEach((id) => {
+        document.getElementById(id).addEventListener("click", function (e) {
           const rect = this.getBoundingClientRect();
           if (
             e.clientX < rect.left ||
@@ -1355,6 +1491,7 @@
             this.close();
           }
         });
+      });
     </script>
   </body>
 </html>
