@@ -9,6 +9,35 @@ import { checkRateLimit } from "./rate_limiter.ts";
 
 const PORT = Number(process.env["PORT"] ?? 3001);
 
+// ---------------------------------------------------------------------------
+// Origin allowlist
+// ---------------------------------------------------------------------------
+
+const DEFAULT_ALLOWED_ORIGINS = [
+  "https://notapipe.app",
+  "https://notapipe.onrender.com",
+  "https://dennis-hodges.com",
+];
+
+const ALLOWED_ORIGINS_ENV = process.env["ALLOWED_ORIGINS"];
+const ALLOWED_ORIGINS: Set<string> = new Set(
+  ALLOWED_ORIGINS_ENV
+    ? ALLOWED_ORIGINS_ENV.split(",").map((s) => s.trim()).filter(Boolean)
+    : DEFAULT_ALLOWED_ORIGINS,
+);
+
+function isAllowedOrigin(origin: string): boolean {
+  // Always allow localhost — covers dev server and local self-hosting
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+    return true;
+  }
+  // Browsers always send Origin on WebSocket upgrades; no header = non-browser client
+  if (!origin) {
+    return false;
+  }
+  return ALLOWED_ORIGINS.has(origin);
+}
+
 // Static client files are built into packages/client/dist relative to the repo root.
 const CLIENT_DIST = resolve(process.cwd(), "packages/client/dist");
 
@@ -123,7 +152,17 @@ const http_server = createServer(async (request, response) => {
 // WebSocket server
 // ---------------------------------------------------------------------------
 
-const wss = new WebSocketServer({ server: http_server });
+const wss = new WebSocketServer({
+  server: http_server,
+  verifyClient: (info: { origin: string; secure: boolean; req: IncomingMessage }) => {
+    const origin = info.origin ?? "";
+    if (isAllowedOrigin(origin)) {
+      return true;
+    }
+    console.warn(`[ws] rejected connection from origin: ${origin || "(none)"}`);
+    return false;
+  },
+});
 
 function getClientIp(request: IncomingMessage): string {
   const forwarded_header = request.headers["x-forwarded-for"];
