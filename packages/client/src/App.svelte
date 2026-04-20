@@ -1601,9 +1601,24 @@
       id: "disconnect",
       label: "Disconnect",
       group: "Connect",
-      keywords: ["leave", "close", "end"],
-      disabled: !is_connected,
+      keywords: ["leave", "close", "end", "stop", "cancel"],
+      disabled: !is_connected && !is_waiting_for_peer,
       action: handleDisconnect,
+    },
+    {
+      id: "room-qr",
+      label: "Show room URL as QR code",
+      group: "Connect",
+      keywords: ["qr", "scan", "share", "invite", "url"],
+      action: () => { show_palette = false; show_url_qr = true; },
+    },
+    {
+      id: "toggle-sync",
+      label: sync_paused ? "Resume sync" : "Pause sync",
+      group: "Connect",
+      keywords: ["pause", "resume", "sync", "merge", "stop"],
+      disabled: !is_connected,
+      action: toggleSync,
     },
     // Document
     {
@@ -1635,7 +1650,7 @@
       label: code_mode ? "Exit code mode" : "Enter code mode",
       group: "Document",
       keywords: ["syntax", "highlight", "editor", "code"],
-      action: () => { code_mode = !code_mode; },
+      action: () => { set_view_mode(code_mode ? "text" : "code"); },
     },
     {
       id: "import",
@@ -1657,6 +1672,14 @@
       group: "Document",
       keywords: ["url", "invite", "link", "share"],
       action: shareRoomLink,
+    },
+    {
+      id: "share-document",
+      label: "Share document as file",
+      group: "Document",
+      keywords: ["share", "send", "export", "file", "native"],
+      hidden: !can_share,
+      action: shareDocument,
     },
     {
       id: "clear-doc",
@@ -1688,7 +1711,7 @@
       label: $focus_mode_store ? "Exit focus mode" : "Enter focus mode",
       group: "View",
       keywords: ["distraction", "zen", "fullscreen", "focus"],
-      action: () => { focus_mode_store.toggle(); },
+      action: () => { set_view_mode($focus_mode_store ? "text" : "focus"); },
     },
     {
       id: "toggle-wide",
@@ -1740,6 +1763,34 @@
       group: "App",
       keywords: ["info", "version", "credits"],
       action: openAbout,
+    },
+    {
+      id: "force-reload",
+      label: "Force reload",
+      group: "App",
+      keywords: ["refresh", "restart", "reload"],
+      action: () => { showConfirm("Force reload the page? Any unsynced changes may be lost.", () => { window.location.reload(); }); },
+    },
+    {
+      id: "clear-all-docs",
+      label: "Clear all documents",
+      group: "App",
+      keywords: ["delete", "erase", "wipe", "storage", "documents", "all"],
+      action: () => { showConfirm("Clear all saved documents? This cannot be undone.", clearAllDocs); },
+    },
+    {
+      id: "clear-settings",
+      label: "Clear settings",
+      group: "App",
+      keywords: ["reset", "delete", "theme", "preferences", "settings"],
+      action: () => { showConfirm("Clear all notapipe settings (theme, persistence)?", clearSettings); },
+    },
+    {
+      id: "clear-everything",
+      label: "Clear everything",
+      group: "App",
+      keywords: ["reset", "wipe", "delete", "all", "nuke"],
+      action: () => { showConfirm("Clear everything — all documents and settings? This cannot be undone.", clearEverything); },
     },
   ]);
   // True when we've started/joined a call but haven't received audio from any peer yet.
