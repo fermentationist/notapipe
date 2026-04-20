@@ -1008,10 +1008,7 @@
         <p>
           You can inspect the code, self-host, or configure your own signaling
           and TURN servers.
-          <button
-            class="lf-inline-trigger"
-            onclick="openPwaDialog()"
-          >
+          <button class="lf-inline-trigger" onclick="openPwaDialog()">
             Install as a PWA ↗
           </button>
           to run independently of notapipe.app. Open source (MIT).
@@ -1143,10 +1140,7 @@
           </p>
           <ul>
             <li>
-              <button
-                class="lf-inline-trigger"
-                onclick="openPwaDialog()"
-              >
+              <button class="lf-inline-trigger" onclick="openPwaDialog()">
                 Install as a PWA ↗
               </button>
               — runs independently of notapipe.app once installed
@@ -1189,20 +1183,29 @@
           </button>
         </div>
         <div class="lf-modal-body">
-
           <!-- Section A: install prompt available -->
           <div id="pwa-section-installable">
             <p>
-              A <a href="https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps" target="_blank" rel="noopener" class="lf-modal-link">Progressive Web App</a>
-              is a website your browser can install as a native-feeling app —
-              no app store, no approval process, no intermediary.
+              A
+              <a
+                href="https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps"
+                target="_blank"
+                rel="noopener"
+                class="lf-modal-link"
+                >Progressive Web App</a
+              >
+              is a website your browser can install as a native-feeling app — no
+              app store, no approval process, no intermediary.
             </p>
             <p>Installed, notapipe:</p>
             <ul>
               <li>Runs in its own window, separate from the browser</li>
               <li>Loads instantly, even offline after the first visit</li>
               <li>Updates silently in the background</li>
-              <li>Keeps working if notapipe.app ever goes down — it's on your device</li>
+              <li>
+                Keeps working if notapipe.app ever goes down — it's on your
+                device
+              </li>
             </ul>
             <hr class="lf-modal-divider" />
             <p><strong>Why some platforms push back</strong></p>
@@ -1211,60 +1214,103 @@
               to 30% of in-app revenue. PWAs route around both: direct
               distribution from any web server, no permission required.
             </p>
-            <p>
+            <!-- <p>
               Apple restricted PWA capabilities on iOS for years. In early
               2024, under EU regulatory pressure, they briefly attempted to
               <strong>disable PWA support entirely</strong> before reversing
               course after public outcry. The threat to PWAs isn't hypothetical
               — it's a business decision platforms make when it suits them.
-            </p>
+            </p> -->
             <p>
               A PWA runs on your device, answers to you, and doesn't depend on
               anyone's permission to exist.
             </p>
             <div class="modal-install-row">
-              <button id="install-btn-pwa" class="install-btn" onclick="triggerInstall()">
+              <button
+                id="install-btn-pwa"
+                class="install-btn"
+                onclick="triggerInstall()"
+              >
                 Install App
               </button>
             </div>
           </div>
 
-          <!-- Section B: install prompt not available -->
-          <div id="pwa-section-fallback" hidden>
+          <!-- Section B: already installed -->
+          <div id="pwa-section-installed" hidden>
             <p>
-              A <a href="https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps" target="_blank" rel="noopener" class="lf-modal-link">Progressive Web App</a>
-              is a website that can be installed as a native-feeling app —
-              runs offline, opens in its own window, and works independently
-              of the browser.
+              notapipe appears to already be installed as a
+              <a
+                href="https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps"
+                target="_blank"
+                rel="noopener"
+                class="lf-modal-link"
+                >Progressive Web App</a
+              >
+              on this device — your browser didn't offer an install prompt,
+              which usually means it's already there.
             </p>
-
-            <!-- iOS Safari -->
-            <div id="pwa-ios-instructions" hidden>
-              <p>
-                iOS Safari doesn't support the standard install prompt, but
-                you can still add notapipe to your home screen:
-              </p>
-              <ul>
-                <li>Tap the <strong>Share</strong> button (□↑) in Safari's toolbar</li>
-                <li>Scroll down and tap <strong>Add to Home Screen</strong></li>
-                <li>Tap <strong>Add</strong></li>
-              </ul>
-              <p>
-                Once added, notapipe opens as a standalone app and keeps
-                working even if notapipe.app goes down.
-              </p>
-            </div>
-
-            <!-- Other browsers -->
-            <div id="pwa-generic-instructions" hidden>
-              <p>
-                Your browser doesn't support direct PWA installation. To
-                install notapipe, open this page in Chrome or Edge on desktop
-                or Android and look for the install icon in the address bar.
-              </p>
-            </div>
+            <p>Look for it on your home screen or in your installed apps.</p>
+            <hr class="lf-modal-divider" />
+            <p>
+              Not there? Open this page in Chrome or Edge, refresh the page, and
+              look for the install icon in the address bar or browser menu.
+            </p>
           </div>
 
+          <!-- Section C: iOS Safari -->
+          <div id="pwa-section-ios" hidden>
+            <p>
+              A
+              <a
+                href="https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps"
+                target="_blank"
+                rel="noopener"
+                class="lf-modal-link"
+                >Progressive Web App</a
+              >
+              is a website that can be installed as a native-feeling app — runs
+              offline, opens in its own window, and works independently of the
+              browser.
+            </p>
+            <p>
+              iOS Safari doesn't support the standard install prompt, but you
+              can still add notapipe to your home screen:
+            </p>
+            <ul>
+              <li>
+                Tap the <strong>Share</strong> button (□↑) in Safari's toolbar
+              </li>
+              <li>Scroll down and tap <strong>Add to Home Screen</strong></li>
+              <li>Tap <strong>Add</strong></li>
+            </ul>
+            <p>
+              Once added, notapipe opens as a standalone app and keeps working
+              even if notapipe.app goes down.
+            </p>
+          </div>
+
+          <!-- Section D: other unsupported browsers -->
+          <div id="pwa-section-unsupported" hidden>
+            <p>
+              A
+              <a
+                href="https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps"
+                target="_blank"
+                rel="noopener"
+                class="lf-modal-link"
+                >Progressive Web App</a
+              >
+              is a website that can be installed as a native-feeling app — runs
+              offline, opens in its own window, and works independently of the
+              browser.
+            </p>
+            <p>
+              Your browser doesn't support direct PWA installation. To install
+              notapipe, open this page in Chrome or Edge on desktop or Android
+              and look for the install icon in the address bar.
+            </p>
+          </div>
         </div>
       </div>
     </dialog>
@@ -1443,10 +1489,14 @@
         document.getElementById("install-btn-cta"),
       ];
       function setInstallBtnsVisible(visible) {
-        installBtns.forEach((btn) => { btn.hidden = !visible; });
+        installBtns.forEach((btn) => {
+          btn.hidden = !visible;
+        });
       }
       async function triggerInstall() {
-        if (!deferredInstallPrompt) { return; }
+        if (!deferredInstallPrompt) {
+          return;
+        }
         deferredInstallPrompt.prompt();
         await deferredInstallPrompt.userChoice;
         deferredInstallPrompt = null;
@@ -1460,22 +1510,35 @@
         e.preventDefault();
         deferredInstallPrompt = e;
         setInstallBtnsVisible(true);
+        localStorage.removeItem("notapipe:pwa-installed");
       });
       window.addEventListener("appinstalled", () => {
         deferredInstallPrompt = null;
         setInstallBtnsVisible(false);
+        localStorage.setItem("notapipe:pwa-installed", "1");
       });
       function openPwaDialog() {
         const installable = !!deferredInstallPrompt;
+        // True if: flagged in localStorage, OR on a browser that supports
+        // install prompts (Chrome/Edge) but the prompt didn't fire — the
+        // most common reason is the app is already installed.
+        const supportsPwaInstall = "BeforeInstallPromptEvent" in window;
+        const flagged = localStorage.getItem("notapipe:pwa-installed") === "1";
+        const alreadyInstalled =
+          !installable && (flagged || supportsPwaInstall);
         const isIOS =
           /iPhone|iPad|iPod/.test(navigator.userAgent) ||
           (navigator.userAgent.includes("Mac") && "ontouchend" in document);
-        document.getElementById("pwa-section-installable").hidden = !installable;
-        document.getElementById("pwa-section-fallback").hidden = installable;
-        if (!installable) {
-          document.getElementById("pwa-ios-instructions").hidden = !isIOS;
-          document.getElementById("pwa-generic-instructions").hidden = isIOS;
-        }
+
+        document.getElementById("pwa-section-installable").hidden =
+          !installable;
+        document.getElementById("pwa-section-installed").hidden =
+          !alreadyInstalled;
+        document.getElementById("pwa-section-ios").hidden =
+          alreadyInstalled || !isIOS;
+        document.getElementById("pwa-section-unsupported").hidden =
+          alreadyInstalled || isIOS;
+
         document.getElementById("pwa-dialog").showModal();
       }
 
