@@ -180,14 +180,14 @@ The palette gives keyboard access to every feature in the app. Start typing to f
 
 Commands are organised into groups:
 
-| Group        | Commands                                                                                                                                           |
-| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Connect**  | Connect via signalling server, Connect via QR code, New random room, Go to room URL, Disconnect                                                    |
-| **Document** | Copy all text, Send file, Show/hide markdown preview, Enter/exit code mode, Import text file, Export as text file, Share room link, Clear document |
-| **Chat**     | Open/close chat                                                                                                                                    |
-| **Voice**    | Start/join/end voice call                                                                                                                          |
-| **View**     | Enter/exit focus mode, Enable/exit wide layout, Switch to light/dark mode, Customize theme, Enable/disable stay awake                               |
-| **App**      | Open settings, User guide, About notapipe                                                                                                          |
+| Group        | Commands                                                                                                                                                                              |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Connect**  | Connect via signalling server, Connect via QR code, New random room, Go to room URL, Disconnect, Show room URL as QR code, Pause/resume sync                                         |
+| **Document** | Copy all text, Send file, Show/hide markdown preview, Enter/exit code mode, Import text file, Export as text file, Share room link, Share document as file, Clear document            |
+| **Chat**     | Open/close chat                                                                                                                                                                       |
+| **Voice**    | Start/join/end voice call                                                                                                                                                             |
+| **View**     | Enter/exit focus mode, Enable/exit wide layout, Switch to light/dark mode, Customize theme, Enable/disable stay awake                                                                 |
+| **App**      | Open settings, User guide, About notapipe, Force reload, Clear all documents, Clear settings, Clear everything                                                                        |
 
 ---
 
