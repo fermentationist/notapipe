@@ -2,6 +2,7 @@
   "name": "notapipe",
   "version": "0.1.0",
   "private": false,
+  "url": "https://notapipe.app",
   "description": "Ephemeral, peer-to-peer text, voice, and file sharing. No servers ever see your content.",
   "type": "module",
   "scripts": {
