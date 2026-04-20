@@ -57,6 +57,7 @@
   import CloseIcon from "./components/CloseIcon.svelte";
   import HardDriveIcon from "./components/HardDriveIcon.svelte";
   import EyeIcon from "./components/EyeIcon.svelte";
+  import GoToUrlDialog from "./components/GoToUrlDialog.svelte";
   import InstallIcon from "./components/InstallIcon.svelte";
   import PauseIcon from "./components/PauseIcon.svelte";
   import PlayIcon from "./components/PlayIcon.svelte";
@@ -112,6 +113,7 @@
   let show_connect_menu = $state(false);
   let show_room_menu = $state(false);
   let show_actions_menu = $state(false);
+  let show_go_to_url = $state(false);
   let show_url_qr = $state(false);
   let actions_menu_anchor = $state<{ top: number; right: number } | null>(null);
   let show_share_menu = $state(false);
@@ -1372,6 +1374,19 @@
     reinitPersistence();
   }
 
+  function goToRoomUrl(new_room_id: string, token: string | null): void {
+    show_go_to_url = false;
+    teardown();
+    const path = roomPath(new_room_id);
+    history.replaceState(null, "", token ? `${path}#${token}` : path);
+    room_token = ensureToken();
+    room_id = new_room_id;
+    localStorage.setItem(LAST_ROOM_KEY, JSON.stringify({ room_id: new_room_id, token: room_token }));
+    connection_store.setRoomId(new_room_id);
+    reinitPersistence();
+    loadChatLog();
+  }
+
   function selectSignalling(): void {
     show_connect_menu = false;
     connectViaSignalling();
@@ -1574,6 +1589,13 @@
       group: "Connect",
       keywords: ["generate", "fresh", "different", "random"],
       action: selectRandom,
+    },
+    {
+      id: "go-to-url",
+      label: "Go to room URL...",
+      group: "Connect",
+      keywords: ["navigate", "open", "paste", "url", "link", "join", "enter"],
+      action: () => { show_palette = false; show_go_to_url = true; },
     },
     {
       id: "disconnect",
@@ -1925,7 +1947,10 @@
         {#if show_room_menu}
           <Menu
             placement="below"
-            items={[{ label: "New random room", action: selectRandom }]}
+            items={[
+              { label: "New random room", action: selectRandom },
+              { label: "Go to room URL...", action: () => { show_room_menu = false; show_go_to_url = true; } },
+            ]}
           />
         {/if}
       </div>
@@ -2207,6 +2232,13 @@
       onclose={closeQrOverlay}
       onstartofferer={startQrAsOfferer}
       onstartanswerer={startQrAsAnswerer}
+    />
+  {/if}
+
+  {#if show_go_to_url}
+    <GoToUrlDialog
+      onnavigate={goToRoomUrl}
+      oncancel={() => { show_go_to_url = false; }}
     />
   {/if}
 
