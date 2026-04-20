@@ -56,6 +56,7 @@
   import Menu, { type MenuItemConfig } from "./components/Menu.svelte";
   import CloseIcon from "./components/CloseIcon.svelte";
   import HardDriveIcon from "./components/HardDriveIcon.svelte";
+  import EyeIcon from "./components/EyeIcon.svelte";
   import InstallIcon from "./components/InstallIcon.svelte";
   import PauseIcon from "./components/PauseIcon.svelte";
   import PlayIcon from "./components/PlayIcon.svelte";
@@ -450,8 +451,23 @@
       }
     };
     window.addEventListener("keydown", handle_keydown);
+
+    // Re-acquire wake lock when the tab regains visibility (browser releases it automatically on hide)
+    const handle_visibility_change = async (): Promise<void> => {
+      if (document.visibilityState === "visible" && wake_lock_active && wake_lock_sentinel === null) {
+        try {
+          wake_lock_sentinel = await navigator.wakeLock.request("screen");
+        } catch {
+          // Could not re-acquire — leave wake_lock_active true so it retries next time
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", handle_visibility_change);
+
     return () => {
       window.removeEventListener("keydown", handle_keydown);
+      document.removeEventListener("visibilitychange", handle_visibility_change);
+      if (wake_lock_sentinel !== null) { void wake_lock_sentinel.release(); }
       unsubscribe_persistence();
       idb_persistence?.destroy();
       teardown();
@@ -1461,6 +1477,32 @@
   let code_language = $state("javascript");
   let preview_fullscreen = $state(false);
 
+  // ---------------------------------------------------------------------------
+  // Wake lock ("Stay awake")
+  // ---------------------------------------------------------------------------
+  let wake_lock_active = $state(false);
+  let wake_lock_sentinel: WakeLockSentinel | null = null;
+  const wake_lock_supported = "wakeLock" in navigator;
+
+  async function enableWakeLock(): Promise<void> {
+    if (!wake_lock_supported) { return; }
+    try {
+      const sentinel = await navigator.wakeLock.request("screen");
+      wake_lock_sentinel = sentinel;
+      wake_lock_active = true;
+    } catch {
+      wake_lock_active = false;
+    }
+  }
+
+  async function releaseWakeLock(): Promise<void> {
+    wake_lock_active = false;
+    if (wake_lock_sentinel !== null) {
+      await wake_lock_sentinel.release();
+      wake_lock_sentinel = null;
+    }
+  }
+
   type ViewMode = "text" | "code" | "markdown" | "focus";
 
   const current_view_mode = $derived<ViewMode>(
@@ -1647,6 +1689,14 @@
       keywords: ["color", "tokens", "css", "palette", "theme", "custom"],
       action: () => { show_theme_panel = true; },
     },
+    {
+      id: "toggle-wake-lock",
+      label: wake_lock_active ? "Disable stay awake" : "Enable stay awake",
+      group: "View",
+      keywords: ["sleep", "screen", "awake", "wake", "lock", "prevent", "jiggler"],
+      hidden: !wake_lock_supported,
+      action: () => { wake_lock_active ? void releaseWakeLock() : void enableWakeLock(); },
+    },
     // App
     {
       id: "settings",
@@ -1718,6 +1768,16 @@
         {/if}
       </div>
       <div class="header-right">
+        {#if wake_lock_active}
+          <button
+            class="persist-indicator"
+            onclick={() => { void releaseWakeLock(); }}
+            title="Stay awake is on — screen will not sleep. Click to disable."
+            aria-label="Stay awake active — screen will not sleep. Click to disable."
+          >
+            <EyeIcon />
+          </button>
+        {/if}
         {#if $persistence_store}
           <button
             class="persist-indicator"
