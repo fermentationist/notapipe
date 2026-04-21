@@ -9,6 +9,7 @@
     keywords?: string[];
     disabled?: boolean;
     action: () => void;
+    hidden?: boolean;
   }
 
   interface Props {
@@ -24,11 +25,19 @@
   let list_el: HTMLDivElement = $state() as HTMLDivElement;
 
   function matches(cmd: PaletteCommand, q: string): boolean {
-    if (q === "") { return true; }
+    if (q === "") {
+      return true;
+    }
     const search = q.toLowerCase();
-    if (cmd.label.toLowerCase().includes(search)) { return true; }
-    if (cmd.group.toLowerCase().includes(search)) { return true; }
-    if (cmd.keywords?.some((k) => k.toLowerCase().includes(search))) { return true; }
+    if (cmd.label.toLowerCase().includes(search)) {
+      return true;
+    }
+    if (cmd.group.toLowerCase().includes(search)) {
+      return true;
+    }
+    if (cmd.keywords?.some((k) => k.toLowerCase().includes(search))) {
+      return true;
+    }
     return false;
   }
 
@@ -37,7 +46,9 @@
   // Unique groups in the order they first appear
   const groups = $derived(
     filtered.reduce<string[]>((acc, cmd) => {
-      if (!acc.includes(cmd.group)) { acc.push(cmd.group); }
+      if (!acc.includes(cmd.group)) {
+        acc.push(cmd.group);
+      }
       return acc;
     }, []),
   );
@@ -46,7 +57,9 @@
   const selectable = $derived(filtered.filter((cmd) => !cmd.disabled));
 
   // Map command id → index in selectable for O(1) active-state lookup
-  const selectable_indices = $derived(new Map(selectable.map((cmd, i) => [cmd.id, i])));
+  const selectable_indices = $derived(
+    new Map(selectable.map((cmd, i) => [cmd.id, i])),
+  );
 
   // Reset active index whenever the filtered set changes
   $effect(() => {
@@ -55,14 +68,18 @@
   });
 
   function runCommand(cmd: PaletteCommand): void {
-    if (cmd.disabled) { return; }
+    if (cmd.disabled) {
+      return;
+    }
     onclose();
     cmd.action();
   }
 
   function scrollActiveIntoView(): void {
     tick().then(() => {
-      list_el?.querySelector<HTMLElement>(".palette-item.active")?.scrollIntoView({ block: "nearest" });
+      list_el
+        ?.querySelector<HTMLElement>(".palette-item.active")
+        ?.scrollIntoView({ block: "nearest" });
     });
   }
 
@@ -87,7 +104,9 @@
     if (event.key === "Enter") {
       event.preventDefault();
       const cmd = selectable[active_index];
-      if (cmd !== undefined) { runCommand(cmd); }
+      if (cmd !== undefined) {
+        runCommand(cmd);
+      }
     }
   }
 
@@ -101,9 +120,18 @@
 <div
   class="overlay"
   role="presentation"
-  onclick={(e) => { if (e.target === e.currentTarget) { onclose(); } }}
+  onclick={(e) => {
+    if (e.target === e.currentTarget) {
+      onclose();
+    }
+  }}
 >
-  <div class="palette" role="dialog" aria-modal="true" aria-label="Command palette">
+  <div
+    class="palette"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Command palette"
+  >
     <div class="search-row">
       <SearchIcon />
       <input
@@ -117,7 +145,11 @@
         aria-label="Search commands"
         aria-autocomplete="list"
       />
-      <button class="esc-hint" onclick={onclose} aria-label="Close command palette">esc</button>
+      <button
+        class="esc-hint"
+        onclick={onclose}
+        aria-label="Close command palette">esc</button
+      >
     </div>
 
     <div class="results" bind:this={list_el} role="listbox">
@@ -138,7 +170,9 @@
                 aria-disabled={cmd.disabled}
                 onclick={() => runCommand(cmd)}
                 onmouseenter={() => {
-                  if (sel_index !== undefined) { active_index = sel_index; }
+                  if (sel_index !== undefined) {
+                    active_index = sel_index;
+                  }
                 }}
               >
                 {cmd.label}

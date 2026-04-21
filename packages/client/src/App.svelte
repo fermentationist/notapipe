@@ -45,12 +45,18 @@
   import FilenameDialog from "./components/FilenameDialog.svelte";
   import HandleWidget from "./components/HandleWidget.svelte";
   import PeerList from "./components/PeerList.svelte";
-  import PeerToastBar, { type PeerToast } from "./components/PeerToastBar.svelte";
+  import PeerToastBar, {
+    type PeerToast,
+  } from "./components/PeerToastBar.svelte";
   import ChatPanel, { type ChatMessage } from "./components/ChatPanel.svelte";
   import InfoModal from "./components/InfoModal.svelte";
   import UrlQrModal from "./components/UrlQrModal.svelte";
-  import CommandPalette, { type PaletteCommand } from "./components/CommandPalette.svelte";
-  import FileTransferBar, { type PeerEntry as FtPeerEntry } from "./components/FileTransferBar.svelte";
+  import CommandPalette, {
+    type PaletteCommand,
+  } from "./components/CommandPalette.svelte";
+  import FileTransferBar, {
+    type PeerEntry as FtPeerEntry,
+  } from "./components/FileTransferBar.svelte";
   import ThemePanel from "./components/ThemePanel.svelte";
   import CopyIcon from "./components/CopyIcon.svelte";
   import Menu, { type MenuItemConfig } from "./components/Menu.svelte";
@@ -77,6 +83,16 @@
   import { theme_store } from "./stores/theme.ts";
   import { VoiceCallManager } from "./rtc/voice_manager.ts";
   import { FileTransferUIManager } from "./rtc/file_transfer_ui.ts";
+
+  // Add this interface to your project
+  interface BeforeInstallPromptEvent extends Event {
+    readonly platforms: string[];
+    readonly userChoice: Promise<{
+      outcome: "accepted" | "dismissed";
+      platform: string;
+    }>;
+    prompt(): Promise<void>;
+  }
 
   // ---------------------------------------------------------------------------
   // Yjs document (single shared text type)
@@ -164,7 +180,7 @@
   // QR mode uses a `qr-<uuid>` placeholder ID.
   interface PeerRecord {
     manager: RTCPeerManager;
-    conn_manager: ConnectionManager | null;
+    conn_manager?: ConnectionManager | null;
     yjs_provider: RTCDataChannelProvider | null;
     ft_manager: FileTransferManager | null;
     data_channel: RTCDataChannel | null;
@@ -196,7 +212,7 @@
     if (enabled && !prev_persistence) {
       addPeerToast(
         "Document persistence enabled — content is now saved locally in your browser and will survive tab close. " +
-        "Disable in Settings → Storage to return to ephemeral mode.",
+          "Disable in Settings → Storage to return to ephemeral mode.",
       );
     }
     prev_persistence = enabled;
@@ -224,27 +240,41 @@
     get_data_channels: () => {
       const m = new Map<string, RTCDataChannel>();
       for (const [id, p] of peers) {
-        if (p.data_channel !== null) { m.set(id, p.data_channel); }
+        if (p.data_channel !== null) {
+          m.set(id, p.data_channel);
+        }
       }
       return m;
     },
     get_peer_managers: () => {
       const m = new Map<string, RTCPeerManager>();
-      for (const [id, p] of peers) { m.set(id, p.manager); }
+      for (const [id, p] of peers) {
+        m.set(id, p.manager);
+      }
       return m;
     },
     get_peer_states: () => {
       const m = new Map<string, import("./rtc/peer.ts").PeerManagerState>();
-      for (const [id, p] of peers) { m.set(id, p.state); }
+      for (const [id, p] of peers) {
+        m.set(id, p.state);
+      }
       return m;
     },
     get_voice_active: () => voice_active,
     get_remote_voice_active: () => remote_voice_active,
     get_peers_with_audio: () => peers_with_audio,
-    set_voice_active: (v) => { voice_active = v; },
-    set_voice_warning_visible: (v) => { voice_warning_visible = v; },
-    set_remote_voice_active: (m) => { remote_voice_active = m; },
-    set_peers_with_audio: (s) => { peers_with_audio = s; },
+    set_voice_active: (v) => {
+      voice_active = v;
+    },
+    set_voice_warning_visible: (v) => {
+      voice_warning_visible = v;
+    },
+    set_remote_voice_active: (m) => {
+      remote_voice_active = m;
+    },
+    set_peers_with_audio: (s) => {
+      peers_with_audio = s;
+    },
     add_peer_toast: (msg) => addPeerToast(msg),
     set_error: (msg) => connection_store.setError(msg),
     trigger_renegotiation: (peer_id) => {
@@ -260,8 +290,12 @@
   // ---------------------------------------------------------------------------
 
   let ft_incoming_offers = $state(new Map<string, IncomingOffer>());
-  let ft_progress = $state(new Map<string, { received: number; total: number }>());
-  let ft_completed = $state(new Map<string, { url: string; filename: string }>());
+  let ft_progress = $state(
+    new Map<string, { received: number; total: number }>(),
+  );
+  let ft_completed = $state(
+    new Map<string, { url: string; filename: string }>(),
+  );
   let ft_sent = $state(new Map<string, FtPeerEntry>());
   let ft_sending = $state(new Map<string, FtPeerEntry>());
   let ft_pending_sent = $state(new Map<string, FtPeerEntry>());
@@ -273,20 +307,35 @@
     get_sent: () => ft_sent,
     get_sending: () => ft_sending,
     get_pending_sent: () => ft_pending_sent,
-    set_incoming_offers: (v) => { ft_incoming_offers = v; },
-    set_progress: (v) => { ft_progress = v; },
-    set_completed: (v) => { ft_completed = v; },
-    set_sent: (v) => { ft_sent = v; },
-    set_sending: (v) => { ft_sending = v; },
-    set_pending_sent: (v) => { ft_pending_sent = v; },
+    set_incoming_offers: (v) => {
+      ft_incoming_offers = v;
+    },
+    set_progress: (v) => {
+      ft_progress = v;
+    },
+    set_completed: (v) => {
+      ft_completed = v;
+    },
+    set_sent: (v) => {
+      ft_sent = v;
+    },
+    set_sending: (v) => {
+      ft_sending = v;
+    },
+    set_pending_sent: (v) => {
+      ft_pending_sent = v;
+    },
     get_file_transfer_managers: () => {
       const m = new Map<string, FileTransferManager>();
       for (const [id, p] of peers) {
-        if (p.ft_manager !== null) { m.set(id, p.ft_manager); }
+        if (p.ft_manager !== null) {
+          m.set(id, p.ft_manager);
+        }
       }
       return m;
     },
-    get_peer_relay_status: (peer_id) => peers.get(peer_id)?.relay_status === true,
+    get_peer_relay_status: (peer_id) =>
+      peers.get(peer_id)?.relay_status === true,
     has_custom_turn: () => $rtc_config_store.turn_url !== "",
     get_remote_handle: (peer_id) => remote_handles.get(peer_id) ?? peer_id,
     add_peer_toast: (msg) => addPeerToast(msg),
@@ -331,16 +380,24 @@
   let drag_depth = 0;
 
   function handleDragEnter(e: DragEvent): void {
-    if (!is_connected) { return; }
-    if (!e.dataTransfer?.types.includes("Files")) { return; }
+    if (!is_connected) {
+      return;
+    }
+    if (!e.dataTransfer?.types.includes("Files")) {
+      return;
+    }
     e.preventDefault();
     drag_depth += 1;
     drag_over = true;
   }
 
   function handleDragOver(e: DragEvent): void {
-    if (!is_connected) { return; }
-    if (!e.dataTransfer?.types.includes("Files")) { return; }
+    if (!is_connected) {
+      return;
+    }
+    if (!e.dataTransfer?.types.includes("Files")) {
+      return;
+    }
     e.preventDefault();
     e.dataTransfer.dropEffect = "copy";
   }
@@ -357,7 +414,9 @@
     e.preventDefault();
     drag_depth = 0;
     drag_over = false;
-    if (!is_connected) { return; }
+    if (!is_connected) {
+      return;
+    }
     const file = e.dataTransfer?.files[0];
     if (file) {
       sendFileToAllPeers(file);
@@ -393,7 +452,9 @@
       deferred_install_prompt = e as BeforeInstallPromptEvent;
     };
     window.addEventListener("beforeinstallprompt", on_before_install);
-    window.addEventListener("appinstalled", () => { deferred_install_prompt = null; });
+    window.addEventListener("appinstalled", () => {
+      deferred_install_prompt = null;
+    });
 
     const parsed = parseId();
     if (parsed !== null && isValidId(parsed)) {
@@ -403,7 +464,10 @@
       const saved_raw = localStorage.getItem(LAST_ROOM_KEY);
       let saved: { room_id: string; token: string } | null = null;
       try {
-        saved = saved_raw !== null ? (JSON.parse(saved_raw) as { room_id: string; token: string }) : null;
+        saved =
+          saved_raw !== null
+            ? (JSON.parse(saved_raw) as { room_id: string; token: string })
+            : null;
       } catch {
         saved = null;
       }
@@ -416,7 +480,10 @@
       }
     }
     room_token = ensureToken();
-    localStorage.setItem(LAST_ROOM_KEY, JSON.stringify({ room_id, token: room_token }));
+    localStorage.setItem(
+      LAST_ROOM_KEY,
+      JSON.stringify({ room_id, token: room_token }),
+    );
     connection_store.setRoomId(room_id);
     reinitPersistence();
     loadChatLog();
@@ -439,7 +506,9 @@
       }
       // All other shortcuts are suppressed while the palette is open
       // (the palette handles its own Escape/arrow/enter internally).
-      if (show_palette) { return; }
+      if (show_palette) {
+        return;
+      }
       if (event.key === "f" && (event.metaKey || event.ctrlKey)) {
         event.preventDefault();
         set_view_mode(get(focus_mode_store) ? "text" : "focus");
@@ -456,7 +525,11 @@
 
     // Re-acquire wake lock when the tab regains visibility (browser releases it automatically on hide)
     const handle_visibility_change = async (): Promise<void> => {
-      if (document.visibilityState === "visible" && wake_lock_active && wake_lock_sentinel === null) {
+      if (
+        document.visibilityState === "visible" &&
+        wake_lock_active &&
+        wake_lock_sentinel === null
+      ) {
         try {
           wake_lock_sentinel = await navigator.wakeLock.request("screen");
         } catch {
@@ -468,8 +541,13 @@
 
     return () => {
       window.removeEventListener("keydown", handle_keydown);
-      document.removeEventListener("visibilitychange", handle_visibility_change);
-      if (wake_lock_sentinel !== null) { void wake_lock_sentinel.release(); }
+      document.removeEventListener(
+        "visibilitychange",
+        handle_visibility_change,
+      );
+      if (wake_lock_sentinel !== null) {
+        void wake_lock_sentinel.release();
+      }
       unsubscribe_persistence();
       idb_persistence?.destroy();
       teardown();
@@ -559,7 +637,10 @@
     }
   }
 
-  function registerDataChannel(remote_peer_id: string, channel: RTCDataChannel): void {
+  function registerDataChannel(
+    remote_peer_id: string,
+    channel: RTCDataChannel,
+  ): void {
     const peer = peers.get(remote_peer_id);
     if (peer !== undefined) {
       peer.data_channel = channel;
@@ -581,62 +662,70 @@
       channel.addEventListener("open", send_initial_state, { once: true });
     }
 
-    channel.addEventListener("message", (event: MessageEvent<ArrayBuffer | string>) => {
-      if (typeof event.data !== "string") {
-        return;
-      }
-      try {
-        const msg = JSON.parse(event.data) as {
-          type?: string;
-          handle?: string;
-          id?: string;
-          text?: string;
-          timestamp?: number;
-        };
-        // Heartbeat control messages are consumed by ConnectionManager.
-        if (
-          typeof msg.type === "string" &&
-          peers.get(remote_peer_id)?.conn_manager?.handleDataMessage(msg.type)
-        ) {
+    channel.addEventListener(
+      "message",
+      (event: MessageEvent<ArrayBuffer | string>) => {
+        if (typeof event.data !== "string") {
           return;
         }
-        if (msg.type === "identity" && typeof msg.handle === "string") {
-          const is_new = !remote_handles.has(remote_peer_id);
-          remote_handles = new Map(remote_handles).set(remote_peer_id, msg.handle);
-          if (is_new) {
-            addPeerToast(`Connected to ${msg.handle}`);
-          }
-        } else if (msg.type === "sync-resume") {
-          const handle = remote_handles.get(remote_peer_id) ?? "Peer";
-          addPeerToast(`${handle} resumed sync — documents are merging`);
-        } else if (msg.type === "voice-start" || msg.type === "voice-stop") {
-          voice_manager.handle_data_message(remote_peer_id, msg);
-        } else if (
-          msg.type === "chat" &&
-          typeof msg.text === "string" &&
-          msg.text.trim().length > 0
-        ) {
-          const incoming: ChatMessage = {
-            id: typeof msg.id === "string" ? msg.id : crypto.randomUUID(),
-            handle: typeof msg.handle === "string" ? msg.handle : "Unknown",
-            text: msg.text.trim(),
-            timestamp: typeof msg.timestamp === "number" ? msg.timestamp : Date.now(),
-            is_local: false,
-            secret: msg.secret === true,
+        try {
+          const msg = JSON.parse(event.data) as {
+            type?: string;
+            handle?: string;
+            id?: string;
+            text?: string;
+            timestamp?: number;
+            secret?: boolean;
           };
-          // Deduplicate by id in case the message is echoed
-          if (!chat_messages.some((m) => m.id === incoming.id)) {
-            chat_messages = [...chat_messages, incoming];
-            saveChatLog();
-            if (!chat_open) {
-              chat_unread += 1;
+          // Heartbeat control messages are consumed by ConnectionManager.
+          if (
+            typeof msg.type === "string" &&
+            peers.get(remote_peer_id)?.conn_manager?.handleDataMessage(msg.type)
+          ) {
+            return;
+          }
+          if (msg.type === "identity" && typeof msg.handle === "string") {
+            const is_new = !remote_handles.has(remote_peer_id);
+            remote_handles = new Map(remote_handles).set(
+              remote_peer_id,
+              msg.handle,
+            );
+            if (is_new) {
+              addPeerToast(`Connected to ${msg.handle}`);
+            }
+          } else if (msg.type === "sync-resume") {
+            const handle = remote_handles.get(remote_peer_id) ?? "Peer";
+            addPeerToast(`${handle} resumed sync — documents are merging`);
+          } else if (msg.type === "voice-start" || msg.type === "voice-stop") {
+            voice_manager.handle_data_message(remote_peer_id, msg);
+          } else if (
+            msg.type === "chat" &&
+            typeof msg.text === "string" &&
+            msg.text.trim().length > 0
+          ) {
+            const incoming: ChatMessage = {
+              id: typeof msg.id === "string" ? msg.id : crypto.randomUUID(),
+              handle: typeof msg.handle === "string" ? msg.handle : "Unknown",
+              text: msg.text.trim(),
+              timestamp:
+                typeof msg.timestamp === "number" ? msg.timestamp : Date.now(),
+              is_local: false,
+              secret: msg.secret === true,
+            };
+            // Deduplicate by id in case the message is echoed
+            if (!chat_messages.some((m) => m.id === incoming.id)) {
+              chat_messages = [...chat_messages, incoming];
+              saveChatLog();
+              if (!chat_open) {
+                chat_unread += 1;
+              }
             }
           }
+        } catch {
+          // Ignore malformed messages
         }
-      } catch {
-        // Ignore malformed messages
-      }
-    });
+      },
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -663,9 +752,12 @@
       return;
     }
     const to_save = chat_messages.map((m) =>
-      m.secret ? { ...m, text: SECRET_PLACEHOLDER } : m
+      m.secret ? { ...m, text: SECRET_PLACEHOLDER } : m,
     );
-    localStorage.setItem(`${CHAT_LOG_PREFIX}${room_id}`, JSON.stringify(to_save));
+    localStorage.setItem(
+      `${CHAT_LOG_PREFIX}${room_id}`,
+      JSON.stringify(to_save),
+    );
   }
 
   function sendChatMessage(text: string, secret: boolean = false): void {
@@ -773,7 +865,9 @@
           registerDataChannel(remote_peer_id, data_channel);
           const provider = new RTCDataChannelProvider(doc, data_channel);
           const peer = peers.get(remote_peer_id);
-          if (peer !== undefined) { peer.yjs_provider = provider; }
+          if (peer !== undefined) {
+            peer.yjs_provider = provider;
+          }
         },
         onFileChannel(file_channel) {
           const ft_manager = new FileTransferManager(
@@ -781,7 +875,9 @@
             makeFileTransferCallbacks(remote_peer_id),
           );
           const peer = peers.get(remote_peer_id);
-          if (peer !== undefined) { peer.ft_manager = ft_manager; }
+          if (peer !== undefined) {
+            peer.ft_manager = ft_manager;
+          }
         },
         onStateChange(state) {
           if (!peers.has(remote_peer_id)) {
@@ -795,13 +891,14 @@
           // Route through ConnectionManager for post-connection failure handling
           // (heartbeat watchdog, ICE restart, give-up). Returns true when it
           // consumes the state and the caller must NOT proceed with disconnectPeer.
-          const conn_manager_handled = peer.conn_manager?.onStateChange(state) ?? false;
+          const conn_manager_handled =
+            peer.conn_manager?.onStateChange(state) ?? false;
           if (!conn_manager_handled && state === "failed") {
             // Initial connection failure — peer never reached "connected".
             addPeerToast(
               "Connection failed — your peer could not be reached. " +
-              "You may be behind a restrictive firewall. " +
-              "Try QR mode, or add a TURN relay server in Settings → Connection.",
+                "You may be behind a restrictive firewall. " +
+                "Try QR mode, or add a TURN relay server in Settings → Connection.",
             );
             disconnectPeer(remote_peer_id);
           }
@@ -809,8 +906,12 @@
         },
         onRelayDetected(is_relay) {
           const peer = peers.get(remote_peer_id);
-          if (peer !== undefined) { peer.relay_status = is_relay; }
-          if (is_relay) { any_peer_relayed = true; }
+          if (peer !== undefined) {
+            peer.relay_status = is_relay;
+          }
+          if (is_relay) {
+            any_peer_relayed = true;
+          }
         },
         onError(error) {
           connection_store.setError(error.message);
@@ -826,17 +927,13 @@
       getEffectiveIceServers(),
     );
 
-    const conn_manager = new ConnectionManager(
-      manager,
-      peer_is_offerer,
-      () => {
-        // Safety: only disconnect if this is still the active manager for this peer.
-        // If a reconnect already replaced it, leave the new connection alone.
-        if (peers.get(remote_peer_id)?.manager === manager) {
-          disconnectPeer(remote_peer_id);
-        }
-      },
-    );
+    const conn_manager = new ConnectionManager(manager, peer_is_offerer, () => {
+      // Safety: only disconnect if this is still the active manager for this peer.
+      // If a reconnect already replaced it, leave the new connection alone.
+      if (peers.get(remote_peer_id)?.manager === manager) {
+        disconnectPeer(remote_peer_id);
+      }
+    });
 
     peers.set(remote_peer_id, {
       manager,
@@ -1007,7 +1104,9 @@
           registerDataChannel(session_id, data_channel);
           const provider = new RTCDataChannelProvider(doc, data_channel);
           const peer = peers.get(session_id);
-          if (peer !== undefined) { peer.yjs_provider = provider; }
+          if (peer !== undefined) {
+            peer.yjs_provider = provider;
+          }
         },
         onFileChannel(file_channel) {
           const ft_manager = new FileTransferManager(
@@ -1015,7 +1114,9 @@
             makeFileTransferCallbacks(session_id),
           );
           const peer = peers.get(session_id);
-          if (peer !== undefined) { peer.ft_manager = ft_manager; }
+          if (peer !== undefined) {
+            peer.ft_manager = ft_manager;
+          }
         },
         onStateChange(state) {
           if (!peers.has(session_id)) {
@@ -1065,14 +1166,18 @@
         },
         onRelayDetected(is_relay) {
           const peer = peers.get(session_id);
-          if (peer !== undefined) { peer.relay_status = is_relay; }
-          if (is_relay) { any_peer_relayed = true; }
+          if (peer !== undefined) {
+            peer.relay_status = is_relay;
+          }
+          if (is_relay) {
+            any_peer_relayed = true;
+          }
         },
         onError(error) {
           connection_store.setError(error.message);
         },
         onTrack(event) {
-          handleRemoteTrack(session_id, event);
+          voice_manager.handle_remote_track(session_id, event);
         },
         async beforeAnswer(pc_arg) {
           await voice_manager.before_answer(session_id, pc_arg);
@@ -1115,7 +1220,10 @@
   function applyRoomId(new_room_id: string): void {
     room_id = new_room_id;
     history.replaceState(null, "", `${roomPath(new_room_id)}#${room_token}`);
-    localStorage.setItem(LAST_ROOM_KEY, JSON.stringify({ room_id, token: room_token }));
+    localStorage.setItem(
+      LAST_ROOM_KEY,
+      JSON.stringify({ room_id, token: room_token }),
+    );
     connection_store.setRoomId(new_room_id);
     reinitPersistence();
   }
@@ -1123,7 +1231,10 @@
   function applyToken(new_token: string): void {
     room_token = new_token;
     history.replaceState(null, "", `${window.location.pathname}#${new_token}`);
-    localStorage.setItem(LAST_ROOM_KEY, JSON.stringify({ room_id, token: room_token }));
+    localStorage.setItem(
+      LAST_ROOM_KEY,
+      JSON.stringify({ room_id, token: room_token }),
+    );
     qr_transport?.setToken(new_token);
   }
 
@@ -1148,7 +1259,9 @@
             // connection is confirmed so a failed attempt doesn't change the room.
             showConfirm(
               `This QR code is for room "${incoming_room_id}". Your room ID will change from "${room_id}" once connected. Your current document will merge with theirs.${has_persistence ? " Your saved history for this room will remain under the old ID." : ""}`,
-              () => { pending_qr_room_id = incoming_room_id; },
+              () => {
+                pending_qr_room_id = incoming_room_id;
+              },
             );
           } else {
             pending_qr_room_id = incoming_room_id;
@@ -1304,8 +1417,12 @@
         // in its Web Share allowlist (e.g. text/plain + .md is rejected; only .txt
         // is accepted for text/plain on Chrome desktop). Keep the dialog open so
         // the user can rename the file to a supported extension.
-        console.error("[notapipe] navigator.share rejected file type:", err.message);
-        share_filename_dialog_error = "This file type can't be shared on your browser. Try renaming to .txt.";
+        console.error(
+          "[notapipe] navigator.share rejected file type:",
+          err.message,
+        );
+        share_filename_dialog_error =
+          "This file type can't be shared on your browser. Try renaming to .txt.";
       } else {
         // Other failure (share not supported at all, etc.) — close silently.
         console.error("[notapipe] navigator.share failed:", err);
@@ -1369,7 +1486,10 @@
     // Clear the fragment so ensureToken() generates a fresh random token.
     history.replaceState(null, "", roomPath(new_room_id));
     room_token = ensureToken();
-    localStorage.setItem(LAST_ROOM_KEY, JSON.stringify({ room_id, token: room_token }));
+    localStorage.setItem(
+      LAST_ROOM_KEY,
+      JSON.stringify({ room_id, token: room_token }),
+    );
     connection_store.setRoomId(new_room_id);
     reinitPersistence();
   }
@@ -1381,7 +1501,10 @@
     history.replaceState(null, "", token ? `${path}#${token}` : path);
     room_token = ensureToken();
     room_id = new_room_id;
-    localStorage.setItem(LAST_ROOM_KEY, JSON.stringify({ room_id: new_room_id, token: room_token }));
+    localStorage.setItem(
+      LAST_ROOM_KEY,
+      JSON.stringify({ room_id: new_room_id, token: room_token }),
+    );
     connection_store.setRoomId(new_room_id);
     reinitPersistence();
     loadChatLog();
@@ -1500,7 +1623,9 @@
   const wake_lock_supported = "wakeLock" in navigator;
 
   async function enableWakeLock(): Promise<void> {
-    if (!wake_lock_supported) { return; }
+    if (!wake_lock_supported) {
+      return;
+    }
     try {
       const sentinel = await navigator.wakeLock.request("screen");
       wake_lock_sentinel = sentinel;
@@ -1521,19 +1646,26 @@
   type ViewMode = "text" | "code" | "markdown" | "focus";
 
   const current_view_mode = $derived<ViewMode>(
-    $focus_mode_store ? "focus" :
-    code_mode ? "code" :
-    $preview_store ? "markdown" :
-    "text"
+    $focus_mode_store
+      ? "focus"
+      : code_mode
+        ? "code"
+        : $preview_store
+          ? "markdown"
+          : "text",
   );
 
   function set_view_mode(mode: ViewMode): void {
     focus_mode_store.disable();
     code_mode = false;
     preview_store.set(false);
-    if (mode === "focus") { focus_mode_store.enable(); }
-    else if (mode === "code") { code_mode = true; }
-    else if (mode === "markdown") { preview_store.set(true); }
+    if (mode === "focus") {
+      focus_mode_store.enable();
+    } else if (mode === "code") {
+      code_mode = true;
+    } else if (mode === "markdown") {
+      preview_store.set(true);
+    }
   }
 
   const CODE_LANGUAGES: { value: string; label: string }[] = [
@@ -1556,10 +1688,13 @@
 
   const is_connected = $derived($connection_store.peer_state === "connected");
   const is_waiting_for_peer = $derived(
-    $connection_store.peer_state === "connecting" && $connection_store.mode === "signalling",
+    $connection_store.peer_state === "connecting" &&
+      $connection_store.mode === "signalling",
   );
   // True when a remote peer has started a voice call but we haven't joined yet.
-  const incoming_voice_call = $derived(remote_voice_active.size > 0 && !voice_active);
+  const incoming_voice_call = $derived(
+    remote_voice_active.size > 0 && !voice_active,
+  );
   const is_dark_theme = $derived($theme_store["name"] === "dark");
 
   // ---------------------------------------------------------------------------
@@ -1595,7 +1730,10 @@
       label: "Go to room URL...",
       group: "Connect",
       keywords: ["navigate", "open", "paste", "url", "link", "join", "enter"],
-      action: () => { show_palette = false; show_go_to_url = true; },
+      action: () => {
+        show_palette = false;
+        show_go_to_url = true;
+      },
     },
     {
       id: "disconnect",
@@ -1610,7 +1748,10 @@
       label: "Show room URL as QR code",
       group: "Connect",
       keywords: ["qr", "scan", "share", "invite", "url"],
-      action: () => { show_palette = false; show_url_qr = true; },
+      action: () => {
+        show_palette = false;
+        show_url_qr = true;
+      },
     },
     {
       id: "toggle-sync",
@@ -1635,7 +1776,9 @@
       keywords: ["transfer", "attach", "upload", "file", "share", "send"],
       disabled: !is_connected,
       action: () => {
-        (document.getElementById("file-transfer-input") as HTMLInputElement).click();
+        (
+          document.getElementById("file-transfer-input") as HTMLInputElement
+        ).click();
       },
     },
     {
@@ -1643,14 +1786,18 @@
       label: $preview_store ? "Hide markdown preview" : "Show markdown preview",
       group: "Document",
       keywords: ["markdown", "render", "preview", "md"],
-      action: () => { set_view_mode($preview_store ? "text" : "markdown"); },
+      action: () => {
+        set_view_mode($preview_store ? "text" : "markdown");
+      },
     },
     {
       id: "toggle-code",
       label: code_mode ? "Exit code mode" : "Enter code mode",
       group: "Document",
       keywords: ["syntax", "highlight", "editor", "code"],
-      action: () => { set_view_mode(code_mode ? "text" : "code"); },
+      action: () => {
+        set_view_mode(code_mode ? "text" : "code");
+      },
     },
     {
       id: "import",
@@ -1686,7 +1833,9 @@
       label: "Clear document",
       group: "Document",
       keywords: ["delete", "erase", "reset", "wipe"],
-      action: () => { showConfirm("Clear the document?", clearCurrentDoc); },
+      action: () => {
+        showConfirm("Clear the document?", clearCurrentDoc);
+      },
     },
     // Chat
     {
@@ -1694,16 +1843,24 @@
       label: chat_open ? "Close chat" : "Open chat",
       group: "Chat",
       keywords: ["message", "talk", "chat"],
-      action: () => { chat_open = !chat_open; },
+      action: () => {
+        chat_open = !chat_open;
+      },
     },
     // Voice
     {
       id: "toggle-voice",
-      label: voice_active ? "End voice call" : incoming_voice_call ? "Join voice call" : "Start voice call",
+      label: voice_active
+        ? "End voice call"
+        : incoming_voice_call
+          ? "Join voice call"
+          : "Start voice call",
       group: "Voice",
       keywords: ["audio", "call", "phone", "mic", "voice"],
       disabled: !is_connected && !voice_active,
-      action: () => { void toggleVoice(); },
+      action: () => {
+        void toggleVoice();
+      },
     },
     // View
     {
@@ -1711,36 +1868,54 @@
       label: $focus_mode_store ? "Exit focus mode" : "Enter focus mode",
       group: "View",
       keywords: ["distraction", "zen", "fullscreen", "focus"],
-      action: () => { set_view_mode($focus_mode_store ? "text" : "focus"); },
+      action: () => {
+        set_view_mode($focus_mode_store ? "text" : "focus");
+      },
     },
     {
       id: "toggle-wide",
       label: $wide_mode_store ? "Exit wide layout" : "Enable wide layout",
       group: "View",
       keywords: ["full", "expand", "width", "wide"],
-      action: () => { wide_mode_store.toggle(); },
+      action: () => {
+        wide_mode_store.toggle();
+      },
     },
     {
       id: "theme-toggle",
       label: is_dark_theme ? "Switch to light mode" : "Switch to dark mode",
       group: "View",
       keywords: ["theme", "dark", "light", "mode", "bright", "night"],
-      action: () => { theme_store.setBuiltIn(is_dark_theme ? "light" : "dark"); },
+      action: () => {
+        theme_store.setBuiltIn(is_dark_theme ? "light" : "dark");
+      },
     },
     {
       id: "theme-custom",
       label: "Customize theme",
       group: "View",
       keywords: ["color", "tokens", "css", "palette", "theme", "custom"],
-      action: () => { show_theme_panel = true; },
+      action: () => {
+        show_theme_panel = true;
+      },
     },
     {
       id: "toggle-wake-lock",
       label: wake_lock_active ? "Disable stay awake" : "Enable stay awake",
       group: "View",
-      keywords: ["sleep", "screen", "awake", "wake", "lock", "prevent", "jiggler"],
+      keywords: [
+        "sleep",
+        "screen",
+        "awake",
+        "wake",
+        "lock",
+        "prevent",
+        "jiggler",
+      ],
       hidden: !wake_lock_supported,
-      action: () => { wake_lock_active ? void releaseWakeLock() : void enableWakeLock(); },
+      action: () => {
+        wake_lock_active ? void releaseWakeLock() : void enableWakeLock();
+      },
     },
     // App
     {
@@ -1748,7 +1923,9 @@
       label: "Open settings",
       group: "App",
       keywords: ["preferences", "config", "storage", "connection"],
-      action: () => { show_settings = true; },
+      action: () => {
+        show_settings = true;
+      },
     },
     {
       id: "user-guide",
@@ -1769,32 +1946,56 @@
       label: "Force reload",
       group: "App",
       keywords: ["refresh", "restart", "reload"],
-      action: () => { showConfirm("Force reload the page? Any unsynced changes may be lost.", () => { window.location.reload(); }); },
+      action: () => {
+        showConfirm(
+          "Force reload the page? Any unsynced changes may be lost.",
+          () => {
+            window.location.reload();
+          },
+        );
+      },
     },
     {
       id: "clear-all-docs",
       label: "Clear all documents",
       group: "App",
       keywords: ["delete", "erase", "wipe", "storage", "documents", "all"],
-      action: () => { showConfirm("Clear all saved documents? This cannot be undone.", clearAllDocs); },
+      action: () => {
+        showConfirm(
+          "Clear all saved documents? This cannot be undone.",
+          clearAllDocs,
+        );
+      },
     },
     {
       id: "clear-settings",
       label: "Clear settings",
       group: "App",
       keywords: ["reset", "delete", "theme", "preferences", "settings"],
-      action: () => { showConfirm("Clear all notapipe settings (theme, persistence)?", clearSettings); },
+      action: () => {
+        showConfirm(
+          "Clear all notapipe settings (theme, persistence)?",
+          clearSettings,
+        );
+      },
     },
     {
       id: "clear-everything",
       label: "Clear everything",
       group: "App",
       keywords: ["reset", "wipe", "delete", "all", "nuke"],
-      action: () => { showConfirm("Clear everything — all documents and settings? This cannot be undone.", clearEverything); },
+      action: () => {
+        showConfirm(
+          "Clear everything — all documents and settings? This cannot be undone.",
+          clearEverything,
+        );
+      },
     },
   ]);
   // True when we've started/joined a call but haven't received audio from any peer yet.
-  const voice_connecting = $derived(voice_active && peers_with_audio.size === 0);
+  const voice_connecting = $derived(
+    voice_active && peers_with_audio.size === 0,
+  );
   // True once audio is actually flowing from at least one peer.
   const voice_call_active = $derived(voice_active && peers_with_audio.size > 0);
   // Preview is suppressed in focus mode and code mode
@@ -1837,14 +2038,17 @@
           <span
             class="auto-badge"
             title="Auto-connect is on — will connect via signalling server automatically on launch"
-          >auto</span>
+            >auto</span
+          >
         {/if}
       </div>
       <div class="header-right">
         {#if wake_lock_active}
           <button
             class="persist-indicator"
-            onclick={() => { void releaseWakeLock(); }}
+            onclick={() => {
+              void releaseWakeLock();
+            }}
             title="Stay awake is on — screen will not sleep. Click to disable."
             aria-label="Stay awake active — screen will not sleep. Click to disable."
           >
@@ -1854,7 +2058,9 @@
         {#if $persistence_store}
           <button
             class="persist-indicator"
-            onclick={() => { show_settings = true; }}
+            onclick={() => {
+              show_settings = true;
+            }}
             title="Document content is saved in your browser (IndexedDB) — survives tab close. Click to manage storage settings."
             aria-label="Document persistence active — content is saved locally and survives tab close. Open storage settings."
           >
@@ -1886,9 +2092,13 @@
         <!-- Sun / moon — visible light/dark toggle (hidden on narrow screens; use ⌘K instead) -->
         <button
           class="icon-btn theme-toggle-btn"
-          onclick={() => { theme_store.setBuiltIn(is_dark_theme ? "light" : "dark"); }}
+          onclick={() => {
+            theme_store.setBuiltIn(is_dark_theme ? "light" : "dark");
+          }}
           title={is_dark_theme ? "Switch to light mode" : "Switch to dark mode"}
-          aria-label={is_dark_theme ? "Switch to light mode" : "Switch to dark mode"}
+          aria-label={is_dark_theme
+            ? "Switch to light mode"
+            : "Switch to dark mode"}
         >
           {#if is_dark_theme}
             <SunIcon />
@@ -1900,7 +2110,9 @@
           <button
             class="icon-btn"
             onclick={(e) => {
-              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+              const rect = (
+                e.currentTarget as HTMLElement
+              ).getBoundingClientRect();
               share_menu_anchor = {
                 top: rect.bottom + 4,
                 right: window.innerWidth - rect.right,
@@ -1924,7 +2136,9 @@
             onclick={async () => {
               deferred_install_prompt!.prompt();
               const { outcome } = await deferred_install_prompt!.userChoice;
-              if (outcome === "accepted") { deferred_install_prompt = null; }
+              if (outcome === "accepted") {
+                deferred_install_prompt = null;
+              }
             }}
             title="Install app"
             aria-label="Install app"
@@ -1945,10 +2159,12 @@
         <!-- ⌘K palette trigger — also serves as the tap target on mobile -->
         <button
           class="icon-btn palette-trigger"
-          onclick={() => { show_palette = true; }}
+          onclick={() => {
+            show_palette = true;
+          }}
           title="Command palette (⌘K)"
-          aria-label="Open command palette"
-        >⌘K</button>
+          aria-label="Open command palette">⌘K</button
+        >
         <div class="actions-menu-wrapper">
           <button
             class="icon-btn"
@@ -1990,17 +2206,25 @@
       <div class="room-name-wrapper">
         <button
           class="room-name-btn"
-          onclick={() => { show_room_menu = !show_room_menu; }}
+          onclick={() => {
+            show_room_menu = !show_room_menu;
+          }}
           title="Room: {room_id} — click to switch rooms"
           aria-haspopup="menu"
-          aria-expanded={show_room_menu}
-        >{room_id}</button>
+          aria-expanded={show_room_menu}>{room_id}</button
+        >
         {#if show_room_menu}
           <Menu
             placement="below"
             items={[
               { label: "New random room", action: selectRandom },
-              { label: "Go to room URL...", action: () => { show_room_menu = false; show_go_to_url = true; } },
+              {
+                label: "Go to room URL...",
+                action: () => {
+                  show_room_menu = false;
+                  show_go_to_url = true;
+                },
+              },
             ]}
           />
         {/if}
@@ -2010,14 +2234,20 @@
         class:active={copy_url_feedback === "success"}
         class:error={copy_url_feedback === "error"}
         onclick={copyRoomUrl}
-        title={copy_url_feedback === "success" ? "Copied!" : copy_url_feedback === "error" ? "Copy failed — clipboard access denied" : "Copy room URL"}
+        title={copy_url_feedback === "success"
+          ? "Copied!"
+          : copy_url_feedback === "error"
+            ? "Copy failed — clipboard access denied"
+            : "Copy room URL"}
         aria-label="Copy room link"
       >
         <CopyIcon copied={copy_url_feedback === "success"} />
       </button>
       <button
         class="copy-btn"
-        onclick={() => { show_url_qr = true; }}
+        onclick={() => {
+          show_url_qr = true;
+        }}
         title="Display current URL as QR code"
         aria-label="Display current URL as QR code"
       >
@@ -2025,7 +2255,10 @@
       </button>
       <HandleWidget handle={local_handle} onchange={changeHandle} />
       <PeerList
-        peers={Array.from(remote_handles.entries()).map(([id, handle]) => ({ id, handle }))}
+        peers={Array.from(remote_handles.entries()).map(([id, handle]) => ({
+          id,
+          handle,
+        }))}
       />
       <span class="room-bar-spacer" aria-hidden="true"></span>
       <div class="chat-btn-wrapper">
@@ -2047,7 +2280,9 @@
           {/if}
         </button>
         {#if chat_unread > 0}
-          <span class="chat-badge" aria-hidden="true">{chat_unread > 99 ? "99+" : chat_unread}</span>
+          <span class="chat-badge" aria-hidden="true"
+            >{chat_unread > 99 ? "99+" : chat_unread}</span
+          >
         {/if}
       </div>
       <button
@@ -2057,8 +2292,16 @@
         class:voice-ringing={incoming_voice_call}
         onclick={toggleVoice}
         disabled={!is_connected && !voice_active}
-        title={voice_active ? "End voice call" : incoming_voice_call ? "Join voice call" : "Start voice call"}
-        aria-label={voice_active ? "End voice call" : incoming_voice_call ? "Join voice call" : "Start voice call"}
+        title={voice_active
+          ? "End voice call"
+          : incoming_voice_call
+            ? "Join voice call"
+            : "Start voice call"}
+        aria-label={voice_active
+          ? "End voice call"
+          : incoming_voice_call
+            ? "Join voice call"
+            : "Start voice call"}
         aria-pressed={voice_active}
       >
         <PhoneIcon />
@@ -2070,12 +2313,25 @@
   {#if any_peer_relayed && !$rtc_config_store.turn_url && !relay_notice_dismissed}
     <div class="relay-notice-bar" role="status">
       <span>
-        Connection is relayed — traffic is forwarded through a third-party server (encrypted, but observable metadata).
-        File transfers over 5 MB are blocked.
-        <button class="relay-notice-link" onclick={() => { show_settings = true; settings_initial_section = "connection"; }}>Configure your own TURN server</button>
+        Connection is relayed — traffic is forwarded through a third-party
+        server (encrypted, but observable metadata). File transfers over 5 MB
+        are blocked.
+        <button
+          class="relay-notice-link"
+          onclick={() => {
+            show_settings = true;
+            settings_initial_section = "connection";
+          }}>Configure your own TURN server</button
+        >
         to remove this limit.
       </span>
-      <button class="relay-notice-dismiss" onclick={() => { relay_notice_dismissed = true; }} aria-label="Dismiss">✕</button>
+      <button
+        class="relay-notice-dismiss"
+        onclick={() => {
+          relay_notice_dismissed = true;
+        }}
+        aria-label="Dismiss">✕</button
+      >
     </div>
   {/if}
 
@@ -2083,7 +2339,13 @@
   {#if voice_warning_visible}
     <div class="voice-warning-bar" role="alert">
       <span>Voice call will end automatically in 15 minutes.</span>
-      <button class="voice-warning-dismiss" onclick={() => { voice_warning_visible = false; }} aria-label="Dismiss">✕</button>
+      <button
+        class="voice-warning-dismiss"
+        onclick={() => {
+          voice_warning_visible = false;
+        }}
+        aria-label="Dismiss">✕</button
+      >
     </div>
   {/if}
 
@@ -2120,11 +2382,19 @@
           class:success={copy_content_feedback === "success"}
           class:error={copy_content_feedback === "error"}
           onclick={copyEditorContent}
-          title={copy_content_feedback === "success" ? "Copied!" : copy_content_feedback === "error" ? "Copy failed — clipboard not available" : "Copy all text to clipboard"}
-          aria-label={copy_content_feedback === "error" ? "Copy failed — clipboard not available" : "Copy all text to clipboard"}
+          title={copy_content_feedback === "success"
+            ? "Copied!"
+            : copy_content_feedback === "error"
+              ? "Copy failed — clipboard not available"
+              : "Copy all text to clipboard"}
+          aria-label={copy_content_feedback === "error"
+            ? "Copy failed — clipboard not available"
+            : "Copy all text to clipboard"}
         >
           <CopyIcon copied={copy_content_feedback === "success"} size={13} />
-          <span>{copy_content_feedback === "success" ? "copied" : "copy all"}</span>
+          <span
+            >{copy_content_feedback === "success" ? "copied" : "copy all"}</span
+          >
         </button>
       {/if}
       <PeerToastBar toasts={peer_toasts} ondismiss={dismissPeerToast} />
@@ -2140,10 +2410,17 @@
         <!-- Wide: toggle full-width preview -->
         <button
           class="preview-expand-btn"
-          onclick={() => { preview_fullscreen = !preview_fullscreen; }}
-          aria-label={preview_fullscreen ? "Back to split view" : "Full-width preview"}
-          title={preview_fullscreen ? "Back to split view" : "Full-width preview"}
-        >{preview_fullscreen ? "⊟ Split" : "⤢ Full"}</button>
+          onclick={() => {
+            preview_fullscreen = !preview_fullscreen;
+          }}
+          aria-label={preview_fullscreen
+            ? "Back to split view"
+            : "Full-width preview"}
+          title={preview_fullscreen
+            ? "Back to split view"
+            : "Full-width preview"}
+          >{preview_fullscreen ? "⊟ Split" : "⤢ Full"}</button
+        >
         <MarkdownPreview content={preview_content} />
       </div>
     {/if}
@@ -2180,16 +2457,28 @@
     <div class="bottom-left">
       {#if !$focus_mode_store && !code_mode}
         {#if is_connected}
-          <button class="action-btn" onclick={connectViaQr} title="Add peer via QR">
+          <button
+            class="action-btn"
+            onclick={connectViaQr}
+            title="Add peer via QR"
+          >
             <QrCodeIcon size={14} />
             <span class="btn-text">Add peer via QR</span>
           </button>
-          <button class="action-btn" onclick={handleDisconnect} title="Disconnect">
+          <button
+            class="action-btn"
+            onclick={handleDisconnect}
+            title="Disconnect"
+          >
             <CloseIcon />
             <span class="btn-text">Disconnect</span>
           </button>
         {:else if is_waiting_for_peer}
-          <button class="action-btn" onclick={handleDisconnect} title="Stop waiting for peer">
+          <button
+            class="action-btn"
+            onclick={handleDisconnect}
+            title="Stop waiting for peer"
+          >
             <CloseIcon stroke_width={1.8} />
             <span class="btn-text">Stop waiting</span>
           </button>
@@ -2197,17 +2486,21 @@
           <div class="connect-wrapper">
             <button
               class="action-btn primary"
-              onclick={() => { show_connect_menu = !show_connect_menu; }}
+              onclick={() => {
+                show_connect_menu = !show_connect_menu;
+              }}
               aria-haspopup="menu"
               aria-expanded={show_connect_menu}
             >
               Connect ▾
             </button>
             {#if show_connect_menu}
-              <Menu items={[
-                { label: "Use signalling server", action: selectSignalling },
-                { label: "Use QR code (air-gapped)", action: selectQr },
-              ]} />
+              <Menu
+                items={[
+                  { label: "Use signalling server", action: selectSignalling },
+                  { label: "Use QR code (air-gapped)", action: selectQr },
+                ]}
+              />
             {/if}
           </div>
         {/if}
@@ -2220,7 +2513,9 @@
           class:sync-paused={sync_paused}
           onclick={toggleSync}
           title={sync_paused ? "Resume document sync" : "Pause document sync"}
-          aria-label={sync_paused ? "Resume document sync" : "Pause document sync"}
+          aria-label={sync_paused
+            ? "Resume document sync"
+            : "Pause document sync"}
           aria-pressed={sync_paused}
         >
           {#if sync_paused}
@@ -2247,29 +2542,29 @@
           class:active={current_view_mode === "text"}
           onclick={() => set_view_mode("text")}
           title="Plain text editor"
-          aria-pressed={current_view_mode === "text"}
-        >Text</button>
+          aria-pressed={current_view_mode === "text"}>Text</button
+        >
         <button
           class="view-btn"
           class:active={current_view_mode === "code"}
           onclick={() => set_view_mode("code")}
           title="Code editor mode"
-          aria-pressed={current_view_mode === "code"}
-        >Code</button>
+          aria-pressed={current_view_mode === "code"}>Code</button
+        >
         <button
           class="view-btn"
           class:active={current_view_mode === "markdown"}
           onclick={() => set_view_mode("markdown")}
           title="Markdown preview"
-          aria-pressed={current_view_mode === "markdown"}
-        >Markdown</button>
+          aria-pressed={current_view_mode === "markdown"}>Markdown</button
+        >
         <button
           class="view-btn"
           class:active={current_view_mode === "focus"}
           onclick={() => set_view_mode("focus")}
           title="Focus mode"
-          aria-pressed={current_view_mode === "focus"}
-        >Focus</button>
+          aria-pressed={current_view_mode === "focus"}>Focus</button
+        >
       </div>
     </div>
   </div>
@@ -2290,7 +2585,9 @@
     <GoToUrlDialog
       initial_value={window.location.href}
       onnavigate={goToRoomUrl}
-      oncancel={() => { show_go_to_url = false; }}
+      oncancel={() => {
+        show_go_to_url = false;
+      }}
     />
   {/if}
 
@@ -2305,13 +2602,19 @@
   {/if}
 
   {#if show_theme_panel}
-    <ThemePanel onclose={() => { show_theme_panel = false; }} />
+    <ThemePanel
+      onclose={() => {
+        show_theme_panel = false;
+      }}
+    />
   {/if}
 
   {#if show_palette}
     <CommandPalette
       commands={palette_commands}
-      onclose={() => { show_palette = false; }}
+      onclose={() => {
+        show_palette = false;
+      }}
     />
   {/if}
 
@@ -2330,7 +2633,11 @@
       anchor={share_menu_anchor}
       items={[
         { label: "Share room link", action: shareRoomLink },
-        { label: "Share document as file", action: shareDocument, hidden: !can_share },
+        {
+          label: "Share document as file",
+          action: shareDocument,
+          hidden: !can_share,
+        },
       ]}
     />
   {/if}
@@ -2340,19 +2647,112 @@
       anchor={actions_menu_anchor}
       min_width="200px"
       items={[
-        { label: "⌘ Command palette", action: () => { show_actions_menu = false; show_palette = true; } },
+        {
+          label: "⌘ Command palette",
+          action: () => {
+            show_actions_menu = false;
+            show_palette = true;
+          },
+        },
         { type: "divider" },
-        { label: "↑ Load text file", action: () => { show_actions_menu = false; if (ytext.length > 0) { showConfirm(`Load a file? This will replace the current document${is_connected ? " and sync the change to all connected peers" : ""}.`, importDocument); } else { importDocument(); } } },
-        { label: "↓ Save as text file", action: () => { show_actions_menu = false; exportDocument(); } },
-        { label: "⬌ Wide layout", checked: $wide_mode_store, hidden: !is_desktop, action: () => { show_actions_menu = false; wide_mode_store.toggle(); } },
-        { label: `⌂ Send file${!is_connected ? " (not connected)" : ""}`, disabled: !is_connected, action: () => { show_actions_menu = false; (document.getElementById("file-transfer-input") as HTMLInputElement).click(); } },
+        {
+          label: "↑ Load text file",
+          action: () => {
+            show_actions_menu = false;
+            if (ytext.length > 0) {
+              showConfirm(
+                `Load a file? This will replace the current document${is_connected ? " and sync the change to all connected peers" : ""}.`,
+                importDocument,
+              );
+            } else {
+              importDocument();
+            }
+          },
+        },
+        {
+          label: "↓ Save as text file",
+          action: () => {
+            show_actions_menu = false;
+            exportDocument();
+          },
+        },
+        {
+          label: "⬌ Wide layout",
+          checked: $wide_mode_store,
+          hidden: !is_desktop,
+          action: () => {
+            show_actions_menu = false;
+            wide_mode_store.toggle();
+          },
+        },
+        {
+          label: `⌂ Send file${!is_connected ? " (not connected)" : ""}`,
+          disabled: !is_connected,
+          action: () => {
+            show_actions_menu = false;
+            (
+              document.getElementById("file-transfer-input") as HTMLInputElement
+            ).click();
+          },
+        },
         { type: "divider" },
-        { label: "↺ Force reload", action: () => { show_actions_menu = false; showConfirm("Force reload the page? Any unsynced changes may be lost.", () => { window.location.reload(); }); } },
+        {
+          label: "↺ Force reload",
+          action: () => {
+            show_actions_menu = false;
+            showConfirm(
+              "Force reload the page? Any unsynced changes may be lost.",
+              () => {
+                window.location.reload();
+              },
+            );
+          },
+        },
         { type: "divider" },
-        { label: "Clear current document", danger: true, action: () => { show_actions_menu = false; showConfirm("Clear the current document? This cannot be undone.", clearCurrentDoc); } },
-        { label: "Clear all documents", danger: true, action: () => { show_actions_menu = false; showConfirm("Clear all saved documents? This cannot be undone.", clearAllDocs); } },
-        { label: "Clear settings", danger: true, action: () => { show_actions_menu = false; showConfirm("Clear all notapipe settings (theme, persistence)?", clearSettings); } },
-        { label: "Clear everything", danger: true, action: () => { show_actions_menu = false; showConfirm("Clear everything — all documents and settings? This cannot be undone.", clearEverything); } },
+        {
+          label: "Clear current document",
+          danger: true,
+          action: () => {
+            show_actions_menu = false;
+            showConfirm(
+              "Clear the current document? This cannot be undone.",
+              clearCurrentDoc,
+            );
+          },
+        },
+        {
+          label: "Clear all documents",
+          danger: true,
+          action: () => {
+            show_actions_menu = false;
+            showConfirm(
+              "Clear all saved documents? This cannot be undone.",
+              clearAllDocs,
+            );
+          },
+        },
+        {
+          label: "Clear settings",
+          danger: true,
+          action: () => {
+            show_actions_menu = false;
+            showConfirm(
+              "Clear all notapipe settings (theme, persistence)?",
+              clearSettings,
+            );
+          },
+        },
+        {
+          label: "Clear everything",
+          danger: true,
+          action: () => {
+            show_actions_menu = false;
+            showConfirm(
+              "Clear everything — all documents and settings? This cannot be undone.",
+              clearEverything,
+            );
+          },
+        },
       ] satisfies MenuItemConfig[]}
     />
   {/if}
@@ -2394,7 +2794,11 @@
   {/if}
 
   {#if show_url_qr}
-    <UrlQrModal onclose={() => { show_url_qr = false; }} />
+    <UrlQrModal
+      onclose={() => {
+        show_url_qr = false;
+      }}
+    />
   {/if}
 
   {#if show_share_filename_dialog}
@@ -2404,7 +2808,10 @@
       confirm_label="Share"
       error={share_filename_dialog_error}
       onconfirm={confirmShareDocument}
-      oncancel={() => { show_share_filename_dialog = false; share_filename_dialog_error = null; }}
+      oncancel={() => {
+        show_share_filename_dialog = false;
+        share_filename_dialog_error = null;
+      }}
     />
   {/if}
 </div>
@@ -2494,7 +2901,6 @@
     flex: 1;
   }
 
-
   .copy-btn {
     background: none;
     border: none;
@@ -2523,12 +2929,20 @@
 
   /* Chat icon swap helpers: narrow shows document icon (back-to-editor),
      wide always shows the chat icon in active/inactive states */
-  .icon-narrow-only { display: flex; }
-  .icon-wide-only   { display: none; }
+  .icon-narrow-only {
+    display: flex;
+  }
+  .icon-wide-only {
+    display: none;
+  }
 
   @media (min-width: 768px) {
-    .icon-narrow-only { display: none; }
-    .icon-wide-only   { display: flex; }
+    .icon-narrow-only {
+      display: none;
+    }
+    .icon-wide-only {
+      display: flex;
+    }
   }
 
   .chat-badge {
@@ -2560,8 +2974,13 @@
   }
 
   @keyframes voice-ring {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.35; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.35;
+    }
   }
 
   .copy-btn.voice-connecting {
@@ -2992,11 +3411,6 @@
     opacity: 0.7;
   }
 
-  .corner-btn.copy-error {
-    color: var(--color-status-error);
-    border-color: var(--color-status-error);
-  }
-
   .editor-copy {
     position: absolute;
     right: 1rem;
@@ -3036,12 +3450,6 @@
 
   :global(.focus-mode) .editor-copy:hover {
     opacity: 1;
-  }
-
-  .corner-btn.active {
-    opacity: 1;
-    color: var(--color-accent);
-    border-color: var(--color-accent);
   }
 
   .corner-btn.sync-paused {
@@ -3087,7 +3495,10 @@
     height: 2.5rem;
     padding: 0 0.6rem;
     cursor: pointer;
-    transition: opacity 0.15s, color 0.15s, border-color 0.15s;
+    transition:
+      opacity 0.15s,
+      color 0.15s,
+      border-color 0.15s;
     white-space: nowrap;
   }
 
